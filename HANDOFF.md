@@ -59,9 +59,10 @@
    - **阶段 9（后台批量章节与全本离线下载调度引擎）**：3工作槽并发下载池、实时进度广播、沙盒 chapters/{bookId}/*.txt 冷落盘、断网飞行模式秒开阅读、书架绿色离线徽标与 8 项真机证据链归档；
    - **阶段 10（本地图书生态与大文件流式 TXT/EPUB 解析引擎）**：GBK/UTF-8 字符集启发式探测、大文件正则智能分章、RandomAccessFile 字节偏移流式局部 Seek 读取彻底解决 OOM、纯 Dart archive EPUB 解包排版、WiFi 局域网 HTTP 极速传书网页服务、书架本地书籍标识与 7 项真机证据链归档；
    - **阶段 11（听书 TTS 自然语音朗读引擎与锁屏后台音频服务）**：原生 TTS 引擎适配与环境隔离、中文智能分句保真算法、单例响应式广播流、0.8x~2.0x 语速微调、15~60 分钟睡眠定时、Modern Soft UI 底部控制弹窗、底部悬浮迷你播放器动态音波律动与 5 项真机证据链归档；
-   - **阶段 12（读者划线批注、书签笔记系统与 WebDAV 多端增量云漫游）**：4 色高亮主题色彩、选段与批注心得绑定、书签增删查、出版级 Markdown 导出、WebDAV Basic Auth 通信、CRDT 风格三方增量合并、ReaderNotesSheet 28px Squircle 底部抽屉、AddAnnotationDialog 触控弹窗、WebDavConfigSheet 配置中心与 6 项 Redmi K60 真机证据链归档。
+   - **阶段 12（读者划线批注、书签笔记系统与 WebDAV 多端增量云漫游）**：4 色高亮主题色彩、选段与批注心得绑定、书签增删查、出版级 Markdown 导出、WebDAV Basic Auth 通信、CRDT 风格三方增量合并、ReaderNotesSheet 28px Squircle 底部抽屉、AddAnnotationDialog 触控弹窗、WebDavConfigSheet 配置中心与 6 项 Redmi K60 真机证据链归档；
+   - **阶段 13（纯血鸿蒙与 iOS 双端落地与适配）**：纯血鸿蒙 OpenHarmony NEXT `ohos/` 原生 Stage 架构工程、OpenHarmony-TPC 准入门禁实景 100% 审计、iOS 权限声明与 13.0+ 部署规范、多端形态断点与异形屏/挖孔屏安全区自适应、65/65 全量自动化测试全绿与 3 项 Redmi K60 真机证据链归档。
 2. **全量自动化验证存证**：
    - `flutter analyze`：0 issues found!
-   - `flutter test`：56/56 个测试用例 100% 全部通过。
-3. **当前攻坚任务（阶段 13）**：
-   - 纯血鸿蒙（HarmonyOS NEXT）与 iOS 双端落地与适配（OpenHarmony-TPC 适配、Pure Dart 架构门禁、多端自适应布局）。
+   - `flutter test`：65/65 个测试用例 100% 全部通过。
+3. **当前攻坚任务（阶段 14 - 最终交付）**：
+   - 生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版（ProGuard 混淆、资源瘦身、拆包与 GitHub Actions Release 发版流水线）。

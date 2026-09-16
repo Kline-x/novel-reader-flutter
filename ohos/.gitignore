@@ -1,0 +1,7 @@
+.hvigor/
+.idea/
+build/
+*.hap
+*.hsp
+*.app
+node_modules/

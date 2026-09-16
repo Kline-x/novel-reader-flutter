@@ -241,7 +241,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text('软件版本', style: TextStyle(color: colors.textPrimary)),
-                    trailing: Text('v1.0.0+1 (Flutter Clean Architecture)', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                    trailing: Text('v1.0.0+1 (iOS / Android / 纯血鸿蒙)', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
                   ),
                 ],
               ),

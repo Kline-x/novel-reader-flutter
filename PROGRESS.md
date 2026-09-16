@@ -21,8 +21,8 @@
 | **阶段 10** | 本地图书生态（大文件流式 TXT 智能分章、EPUB 精排解析、WiFi 网页传书） | ✅ **已完成** | 是 | GBK/UTF-8 自动识别、正则章回切分、EPUB 解包排版、WiFi 局域网传书服务、7项真机证据 |
 | **阶段 11** | 听书（TTS）自然语音朗读与锁屏后台音频服务 | ✅ **已完成** | 是 | 朗读语音播报、语速音调控制、后台音频播放与悬浮迷你播放胶囊、5项真机证据 |
 | **阶段 12** | 读者划线批注、书签笔记系统与 WebDAV 多端云漫游 | ✅ **已完成** | 是 | 4色划线高亮、段落批注、书签、笔记Markdown导出、WebDAV增量云漫游与CRDT三方合并、6项真机证据链归档 |
-| **阶段 13** | iOS 与纯血鸿蒙（HarmonyOS NEXT）双端落地与真机适配 | 🔄 **进行中** | 是 | 纯血鸿蒙 OpenHarmony-TPC 适配、iOS 沙盒与多端交互自适应 |
-| **阶段 14** | 生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版 | ⏳ **待开始** | 否 | ProGuard 混淆、资源压缩瘦身、多架构分包拆分、GitHub Releases 自动化发版 |
+| **阶段 13** | iOS 与纯血鸿蒙（HarmonyOS NEXT）双端落地与真机适配 | ✅ **已完成** | 是 | 纯血鸿蒙 OpenHarmony-TPC 架构、iOS 权限与部署规范、多端自适应引擎、65/65测试全绿、3项真机证据链归档 |
+| **阶段 14** | 生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版 | 🔄 **进行中** | 否 | ProGuard 混淆、资源压缩瘦身、多架构分包拆分、GitHub Releases 自动化发版 |
 
 ---
 
@@ -153,6 +153,40 @@
     - `phase12_06_webdav_sync_sheet_connected.png`：弹出「WebDAV 增量云漫游」配置抽屉，支持测试连接与立即增量漫游。
 - **真机验收标准与存证**：
   - 真实物理机 Redmi K60 6 项实测证据全部达标，书签点亮、划线批注、Markdown 导出、WebDAV 漫游配置链路完整，准予验收合入。
+
+---
+
+### 阶段 13：纯血鸿蒙（HarmonyOS NEXT）与 iOS 双端落地与适配
+- **开始时间**：2026-09-17 06:48
+- **完成时间**：2026-09-17 06:55
+- **目标设备**：Redmi K60 (`23013RK75C` / `22ecd9e7`，Android 15 API 35，3200×1440 2K AMOLED)
+- **当前负责人**：Antigravity
+- **本阶段交付内容**：
+  - [x] **纯血鸿蒙 (OpenHarmony NEXT) 原生 Stage 架构工程脚手架 (`ohos/`)**：
+    - `AppScope/app.json5`：规范声明 `bundleName: com.kline.novelreader.flutter`、versionCode/versionName、应用图标与标签引用；
+    - `build-profile.json5` / `hvigor/hvigor-config.json5`：匹配 OpenHarmony 5.0.0(12) 编译 SDK 与 Hvigor 自动化构建体系；
+    - `entry/src/main/module.json5`：声明 `EntryAbility`，注册必须系统级权限（`ohos.permission.INTERNET` 网络书源、`ohos.permission.READ_MEDIA` 本地图书导入、`ohos.permission.KEEP_BACKGROUND_RUNNING` 听书与离线常驻后台）；
+    - `EntryAbility.ets`：实现 ArkTS UIAbility 生命周期调度并集成 FlutterEngine 挂载能力；
+    - `Index.ets`：实现 ArkTS 主页面载入；古典金阁应用图标同步注入；
+  - [x] **iOS 平台深度合规与权限强化**：
+    - `ios/Runner/Info.plist`：配置本地化应用名称 `CFBundleDisplayName = 藏书阁`；
+    - 完整声明权限：`NSLocalNetworkUsageDescription`（WiFi局域网传书）、`NSBonjourServices`（`_http._tcp` 传书发现服务）、`UIBackgroundModes`（`audio` 听书后台播放）、`UISupportsDocumentBrowser` & `LSSupportsOpeningDocumentsInPlace`（iOS 文件 App 双向导入）；
+    - `ios/Podfile`：部署目标提升至 iOS 13.0+，规范架构支持；
+  - [x] **多端自适应引擎与异形屏安全区 (`PlatformAdaptiveHelper`)**：
+    - 设备形态感知与断点策略（手机、折叠屏展开态、大屏平板、桌面端）；
+    - 异形屏（刘海、挖孔、灵动岛）与底部小白条 (Home Indicator) 动态安全边距下压算法；
+    - 书架网格自适应列数（手机 3 列、小平板 4 列、大平板/桌面 5~6 列）；
+    - 设置页软件版本动态展示 `v1.0.0+1 (iOS / Android / 纯血鸿蒙)`；
+  - [x] **自动化跨平台与准入门禁回归**：
+    - 新增 `test/phase13_multiplatform_and_ohos_test.dart`（覆盖形态断点、网格列数、安全边距下压、OpenHarmony-TPC 准入算法与实景 pubspec.yaml 依赖 100% 审计、ohos/ 结构完整性校验、iOS Info.plist 权限合规校验）；
+    - `flutter analyze`：**0 issues found!**
+    - `flutter test`：**65/65 个测试用例 100% 全部通过**；
+  - [x] **真机 E2E 验证与 3 项高清证据链归档 (`docs/evidence/`)**：
+    - `phase13_01_shelf_grid_adaptive_portrait.png`：Redmi K60 书架自适应网格模式，3 列优雅排布与 Squircle 微阴影立体质感；
+    - `phase13_02_reader_adaptive_fullscreen.png`：Redmi K60 阅读器全屏自适应，顶部沉浸式避让居中挖孔摄像头，底部精准避让手势操作区；
+    - `phase13_03_settings_multiplatform_info.png`：个人与设置页完整展示「WebDAV 增量云备份 · 跨 iOS/Android/纯血鸿蒙同步阅读进度」与「软件版本 · v1.0.0+1 (iOS / Android / 纯血鸿蒙)」。
+- **真机验收标准与存证**：
+  - 真实物理机 Redmi K60 3 项实测证据全部达标，跨端形态与异形屏安全区工作正常，纯血鸿蒙与 iOS 工程配置齐全合规，准予验收合入。
 
 ---
 

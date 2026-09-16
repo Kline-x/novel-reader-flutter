@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
+import '../../../core/utils/platform_adaptive_helper.dart';
 import '../../local_books/presentation/wifi_transfer_dialog.dart';
 import '../../local_books/services/local_book_service.dart';
 import '../../reader/data/storage_service.dart';
@@ -541,8 +542,8 @@ class _ShelfPageState extends State<ShelfPage> {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 110.0),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: PlatformAdaptiveHelper.instance.getShelfGridColumnCount(context),
           mainAxisSpacing: 16.0,
           crossAxisSpacing: 14.0,
           childAspectRatio: 0.62,

@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "藏书阁小说阅读器主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "藏书阁阅读主入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "藏书阁"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "获取网络书源小说内容与封面"
+    },
+    {
+      "name": "storage_permission_reason",
+      "value": "导入与缓存本地 TXT 和 EPUB 电子书"
+    },
+    {
+      "name": "background_audio_permission_reason",
+      "value": "支持听书 TTS 语音朗读在锁屏或后台持续播放"
+    }
+  ]
+}
