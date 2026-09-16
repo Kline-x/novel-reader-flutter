@@ -4,6 +4,7 @@
 
 > **这份文档是自包含的**：读完即可开工，不必先看其他文档。
 > 项目物理路径：`/Users/yang/Documents/code/vibCoding/novel_reader_flutter`
+> 远程仓库地址：`git@github.com:Kline-x/novel-reader-flutter.git`
 > 视觉真源：`modern_soft_reader_prototype.html`（Modern Soft UI 高保真原型）
 > 进度记录：`PROGRESS.md`，开发纪律与提交规范：`AGENTS.md`。
 
@@ -14,6 +15,8 @@
 | 维度 | 规范与状态 |
 | :--- | :--- |
 | **代码仓库** | Git 本地仓库已初始化（`main`），独立于旧版 RN 工程，零历史包袱 |
+| **远程仓库** | `origin -> git@github.com:Kline-x/novel-reader-flutter.git` |
+| **流水线 CI** | GitHub Actions `.github/workflows/ci.yml`（代码检查、单测、Android/Web构建、鸿蒙准入门禁） |
 | **版本管理** | 严格遵循 SemVer 语义化版本：`v1.0.0+1` |
 | **分支模型** | `main`（稳定发布主干）、`develop`（日常集成主干）、`feat/*`（功能演进） |
 | **代码治理** | 接入 Conventional Commits 规范（`feat/fix/docs/test/refactor/chore`） |
@@ -46,6 +49,8 @@
 
 1. 等待本地 Flutter SDK 安装任务完毕，执行 `flutter doctor` 验证工具链；
 2. 执行 `flutter pub get` 拉取项目基线依赖；
-3. 将阶段 1 的骨架、配置与规范文件做首个规范化 Git Commit：
-   `feat(infra): 初始化 novel_reader_flutter 工程骨架与三端治理规范`
+3. 在 GitHub 建立同名仓库 `Kline-x/novel-reader-flutter` 并执行推送：
+   ```bash
+   git push -u origin main
+   ```
 4. 进入阶段 2：开发 Modern Soft UI 视觉原子组件与三胶囊悬浮 Dock。
