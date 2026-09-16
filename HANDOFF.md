@@ -45,12 +45,9 @@
 
 ---
 
-## 四、 下一步做什么（阶段 1 推进清单）
+## 四、 下一步做什么（阶段 2 与阶段 3 并行攻坚清单）
 
-1. 等待本地 Flutter SDK 安装任务完毕，执行 `flutter doctor` 验证工具链；
-2. 执行 `flutter pub get` 拉取项目基线依赖；
-3. 在 GitHub 建立同名仓库 `Kline-x/novel-reader-flutter` 并执行推送：
-   ```bash
-   git push -u origin main
-   ```
-4. 进入阶段 2：开发 Modern Soft UI 视觉原子组件与三胶囊悬浮 Dock。
+1. **子 Agent 1 (UI 专家)**：根据 `modern_soft_reader_prototype.html`，组装书架 Bento 看板、分类网格与个人设置中心页面；
+2. **子 Agent 2 (排版视口专家)**：基于 `ReaderLayoutEngine` 封装自绘 Viewport 与手势翻页状态机（水平平移 Slide、覆盖 Cover、3D 仿真 Curl、流式垂直滚动 Scroll）；
+3. **子 Agent 3 (书源数据专家)**：接入 `fast_gbk` 与多源网络请求嗅探管道，完成 12 组书源在线联调与冷热分离存储（SQLite + 沙盒文本）。
+
