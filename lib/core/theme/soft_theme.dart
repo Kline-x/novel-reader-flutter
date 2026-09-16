@@ -105,12 +105,12 @@ class SoftDecorations {
     if (colors.isDark) {
       return [
         BoxShadow(
-          color: Colors.white.withOpacity(0.03 * elevation),
+          color: Colors.white.withValues(alpha: 0.03 * elevation),
           offset: const Offset(-2, -2),
           blurRadius: 6 * elevation,
         ),
         BoxShadow(
-          color: Colors.black.withOpacity(0.45 * elevation),
+          color: Colors.black.withValues(alpha: 0.45 * elevation),
           offset: Offset(3 * elevation, 4 * elevation),
           blurRadius: 10 * elevation,
         ),
@@ -118,12 +118,12 @@ class SoftDecorations {
     }
     return [
       BoxShadow(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         offset: Offset(-3 * elevation, -3 * elevation),
         blurRadius: 8 * elevation,
       ),
       BoxShadow(
-        color: Colors.black.withOpacity(0.06 * elevation),
+        color: Colors.black.withValues(alpha: 0.06 * elevation),
         offset: Offset(4 * elevation, 5 * elevation),
         blurRadius: 12 * elevation,
       ),
@@ -135,7 +135,7 @@ class SoftDecorations {
     if (colors.isDark) {
       return [
         BoxShadow(
-          color: Colors.black.withOpacity(0.6),
+          color: Colors.black.withValues(alpha: 0.6),
           offset: const Offset(2, 2),
           blurRadius: 4,
         ),
@@ -143,12 +143,12 @@ class SoftDecorations {
     }
     return [
       BoxShadow(
-        color: Colors.black.withOpacity(0.08),
+        color: Colors.black.withValues(alpha: 0.08),
         offset: const Offset(2, 2),
         blurRadius: 4,
       ),
       BoxShadow(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         offset: const Offset(-2, -2),
         blurRadius: 4,
       ),

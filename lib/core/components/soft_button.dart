@@ -46,7 +46,7 @@ class _SoftButtonState extends State<SoftButton> {
         padding: widget.padding,
         decoration: BoxDecoration(
           color: widget.isActive
-              ? widget.colors.accent.withOpacity(widget.colors.isDark ? 0.25 : 0.15)
+              ? widget.colors.accent.withValues(alpha: widget.colors.isDark ? 0.25 : 0.15)
               : widget.colors.surface,
           borderRadius: BorderRadius.circular(effectiveRadius),
           border: Border.all(

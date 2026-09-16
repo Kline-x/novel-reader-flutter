@@ -32,7 +32,7 @@ class SoftSwitch extends StatelessWidget {
         padding: const EdgeInsets.all(padding),
         decoration: BoxDecoration(
           color: value
-              ? colors.accent.withOpacity(colors.isDark ? 0.4 : 0.25)
+              ? colors.accent.withValues(alpha: colors.isDark ? 0.4 : 0.25)
               : colors.card,
           borderRadius: BorderRadius.circular(trackHeight / 2),
           border: Border.all(
@@ -55,13 +55,13 @@ class SoftSwitch extends StatelessWidget {
                   color: value ? colors.accent : colors.surface,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       offset: const Offset(1, 2),
                       blurRadius: 4,
                     ),
                     if (!colors.isDark)
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         offset: const Offset(-1, -1),
                         blurRadius: 2,
                       ),

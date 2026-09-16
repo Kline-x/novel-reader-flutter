@@ -32,12 +32,12 @@ class FloatingDock extends StatelessWidget {
               height: 62.0,
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
               decoration: BoxDecoration(
-                color: colors.surface.withOpacity(colors.isDark ? 0.85 : 0.82),
+                color: colors.surface.withValues(alpha: colors.isDark ? 0.85 : 0.82),
                 borderRadius: BorderRadius.circular(36.0),
                 border: Border.all(
                   color: colors.isDark
-                      ? Colors.white.withOpacity(0.08)
-                      : Colors.white.withOpacity(0.6),
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.white.withValues(alpha: 0.6),
                   width: 1.2,
                 ),
                 boxShadow: SoftDecorations.softShadows(colors, elevation: 1.5),
@@ -76,12 +76,12 @@ class FloatingDock extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? (colors.isDark
-                  ? colors.accent.withOpacity(0.2)
-                  : colors.accent.withOpacity(0.15))
+                  ? colors.accent.withValues(alpha: 0.2)
+                  : colors.accent.withValues(alpha: 0.15))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(24.0),
           border: isSelected
-              ? Border.all(color: colors.accent.withOpacity(0.4), width: 1.0)
+              ? Border.all(color: colors.accent.withValues(alpha: 0.4), width: 1.0)
               : Border.all(color: Colors.transparent, width: 1.0),
         ),
         child: Row(
