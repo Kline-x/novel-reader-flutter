@@ -7,6 +7,10 @@ import '../../sources/services/builtin_sources.dart';
 import '../../tts/presentation/tts_control_sheet.dart';
 import '../../tts/presentation/tts_mini_player.dart';
 import '../../tts/services/tts_service.dart';
+import '../../notes/models/bookmark.dart';
+import '../../notes/presentation/add_annotation_dialog.dart';
+import '../../notes/presentation/reader_notes_sheet.dart';
+import '../../notes/services/notes_service.dart';
 import '../data/storage_service.dart';
 import '../services/download_service.dart';
 import 'catalog_drawer.dart';
@@ -44,6 +48,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   final StorageService _storage = StorageService();
   final DownloadService _downloadService = DownloadService();
   StreamSubscription<DownloadProgress>? _downloadSub;
+  final NotesService _notesService = NotesService();
+  bool _isCurrentPageBookmarked = false;
 
   late int _currentChapterIndex;
   late int _currentCharOffset;
@@ -584,8 +590,118 @@ class _ReaderScreenState extends State<ReaderScreen> {
     TtsControlSheet.show(context);
   }
 
+  Future<void> _checkBookmarkStatus() async {
+    final isBm = await _notesService.isBookmarked(
+      widget.bookId,
+      _currentChapterIndex,
+      _currentCharOffset,
+    );
+    if (mounted && isBm != _isCurrentPageBookmarked) {
+      setState(() => _isCurrentPageBookmarked = isBm);
+    }
+  }
+
+  void _toggleBookmark() async {
+    final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
+        ? _chapters[_currentChapterIndex].title
+        : '第${_currentChapterIndex + 1}章';
+
+    if (_isCurrentPageBookmarked) {
+      final bookmarks = await _notesService.getBookmarks(widget.bookId);
+      if (bookmarks.isNotEmpty) {
+        final match = bookmarks.firstWhere(
+          (b) => b.chapterIndex == _currentChapterIndex && (b.charOffset - _currentCharOffset).abs() < 100,
+          orElse: () => bookmarks.first,
+        );
+        await _notesService.removeBookmark(match.id);
+      }
+      setState(() => _isCurrentPageBookmarked = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('已移除书签'),
+            duration: Duration(milliseconds: 1000),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      final snippet = _currentParagraphs.isNotEmpty
+          ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
+          : currentTitle;
+      final bm = Bookmark(
+        id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
+        bookId: widget.bookId,
+        bookTitle: widget.bookTitle,
+        chapterIndex: _currentChapterIndex,
+        chapterTitle: currentTitle,
+        charOffset: _currentCharOffset,
+        snippet: snippet.length > 50 ? '${snippet.substring(0, 50)}...' : snippet,
+        createdAt: DateTime.now(),
+      );
+      await _notesService.saveBookmark(bm);
+      setState(() => _isCurrentPageBookmarked = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已添加书签：$currentTitle'),
+            duration: const Duration(milliseconds: 1200),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _openNotesSheet() {
+    ReaderNotesSheet.show(
+      context,
+      bookId: widget.bookId,
+      bookTitle: widget.bookTitle,
+      onNavigate: (chIdx, offset) {
+        _loadChapterContent(chIdx);
+        setState(() => _currentCharOffset = offset);
+      },
+    );
+  }
+
+  void _openAddAnnotation() async {
+    final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
+        ? _chapters[_currentChapterIndex].title
+        : '第${_currentChapterIndex + 1}章';
+    final snippet = _currentParagraphs.isNotEmpty
+        ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
+        : '精彩选段';
+    final excerpt = snippet.length > 60 ? snippet.substring(0, 60) : snippet;
+
+    final result = await AddAnnotationDialog.show(
+      context,
+      bookId: widget.bookId,
+      bookTitle: widget.bookTitle,
+      chapterIndex: _currentChapterIndex,
+      chapterTitle: currentTitle,
+      charStart: _currentCharOffset,
+      charEnd: _currentCharOffset + excerpt.length,
+      selectedText: excerpt,
+    );
+
+    if (result != null) {
+      await _notesService.saveAnnotation(result);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('已成功添加划线批注并存入笔记'),
+            duration: Duration(milliseconds: 1200),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isLocal = widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
     final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
         ? _chapters[_currentChapterIndex].title
         : '正在加载...';
@@ -603,7 +719,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
           onSelectChapter: (idx) {
             _loadChapterContent(idx);
           },
-          onOpenDownload: _openDownloadSheet,
+          onOpenDownload: isLocal ? null : _openDownloadSheet,
+          onOpenNotes: _openNotesSheet,
         ),
         body: Stack(
           children: [
@@ -622,15 +739,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
               },
               onOpenCatalog: _openCatalogDrawer,
               onOpenTypography: _openTypographyDrawer,
-              onOpenSourceSwitcher: _openSourceSwitcher,
-              onOpenDownload: _openDownloadSheet,
+              onOpenSourceSwitcher: isLocal ? null : _openSourceSwitcher,
+              onOpenDownload: isLocal ? null : _openDownloadSheet,
               onOpenTts: _openTts,
               onToggleTheme: _toggleNightMode,
               onNextChapter: _nextChapter,
               onPreviousChapter: _previousChapter,
               onProgressChanged: (charOffset) {
                 _currentCharOffset = charOffset;
+                _checkBookmarkStatus();
               },
+              onToggleBookmark: _toggleBookmark,
+              onOpenNotes: _openNotesSheet,
+              onAddAnnotation: _openAddAnnotation,
+              isBookmarked: _isCurrentPageBookmarked,
             ),
             const Positioned(
               left: 0,

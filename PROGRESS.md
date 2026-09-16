@@ -20,8 +20,8 @@
 | **阶段 9** | 后台批量章节与全本离线下载调度引擎 | ✅ **已完成** | 是 | 3工作槽并发调度、实时进度流、断网安全落盘、飞行模式秒开阅读、8项真机证据链归档 |
 | **阶段 10** | 本地图书生态（大文件流式 TXT 智能分章、EPUB 精排解析、WiFi 网页传书） | ✅ **已完成** | 是 | GBK/UTF-8 自动识别、正则章回切分、EPUB 解包排版、WiFi 局域网传书服务、7项真机证据 |
 | **阶段 11** | 听书（TTS）自然语音朗读与锁屏后台音频服务 | ✅ **已完成** | 是 | 朗读语音播报、语速音调控制、后台音频播放与悬浮迷你播放胶囊、5项真机证据 |
-| **阶段 12** | 读者划线批注、书签笔记系统与 WebDAV 多端云漫游 | 🔄 **进行中** | 否 | 划线高亮、段落批注、书签、WebDAV 增量云同步与全端漫游 |
-| **阶段 13** | iOS 与纯血鸿蒙（HarmonyOS NEXT）双端落地与真机适配 | ⏳ **待开始** | 是 | 纯血鸿蒙 OpenHarmony-TPC 适配、iOS 沙盒与多端交互自适应 |
+| **阶段 12** | 读者划线批注、书签笔记系统与 WebDAV 多端云漫游 | ✅ **已完成** | 是 | 4色划线高亮、段落批注、书签、笔记Markdown导出、WebDAV增量云漫游与CRDT三方合并、6项真机证据链归档 |
+| **阶段 13** | iOS 与纯血鸿蒙（HarmonyOS NEXT）双端落地与真机适配 | 🔄 **进行中** | 是 | 纯血鸿蒙 OpenHarmony-TPC 适配、iOS 沙盒与多端交互自适应 |
 | **阶段 14** | 生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版 | ⏳ **待开始** | 否 | ProGuard 混淆、资源压缩瘦身、多架构分包拆分、GitHub Releases 自动化发版 |
 
 ---
@@ -114,6 +114,45 @@
 - **真机验收标准与存证**：
   - 真实物理机 Redmi K60 5 项完整证据链齐全，TTS 播报、语速切换、睡眠倒计时、悬浮迷你条与后台播放体验丝滑，准予验收合入。
 
+---
+
+### 阶段 12：读者划线批注、书签笔记系统与 WebDAV 多端增量云漫游
+- **开始时间**：2026-09-17 06:20
+- **完成时间**：2026-09-17 06:46
+- **目标设备**：Redmi K60 (`23013RK75C` / `22ecd9e7`，Android 15 API 35，3200×1440 2K AMOLED)
+- **当前负责人**：Antigravity
+- **本阶段交付内容**：
+  - [x] **数据模型设计 (`Bookmark`, `Annotation`, `WebDavConfig`, `SyncPayload`)**：
+    - `Bookmark`：记录书签 ID、书籍 ID、章节索引、章节名、字符锚点偏移量 `charOffset`、选段摘要与创建时间戳；
+    - `Annotation`：支持 4 款高雅主题色彩（晨曦黄 `#FFC107`、薄荷绿 `#4CAF50`、天青蓝 `#2196F3`、茱萸粉 `#E91E63`），绑定 `charStart` 与 `charEnd` 绝对区间、划线选段内容与读者心得批注；
+    - `WebDavConfig`：存储 WebDAV 服务器 URL、用户名、密码、远端备份路径及自动同步开关；
+    - `SyncPayload`：聚合书架书籍元数据、书签合集与划线笔记的 JSON 增量同步协议数据包；
+  - [x] **数据持久化与服务层实现 (`NotesService`, `WebDavService`)**：
+    - `NotesService`：实现书签添加、查重、删除、切换，划线批注增删改查；提供出版级 Markdown 格式化导出能力（包含书籍信息、书签列表、高亮摘录及批注心得）；
+    - `WebDavService`：基于纯 Dart HTTP Basic Auth 协议实现 PROPFIND / PUT / GET / MKCOL 请求，支持连通性探测；内置 CRDT 风格三方增量合并算法（书架依时间戳与阅读深度智能合并、书签去重合并、批注按更新时间最新采信合并），测试模式安全隔离；
+  - [x] **Modern Soft UI 交互组件与弹窗**：
+    - `ReaderNotesSheet`：28px 连续曲率 Squircle 底部弹窗、书签与划线双 Tab 切换、精准章节一键回溯跳转、一键导出 Markdown 并复制剪贴板；
+    - `AddAnnotationDialog`：选段卡片呈现、4 色圆环高亮色彩选择器、心得批注输入框、SoftButton 触感确定；
+    - `WebDavConfigSheet`：配置表单卡片、网络探测指示器、立即增量漫游、实时对齐状态徽标；
+  - [x] **阅读器与设置中心全链路联动**：
+    - `ReaderViewport` 沉浸顶栏新增「书签」「笔记」「听书」功能区，右侧采用弹性水平滚动布局杜绝 2K 屏 19px 溢出；
+    - 正文长按手势直达「添加划线批注」对话框；
+    - `ReaderScreen` 智能联动本地书籍（本地书隐藏无效换源与离线按键），实时查询并刷新书签金黄激活态；
+    - `CatalogDrawer` 新增「笔记」快捷入口；
+    - `SettingsPage`「数据与多端同步」新增「WebDAV 增量云备份」卡片与「立即同步」入口；
+  - [x] **自动化测试回归**：
+    - 新增 `test/phase12_notes_and_webdav_test.dart`（覆盖模型序列化、NotesService CRUD 与去重、WebDavService 增量合并、ReaderNotesSheet 挂载与标签切换、AddAnnotationDialog 4色高亮提交、WebDavConfigSheet 连通测试）；
+    - `flutter analyze`：**0 issues found!**
+    - `flutter test`：**56/56 个测试用例 100% 全部通过**；
+  - [x] **真机 E2E 验证与 6 项高清证据链归档 (`docs/evidence/`)**：
+    - `phase12_01_reader_bookmark_and_notes_buttons.png`：Redmi K60 阅读器顶栏完整展示「书签」「笔记」「听书」按钮，排版精致无溢出；
+    - `phase12_02_reader_bookmarked_gold.png`：点击「书签」胶囊，点亮金黄色书签状态，底部弹出「已添加书签：前言」；
+    - `phase12_03_add_annotation_dialog.png`：长按正文弹出 Modern Soft UI「添加划线批注」弹窗，展示 4 色高亮选择器与批注框；
+    - `phase12_04_notes_sheet_bookmarks_and_export.png`：呼出「书签与笔记」抽屉，划线笔记 Tab 渲染晨曦黄选段，点击「导出笔记」复制 Markdown；
+    - `phase12_05_settings_webdav_entry.png`：设置页「数据与多端同步」展示「WebDAV 增量云备份」与「立即同步」微胶囊；
+    - `phase12_06_webdav_sync_sheet_connected.png`：弹出「WebDAV 增量云漫游」配置抽屉，支持测试连接与立即增量漫游。
+- **真机验收标准与存证**：
+  - 真实物理机 Redmi K60 6 项实测证据全部达标，书签点亮、划线批注、Markdown 导出、WebDAV 漫游配置链路完整，准予验收合入。
 
 ---
 

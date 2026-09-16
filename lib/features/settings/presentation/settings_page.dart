@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/soft_switch.dart';
 import '../../../core/theme/soft_theme.dart';
+import '../../sync/presentation/webdav_config_sheet.dart';
 
 /// 设置中心页面 (settings_page.dart)
 /// Modern Soft UI 风格：个人看板、物理音量翻页、WebDAV 云同步、WiFi 传书、缓存清理
@@ -15,18 +16,10 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _volumeKeyPaging = true;
   bool _screenAwake = true;
-  bool _isSyncing = false;
   String _cacheSize = '24.8 MB';
 
   void _triggerWebDavSync() async {
-    setState(() => _isSyncing = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) {
-      setState(() => _isSyncing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('WebDAV 增量同步完成：进度与书签已更新至云端')),
-      );
-    }
+    WebDavConfigSheet.show(context);
   }
 
   void _clearCache() async {
@@ -180,28 +173,26 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: Column(
                 children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Text('☁️', style: TextStyle(fontSize: 20.0)),
-                    title: Text('WebDAV 增量云备份', style: TextStyle(color: colors.textPrimary)),
-                    subtitle: Text('跨 iOS/Android/纯血鸿蒙同步阅读进度', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
-                    trailing: _isSyncing
-                        ? const SizedBox(
-                            width: 20.0,
-                            height: 20.0,
-                            child: CircularProgressIndicator(strokeWidth: 2.0),
-                          )
-                        : ElevatedButton(
-                            key: const ValueKey('btn_webdav_sync'),
-                            onPressed: _triggerWebDavSync,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: colors.accent,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                            ),
-                            child: const Text('立即同步', style: TextStyle(fontSize: 12.0)),
-                          ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => WebDavConfigSheet.show(context),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Text('☁️', style: TextStyle(fontSize: 20.0)),
+                      title: Text('WebDAV 增量云备份', style: TextStyle(color: colors.textPrimary)),
+                      subtitle: Text('跨 iOS/Android/纯血鸿蒙同步阅读进度', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                      trailing: ElevatedButton(
+                        key: const ValueKey('btn_webdav_sync'),
+                        onPressed: _triggerWebDavSync,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colors.accent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                        ),
+                        child: const Text('立即同步', style: TextStyle(fontSize: 12.0)),
+                      ),
+                    ),
                   ),
                   Divider(height: 1, color: colors.border),
                   GestureDetector(

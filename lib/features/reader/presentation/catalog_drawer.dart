@@ -10,6 +10,7 @@ class CatalogDrawer extends StatefulWidget {
   final int currentChapterIndex;
   final ValueChanged<int> onSelectChapter;
   final VoidCallback? onOpenDownload;
+  final VoidCallback? onOpenNotes;
 
   const CatalogDrawer({
     super.key,
@@ -17,6 +18,7 @@ class CatalogDrawer extends StatefulWidget {
     required this.currentChapterIndex,
     required this.onSelectChapter,
     this.onOpenDownload,
+    this.onOpenNotes,
   });
 
   @override
@@ -90,6 +92,21 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                     ),
                   ),
                   const SizedBox(width: 8.0),
+                  if (widget.onOpenNotes != null) ...[
+                    TextButton.icon(
+                      key: const ValueKey('catalog_drawer_notes_btn'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onOpenNotes!();
+                      },
+                      icon: const Icon(Icons.rate_review_rounded, size: 16),
+                      label: const Text('笔记'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                      ),
+                    ),
+                    const SizedBox(width: 4.0),
+                  ],
                   if (widget.onOpenDownload != null) ...[
                     TextButton.icon(
                       onPressed: () {
