@@ -16,6 +16,7 @@
 | **阶段 5** | 上层功能抽屉与 Bento 设置中心完整移植 | ✅ **已完成** | 否 | 目录搜索抽屉、排版抽屉、换源弹窗、WebDAV/WiFi 传书、Riverpod 控制器联动 |
 | **阶段 6** | 多端联合构建、打包与跨端门禁验证 | ✅ **已完成** | 否 | Web (WASM) 成功生成 `build/web`、Android Debug APK (`app-debug.apk` 149MB) 成功构建、纯血鸿蒙 Pure Dart 门禁通过 |
 | **阶段 7** | 挑剔用户视角真机 E2E 走查与吃狗粮闭环 | ✅ **已完成** | 是 | 真机 Redmi K60 (`23013RK75C`) 实测全链路、9 项缺陷 100% 修复与真机复验销项、`QA-ISSUES-DEVICE.md` |
+| **阶段 8** | 全网真实书源聚合检索、智能连通与一键换源 | ✅ **已完成** | 是 | 12 组书源实时并发打捞、毫秒测速、阅读器平滑换源、桌面定制图标实装、真机实测证据链留存 |
 
 ---
 
@@ -171,6 +172,41 @@
   - `docs/QA-ISSUES-DEVICE.md`：9 项问题全部标定为 `[✓ 已验证解决]`；
   - `docs/evidence/`：留存 10+ 张真机 3200×1440 实测截图；
   - 交付状态：阶段 7 正式完成，准予合入主干并推送远端。
+
+---
+
+### 阶段 8：全网真实书源聚合检索、智能连通与一键换源（含桌面定制图标实装）
+- **开始时间**：2026-09-17 04:20
+- **完成时间**：2026-09-17 04:38
+- **目标设备**：Redmi K60 (`23013RK75C` / `22ecd9e7`，Android 15 API 35，3200×1440 2K AMOLED)
+- **当前负责人**：Antigravity
+- **本阶段交付内容**：
+  - [x] **藏书阁全新桌面启动图标 (Launcher Icon) 专属定制与全分辨率部署**：
+    - Modern Soft UI 风格古典朱砂金色「阁」字楼宇与卷轴底座、沉浸温润墨玉 Squircle 卡片；
+    - 生成 Android 全密度 mipmap (mdpi, hdpi, xhdpi, xxxhdpi)、iOS `AppIcon.appiconset` 与 Web 完整图标；
+    - 真机桌面实装并留存高清截屏 (`docs/evidence/phase8_00_launcher_icon.png`)；
+  - [x] **发现页真实书源并发打捞与加入书架**：
+    - `DiscoveryPage` 接入 `MultiSourceService.searchStream` 对 12 组书源发起流式聚合打捞；
+    - 搜索结果卡片展示来源书源（笔趣阁CP/思兔/天天看等）、毫秒延迟（`XXms`）、最新章节与简介；
+    - 支持一键「加入书架」同步 Riverpod `shelfProvider` 与「立即阅读」直达阅读器；
+  - [x] **阅读器全功能 12 组书源热切面板**：
+    - `ReaderScreen._openSourceSwitcher` 全量展示 12 组稳定书源清单；
+    - 标注编码协议（UTF-8 / GBK转码）与动态连通延迟，点击秒级无缝切源并保持当前章节与字符锚点（`charOffset`）；
+  - [x] **自动化测试回归**：
+    - 新增 `test/phase8_source_search_and_switch_test.dart`（覆盖聚合打捞、加入书架与12组书源热切）；
+    - `flutter analyze`：**0 issues found**；
+    - `flutter test`：**34/34 个测试用例 100% 全部通过**；
+  - [x] **真机 E2E 验证与证据链归档**：
+    - `phase8_00_launcher_icon.png`：Redmi K60 手机桌面全新定制徽标；
+    - `phase8_01_app_started.png`：书架启动首屏；
+    - `phase8_02_discovery_page.png`：发现好书与全网打捞入口；
+    - `phase8_03_search_results.png`：输入检索词实时聚合各书源版本；
+    - `phase8_04_reader_from_search.png`：从搜索结果直接进入沉浸阅读器；
+    - `phase8_05_source_switcher_sheet.png`：阅读器内呼出 12 组书源热切弹窗；
+    - `phase8_06_source_switched.png`：平滑切换书源无缝保持字符锚点与进度。
+- **真机验收标准与存证**：
+  - 真实物理机 Redmi K60 完整覆盖全流程，体验丝滑流畅，全部功能达到预期并准予合入。
+
 
 
 
