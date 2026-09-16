@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../features/shelf/presentation/discovery_page.dart';
 import '../../features/shelf/presentation/shelf_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
@@ -16,13 +17,39 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
+  DateTime? _lastBackPressTime;
 
   @override
   Widget build(BuildContext context) {
     final colors = SoftTheme.of(context);
 
-    return Scaffold(
-      backgroundColor: colors.background,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+          return;
+        }
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('再按一次退出藏书阁'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: colors.card,
+              elevation: 4.0,
+            ),
+          );
+        } else {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
       body: Stack(
         children: [
           // 0. Modern Soft UI 环境光微晕染底图 (Calm Tech Ambient Glow)
@@ -97,6 +124,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           ),
         ],
       ),
+    ),
     );
   }
 }

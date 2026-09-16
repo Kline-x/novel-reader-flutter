@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../engine/page_models.dart';
 import '../engine/reader_layout_engine.dart';
@@ -21,6 +23,9 @@ class ReaderViewport extends StatefulWidget {
   final VoidCallback onOpenCatalog;
   final VoidCallback onOpenTypography;
   final VoidCallback onOpenSourceSwitcher;
+  final VoidCallback? onToggleTheme;
+  final VoidCallback? onNextChapter;
+  final VoidCallback? onPreviousChapter;
   final ValueChanged<int>? onProgressChanged;
 
   const ReaderViewport({
@@ -37,6 +42,9 @@ class ReaderViewport extends StatefulWidget {
     required this.onOpenCatalog,
     required this.onOpenTypography,
     required this.onOpenSourceSwitcher,
+    this.onToggleTheme,
+    this.onNextChapter,
+    this.onPreviousChapter,
     this.onProgressChanged,
   });
 
@@ -45,6 +53,8 @@ class ReaderViewport extends StatefulWidget {
 }
 
 class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProviderStateMixin {
+  static const MethodChannel _volumeChannel = MethodChannel('com.kline.novelreader/volume_key');
+
   late PageController _pageController;
   List<ChapterPage> _pages = [];
   int _currentPageIndex = 0;
@@ -68,27 +78,87 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
     });
 
     _pageController = PageController(initialPage: _currentPageIndex);
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    _volumeChannel.setMethodCallHandler(_handleVolumeCall);
   }
 
   @override
   void dispose() {
+    _volumeChannel.setMethodCallHandler(null);
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _clockTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
-  void _repaginate(Size size) {
-    if (size.width <= 0 || size.height <= 0) return;
+  Future<dynamic> _handleVolumeCall(MethodCall call) async {
+    if (call.method == 'volumeDown') {
+      _turnNext();
+    } else if (call.method == 'volumeUp') {
+      _turnPrevious();
+    }
+    return null;
+  }
 
-    final config = PagingConfig(
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.audioVolumeUp) {
+        _turnPrevious();
+        return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.audioVolumeDown) {
+        _turnNext();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @override
+  void didUpdateWidget(covariant ReaderViewport oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.fontSize != oldWidget.fontSize ||
+        widget.lineHeight != oldWidget.lineHeight ||
+        widget.chapterTitle != oldWidget.chapterTitle ||
+        widget.paragraphs != oldWidget.paragraphs ||
+        widget.turnMode != oldWidget.turnMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final renderBox = context.findRenderObject() as RenderBox?;
+          if (renderBox != null && renderBox.hasSize) {
+            _repaginate(renderBox.size);
+          }
+        }
+      });
+    }
+    if (widget.theme != oldWidget.theme) {
+      setState(() {});
+    }
+  }
+
+  PagingConfig _buildPagingConfig(Size size) {
+    final mediaQuery = MediaQuery.of(context);
+    final topPadding = mediaQuery.padding.top;
+    final bottomPadding = mediaQuery.padding.bottom;
+
+    // 智能避让打孔屏、状态栏与系统手势横条留白
+    final padTop = (topPadding > 0 ? topPadding + 14.0 : 42.0);
+    final padBottom = (bottomPadding > 0 ? bottomPadding + 14.0 : 32.0);
+
+    return PagingConfig(
       viewportWidth: size.width,
       viewportHeight: size.height,
       fontSize: widget.fontSize,
       lineHeight: widget.lineHeight,
       hPad: 20.0,
-      padTop: 24.0,
-      padBottom: 24.0,
+      padTop: padTop,
+      padBottom: padBottom,
     );
+  }
+
+  void _repaginate(Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+
+    final config = _buildPagingConfig(size);
 
     // 记录重排前的字符锚点
     final currentAnchorChar = _pages.isNotEmpty && _currentPageIndex < _pages.length
@@ -150,6 +220,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         setState(() => _currentPageIndex++);
         _notifyProgress();
       }
+    } else {
+      widget.onNextChapter?.call();
     }
   }
 
@@ -164,6 +236,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         setState(() => _currentPageIndex--);
         _notifyProgress();
       }
+    } else {
+      widget.onPreviousChapter?.call();
     }
   }
 
@@ -185,12 +259,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
           WidgetsBinding.instance.addPostFrameCallback((_) => _repaginate(size));
         }
 
-        final config = PagingConfig(
-          viewportWidth: size.width,
-          viewportHeight: size.height,
-          fontSize: widget.fontSize,
-          lineHeight: widget.lineHeight,
-        );
+        final config = _buildPagingConfig(size);
 
         return Scaffold(
           backgroundColor: widget.theme.background,
@@ -371,63 +440,75 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       top: 0,
       left: 0,
       right: 0,
-      child: Container(
-        padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 8.0,
-          bottom: 12.0,
-          left: 16.0,
-          right: 16.0,
-        ),
-        decoration: BoxDecoration(
-          color: (isDark ? const Color(0xFF1E2022) : Colors.white).withValues(alpha: 0.92),
-          border: Border(
-            bottom: BorderSide(
-              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
+          child: Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 8.0,
+              bottom: 12.0,
+              left: 16.0,
+              right: 16.0,
+            ),
+            decoration: BoxDecoration(
+              color: (isDark ? const Color(0xFF16181A) : Colors.white).withValues(alpha: 0.94),
+              border: Border(
+                bottom: BorderSide(
+                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  offset: const Offset(0, 4),
+                  blurRadius: 12,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back_ios_new, color: widget.theme.textColor, size: 20),
+                  onPressed: widget.onBack,
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: Text(
+                    widget.bookTitle,
+                    style: TextStyle(
+                      color: widget.theme.textColor,
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                // 换源按钮
+                GestureDetector(
+                  onTap: widget.onOpenSourceSwitcher,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.swap_horiz, size: 16, color: widget.theme.textColor),
+                        const SizedBox(width: 4.0),
+                        Text(
+                          '换源',
+                          style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        child: Row(
-          children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back_ios_new, color: widget.theme.textColor, size: 20),
-              onPressed: widget.onBack,
-            ),
-            const SizedBox(width: 8.0),
-            Expanded(
-              child: Text(
-                widget.bookTitle,
-                style: TextStyle(
-                  color: widget.theme.textColor,
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            // 换源按钮
-            GestureDetector(
-              onTap: widget.onOpenSourceSwitcher,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                decoration: BoxDecoration(
-                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.swap_horiz, size: 16, color: widget.theme.textColor),
-                    const SizedBox(width: 4.0),
-                    Text(
-                      '换源',
-                      style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -443,87 +524,94 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       bottom: 0,
       left: 0,
       right: 0,
-      child: Container(
-        padding: EdgeInsets.only(
-          top: 16.0,
-          bottom: MediaQuery.of(context).padding.bottom + 12.0,
-          left: 20.0,
-          right: 20.0,
-        ),
-        decoration: BoxDecoration(
-          color: (isDark ? const Color(0xFF1E2022) : Colors.white).withValues(alpha: 0.94),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              offset: const Offset(0, -4),
-              blurRadius: 16,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
+          child: Container(
+            padding: EdgeInsets.only(
+              top: 16.0,
+              bottom: MediaQuery.of(context).padding.bottom + 12.0,
+              left: 20.0,
+              right: 20.0,
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 进度滑块
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.skip_previous_rounded, color: widget.theme.textColor),
-                  onPressed: _turnPrevious,
-                ),
-                Expanded(
-                  child: Slider(
-                    value: current.toDouble(),
-                    min: 1.0,
-                    max: total.toDouble(),
-                    activeColor: const Color(0xFF5B7FFF),
-                    inactiveColor: widget.theme.subTextColor.withValues(alpha: 0.3),
-                    onChanged: (val) {
-                      final target = val.round() - 1;
-                      if (target != _currentPageIndex) {
-                        if (widget.turnMode == PageTurnMode.slide) {
-                          _pageController.jumpToPage(target);
-                        } else {
-                          setState(() => _currentPageIndex = target);
-                        }
-                      }
-                    },
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.skip_next_rounded, color: widget.theme.textColor),
-                  onPressed: _turnNext,
+            decoration: BoxDecoration(
+              color: (isDark ? const Color(0xFF16181A) : Colors.white).withValues(alpha: 0.94),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  offset: const Offset(0, -4),
+                  blurRadius: 18,
                 ),
               ],
             ),
-            const SizedBox(height: 8.0),
-            // 四大功能按键：目录、夜间、排版、设置
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildActionButton(
-                  icon: Icons.format_list_bulleted_rounded,
-                  label: '目录',
-                  onTap: widget.onOpenCatalog,
+                // 进度滑块
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.skip_previous_rounded, color: widget.theme.textColor),
+                      onPressed: widget.onPreviousChapter ?? _turnPrevious,
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: current.toDouble(),
+                        min: 1.0,
+                        max: total.toDouble(),
+                        activeColor: const Color(0xFF5B7FFF),
+                        inactiveColor: widget.theme.subTextColor.withValues(alpha: 0.3),
+                        onChanged: (val) {
+                          final target = val.round() - 1;
+                          if (target != _currentPageIndex) {
+                            if (widget.turnMode == PageTurnMode.slide) {
+                              _pageController.jumpToPage(target);
+                            } else {
+                              setState(() => _currentPageIndex = target);
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.skip_next_rounded, color: widget.theme.textColor),
+                      onPressed: widget.onNextChapter ?? _turnNext,
+                    ),
+                  ],
                 ),
-                _buildActionButton(
-                  icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  label: isDark ? '日间' : '夜间',
-                  onTap: () {},
-                ),
-                _buildActionButton(
-                  icon: Icons.text_fields_rounded,
-                  label: '排版',
-                  onTap: widget.onOpenTypography,
-                ),
-                _buildActionButton(
-                  icon: Icons.settings_rounded,
-                  label: '设置',
-                  onTap: () {},
+                const SizedBox(height: 8.0),
+                // 四大功能按键：目录、夜间、排版、设置
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildActionButton(
+                      icon: Icons.format_list_bulleted_rounded,
+                      label: '目录',
+                      onTap: widget.onOpenCatalog,
+                    ),
+                    _buildActionButton(
+                      icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      label: isDark ? '日间' : '夜间',
+                      onTap: () {
+                        widget.onToggleTheme?.call();
+                      },
+                    ),
+                    _buildActionButton(
+                      icon: Icons.text_fields_rounded,
+                      label: '排版',
+                      onTap: widget.onOpenTypography,
+                    ),
+                    _buildActionButton(
+                      icon: Icons.settings_rounded,
+                      label: '设置',
+                      onTap: widget.onOpenTypography,
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

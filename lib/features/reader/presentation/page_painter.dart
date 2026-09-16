@@ -38,6 +38,7 @@ class PagePainter extends CustomPainter {
     );
 
     // 2. 绘制页眉 (顶栏)：左侧章节名，右侧当前时间
+    final headerY = (config.padTop - 20.0).clamp(10.0, 60.0);
     if (page.pageIndex > 0 || !page.isFirstPage) {
       final headerLeftPainter = TextPainter(
         text: TextSpan(text: chapterTitle, style: subTextStyle),
@@ -45,7 +46,7 @@ class PagePainter extends CustomPainter {
         maxLines: 1,
         ellipsis: '...',
       )..layout(maxWidth: size.width - 120.0);
-      headerLeftPainter.paint(canvas, Offset(config.hPad, 12.0));
+      headerLeftPainter.paint(canvas, Offset(config.hPad, headerY));
 
       final headerRightPainter = TextPainter(
         text: TextSpan(text: currentTime, style: subTextStyle),
@@ -53,7 +54,7 @@ class PagePainter extends CustomPainter {
       )..layout();
       headerRightPainter.paint(
         canvas,
-        Offset(size.width - config.hPad - headerRightPainter.width, 12.0),
+        Offset(size.width - config.hPad - headerRightPainter.width, headerY),
       );
     }
 
@@ -98,7 +99,7 @@ class PagePainter extends CustomPainter {
     }
 
     // 4. 绘制页脚 (底栏)：左侧页码比例，右侧电量胶囊
-    final footerY = size.height - config.padBottom - 16.0;
+    final footerY = size.height - config.padBottom + 4.0;
     final footerText = '第 ${page.pageIndex + 1}/$totalPageCount 页';
     final footerLeftPainter = TextPainter(
       text: TextSpan(text: footerText, style: subTextStyle),

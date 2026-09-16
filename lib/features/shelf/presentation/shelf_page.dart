@@ -316,11 +316,14 @@ class _ShelfPageState extends State<ShelfPage> {
   /// 列表视图
   Widget _buildListView(List<BookItem> books, SoftColors colors) {
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 110.0),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final book = books[index];
+            final seal = book.title.startsWith('十') && book.title.length > 1
+                ? book.title.characters.take(2).string
+                : book.title.characters.first;
             return Padding(
               padding: const EdgeInsets.only(bottom: 12.0),
               child: SoftCard(
@@ -329,22 +332,28 @@ class _ShelfPageState extends State<ShelfPage> {
                 padding: const EdgeInsets.all(14.0),
                 child: Row(
                   children: [
-                    // 封面占位 Squircle (单字印章微浮雕风)
+                    // 封面占位 Squircle (双字古典印章风)
                     Container(
                       width: 52.0,
                       height: 72.0,
                       decoration: BoxDecoration(
                         color: colors.surface,
-                        borderRadius: BorderRadius.circular(12.0),
+                        borderRadius: BorderRadius.circular(10.0),
+                        border: Border.all(
+                          color: colors.accent.withValues(alpha: 0.35),
+                          width: 1.5,
+                        ),
                         boxShadow: SoftDecorations.softShadows(colors, elevation: 0.6),
                       ),
                       alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
                       child: Text(
-                        book.title.characters.first,
+                        seal,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
+                          fontSize: seal.length > 1 ? 14.0 : 18.0,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: seal.length > 1 ? 1.0 : 0.0,
                           color: colors.accent,
                         ),
                       ),
@@ -412,7 +421,7 @@ class _ShelfPageState extends State<ShelfPage> {
   /// 网格视图
   Widget _buildGridView(List<BookItem> books, SoftColors colors) {
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 110.0),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
@@ -423,6 +432,9 @@ class _ShelfPageState extends State<ShelfPage> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final book = books[index];
+            final seal = book.title.startsWith('十') && book.title.length > 1
+                ? book.title.characters.take(2).string
+                : book.title.characters.first;
             return GestureDetector(
               onTap: () => _openReader(book),
               child: Column(
@@ -435,15 +447,20 @@ class _ShelfPageState extends State<ShelfPage> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: colors.surface,
-                          borderRadius: BorderRadius.circular(16.0),
+                          borderRadius: BorderRadius.circular(14.0),
+                          border: Border.all(
+                            color: colors.accent.withValues(alpha: 0.35),
+                            width: 1.5,
+                          ),
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          book.title.characters.first,
+                          seal,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 20.0,
+                            fontSize: seal.length > 1 ? 16.0 : 20.0,
                             fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
                             color: colors.accent,
                           ),
                         ),
