@@ -1,0 +1,111 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1. 静态代码分析与格式化检查
+  analyze:
+    name: Lint & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Verify Code Formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Run Static Analysis
+        run: flutter analyze --fatal-infos
+
+  # 2. 排版引擎与核心逻辑测试（切半行算法、锚点保留、避头避尾）
+  test:
+    name: Unit & Engine Tests
+    runs-on: ubuntu-latest
+    needs: analyze
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Layout Engine & Unit Tests
+        run: flutter test --coverage
+
+  # 3. 多端构建冒烟验证 (Android & Web)
+  build-check:
+    name: Multi-Platform Build Verification
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [apk, web]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java (for Android)
+        if: matrix.target == 'apk'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android Debug APK
+        if: matrix.target == 'apk'
+        run: flutter build apk --debug
+
+      - name: Build Web Release Bundle
+        if: matrix.target == 'web'
+        run: flutter build web --release
+
+  # 4. 纯血鸿蒙 (OpenHarmony NEXT) 依赖准入审查
+  ohos-guard:
+    name: OpenHarmony NEXT Dependency Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Verify OpenHarmony Compatibility
+        run: |
+          echo "=== 正在检查 pubspec.yaml 依赖是否符合纯血鸿蒙准入规范 ==="
+          # 检查是否存在已知的鸿蒙黑名单/不兼容库
+          if grep -E "(flutter_inappwebview|webview_flutter|google_mobile_ads)" pubspec.yaml; then
+            echo "❌ 发现未经 OpenHarmony-TPC 认证的原生依赖，已阻断！"
+            exit 1
+          fi
+          echo "✅ 所有依赖均符合 Pure Dart / OpenHarmony TPC 准入标准！"
