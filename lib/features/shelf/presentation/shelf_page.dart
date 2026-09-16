@@ -1,31 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lpinyin/lpinyin.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
+import '../../local_books/presentation/wifi_transfer_dialog.dart';
+import '../../local_books/services/local_book_service.dart';
 import '../../reader/data/storage_service.dart';
 import '../../reader/presentation/reader_screen.dart';
-
-class BookItem {
-  final String id;
-  final String title;
-  final String author;
-  final String coverUrl;
-  final String lastChapter;
-  final double progress; // 0.0 ~ 1.0
-  final int charOffset;
-
-  const BookItem({
-    required this.id,
-    required this.title,
-    required this.author,
-    required this.coverUrl,
-    required this.lastChapter,
-    required this.progress,
-    this.charOffset = 0,
-  });
-
-  String get pinyin => PinyinHelper.getPinyinE(title, separator: '', defPinyin: '#');
-}
+import '../models/book_item.dart';
 
 /// 书架页面 (shelf_page.dart)
 /// 呈现 Modern Soft UI Bento 看板、拼音智能排序、实时过滤与书籍流/网格
@@ -44,7 +25,7 @@ class _ShelfPageState extends State<ShelfPage> {
   String _searchKeyword = '';
 
   final List<BookItem> _books = [
-    const BookItem(
+    BookItem(
       id: 'guimi_01',
       title: '诡秘之主',
       author: '爱潜水的乌贼',
@@ -53,7 +34,7 @@ class _ShelfPageState extends State<ShelfPage> {
       progress: 0.42,
       charOffset: 220,
     ),
-    const BookItem(
+    BookItem(
       id: 'shiri_02',
       title: '十日终焉',
       author: '杀虫队队员',
@@ -62,7 +43,7 @@ class _ShelfPageState extends State<ShelfPage> {
       progress: 0.18,
       charOffset: 0,
     ),
-    const BookItem(
+    BookItem(
       id: 'daoti_03',
       title: '道诡异仙',
       author: '狐尾的笔',
@@ -71,7 +52,7 @@ class _ShelfPageState extends State<ShelfPage> {
       progress: 0.65,
       charOffset: 450,
     ),
-    const BookItem(
+    BookItem(
       id: 'jianlai_04',
       title: '剑来',
       author: '烽火戏诸侯',
@@ -84,17 +65,47 @@ class _ShelfPageState extends State<ShelfPage> {
 
   final StorageService _storageService = StorageService();
   Map<String, int> _cachedCountMap = {};
+  StreamSubscription<ShelfBook>? _localBookSub;
 
   @override
   void initState() {
     super.initState();
-    _refreshAllCachedCounts();
+    _loadBooksFromStorage();
+    _localBookSub = LocalBookService().bookImportedStream.listen((_) {
+      _loadBooksFromStorage();
+    });
   }
 
   @override
   void dispose() {
+    _localBookSub?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadBooksFromStorage() async {
+    final saved = await _storageService.getBookshelf();
+    bool changed = false;
+    for (final s in saved) {
+      if (!_books.any((b) => b.id == s.bookId)) {
+        _books.insert(0, BookItem(
+          id: s.bookId,
+          title: s.title,
+          author: s.author,
+          coverUrl: s.coverUrl ?? '',
+          lastChapter: s.lastChapterTitle ?? '第一章',
+          progress: 0.0,
+          charOffset: s.currentCharOffset,
+          sourceId: s.sourceId,
+          filePath: s.filePath,
+        ));
+        changed = true;
+      }
+    }
+    if (changed && mounted) {
+      setState(() {});
+    }
+    await _refreshAllCachedCounts();
   }
 
   Future<void> _refreshAllCachedCounts() async {
@@ -117,10 +128,11 @@ class _ShelfPageState extends State<ShelfPage> {
           bookTitle: book.title,
           author: book.author,
           initialCharOffset: book.charOffset,
+          book: book,
         ),
       ),
     );
-    _refreshAllCachedCounts();
+    _loadBooksFromStorage();
   }
 
   @override
@@ -158,6 +170,40 @@ class _ShelfPageState extends State<ShelfPage> {
                       ),
                     ),
                     const Spacer(),
+                    // WiFi 传书入口按钮
+                    GestureDetector(
+                      key: const ValueKey('shelf_wifi_transfer_btn'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => WifiTransferDialog.show(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 7.0),
+                        decoration: BoxDecoration(
+                          color: colors.card,
+                          borderRadius: BorderRadius.circular(12.0),
+                          boxShadow: SoftDecorations.softShadows(colors, elevation: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.wifi_tethering_rounded,
+                              color: colors.accent,
+                              size: 16.0,
+                            ),
+                            const SizedBox(width: 4.0),
+                            Text(
+                              'WiFi传书',
+                              style: TextStyle(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.bold,
+                                color: colors.accent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10.0),
                     // 视图模式切换按钮
                     GestureDetector(
                       key: const ValueKey('shelf_view_toggle'),
@@ -397,7 +443,31 @@ class _ShelfPageState extends State<ShelfPage> {
                                   color: colors.textPrimary,
                                 ),
                               ),
-                              if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
+                              if (book.isLocal) ...[
+                                const SizedBox(width: 8.0),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: colors.accent.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
+                                        size: 10.0,
+                                        color: colors.accent,
+                                      ),
+                                      const SizedBox(width: 2.0),
+                                      Text(
+                                        book.isEpub ? '本地EPUB' : '本地TXT',
+                                        style: TextStyle(fontSize: 9.0, color: colors.accent, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
                                 const SizedBox(width: 8.0),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
@@ -532,7 +602,14 @@ class _ShelfPageState extends State<ShelfPage> {
                         '${(book.progress * 100).toInt()}% 已读',
                         style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
                       ),
-                      if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
+                      if (book.isLocal) ...[
+                        const Spacer(),
+                        Icon(
+                          book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
+                          size: 12.0,
+                          color: colors.accent,
+                        ),
+                      ] else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
                         const Spacer(),
                         const Icon(Icons.download_done_rounded, size: 12.0, color: Colors.green),
                       ],

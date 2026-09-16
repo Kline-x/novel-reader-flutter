@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../local_books/services/local_book_service.dart';
 import '../../shelf/models/book_item.dart';
 import '../../sources/services/builtin_sources.dart';
 import '../data/storage_service.dart';
@@ -89,7 +90,27 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
-  void _initChaptersAndContent() {
+  Future<void> _initChaptersAndContent() async {
+    final isLocal = widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
+    if (isLocal) {
+      final localToc = await LocalBookService().getToc(widget.bookId);
+      if (localToc.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _chapters = localToc.map((c) => ChapterItem(
+              index: c.index,
+              title: c.title,
+              url: 'local://${widget.bookId}/${c.index}',
+              isCached: true,
+            )).toList();
+            _currentSourceName = widget.book?.isEpub == true ? '本地EPUB' : '本地TXT';
+          });
+          await _loadChapterContent(_currentChapterIndex);
+        }
+        return;
+      }
+    }
+
     const count = 120;
     final chNames = _getChapterNamesForBook(widget.bookId);
     _chapters = List.generate(count, (i) {
@@ -118,6 +139,25 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _loadChapterContent(int chapterIndex) async {
+    final isLocal = widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
+    if (isLocal) {
+      final localParas = await LocalBookService().getChapterContent(widget.bookId, chapterIndex);
+      if (localParas.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _currentChapterIndex = chapterIndex;
+            _currentParagraphs = localParas;
+          });
+        }
+        await _storage.saveReadingProgress(
+          widget.bookId,
+          chapterIndex: chapterIndex,
+          charOffset: _currentCharOffset,
+        );
+        return;
+      }
+    }
+
     // 优先读取本地沙盒离线长文本缓存 (0ms 秒开)
     final cached = await _storage.getChapterContent(widget.bookId, chapterIndex);
     if (cached != null && cached.isNotEmpty) {
@@ -299,6 +339,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _openSourceSwitcher() {
+    final isLocal = widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
+    if (isLocal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('当前为本地导入图书，已是独占本地精排源'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     const sources = BuiltinSources.all;
 
     showModalBottomSheet(
@@ -472,6 +524,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _openDownloadSheet() {
+    final isLocal = widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
+    if (isLocal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('当前为本地图书，所有章节已在设备本地就绪，无需重复下载'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     DownloadSheet.show(
       context,
       bookId: widget.bookId,

@@ -16,6 +16,7 @@ class ShelfBook {
   final int totalChapters;
   final DateTime lastReadTime;
   final String? lastChapterTitle;
+  final String? filePath;
 
   const ShelfBook({
     required this.bookId,
@@ -28,7 +29,10 @@ class ShelfBook {
     this.totalChapters = 0,
     required this.lastReadTime,
     this.lastChapterTitle,
+    this.filePath,
   });
+
+  bool get isLocal => sourceId?.startsWith('local') == true || filePath != null;
 
   ShelfBook copyWith({
     String? bookId,
@@ -41,6 +45,7 @@ class ShelfBook {
     int? totalChapters,
     DateTime? lastReadTime,
     String? lastChapterTitle,
+    String? filePath,
   }) {
     return ShelfBook(
       bookId: bookId ?? this.bookId,
@@ -53,6 +58,7 @@ class ShelfBook {
       totalChapters: totalChapters ?? this.totalChapters,
       lastReadTime: lastReadTime ?? this.lastReadTime,
       lastChapterTitle: lastChapterTitle ?? this.lastChapterTitle,
+      filePath: filePath ?? this.filePath,
     );
   }
 
@@ -68,6 +74,7 @@ class ShelfBook {
       'totalChapters': totalChapters,
       'lastReadTime': lastReadTime.toIso8601String(),
       'lastChapterTitle': lastChapterTitle,
+      if (filePath != null) 'filePath': filePath,
     };
   }
 
@@ -85,6 +92,7 @@ class ShelfBook {
           ? DateTime.tryParse(json['lastReadTime'] as String) ?? DateTime.now()
           : DateTime.now(),
       lastChapterTitle: json['lastChapterTitle'] as String?,
+      filePath: json['filePath'] as String?,
     );
   }
 }

@@ -6,8 +6,16 @@ import 'core/theme/soft_theme.dart';
 
 import 'core/theme/theme_provider.dart';
 
+import 'features/local_books/services/local_book_service.dart';
+import 'features/local_books/services/wifi_transfer_server.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 绑定局域网 WiFi 传书与本地图书自动解析入架
+  WifiTransferServer().onFileReceived = (file) async {
+    await LocalBookService().importFile(file);
+  };
 
   // 设置透明沉浸式系统状态栏
   SystemChrome.setSystemUIOverlayStyle(

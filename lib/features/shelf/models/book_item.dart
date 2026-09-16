@@ -16,23 +16,37 @@ class BookItem {
   final String sourceName; // '笔趣阁CP', etc.
   final String description;
   final bool isPinned;
+  final String? sourceId;
+  final String? filePath;
 
-  const BookItem({
+  BookItem({
     required this.id,
     required this.title,
     required this.author,
     this.coverUrl,
-    required this.latestChapter,
-    required this.totalChapters,
+    String? latestChapter,
+    String? lastChapter,
+    this.totalChapters = 100,
     this.currentChapterIndex = 0,
-    this.currentCharOffset = 0,
+    int? currentCharOffset,
+    int? charOffset,
     this.progress = 0.0,
-    required this.lastReadTime,
+    DateTime? lastReadTime,
     this.category = '玄幻',
     this.sourceName = '笔趣阁CP',
     this.description = '',
     this.isPinned = false,
-  });
+    this.sourceId,
+    this.filePath,
+  })  : latestChapter = latestChapter ?? lastChapter ?? '第一章',
+        currentCharOffset = charOffset ?? currentCharOffset ?? 0,
+        lastReadTime = lastReadTime ?? DateTime.now();
+
+  bool get isLocal => sourceId?.startsWith('local') == true || filePath != null;
+  bool get isEpub => sourceId == 'local_epub' || (filePath?.toLowerCase().endsWith('.epub') ?? false);
+  String get pinyin => pinyinKey;
+  String get lastChapter => latestChapter;
+  int get charOffset => currentCharOffset;
 
   /// 过滤标点符号的书名用于拼音计算
   String get cleanTitle {

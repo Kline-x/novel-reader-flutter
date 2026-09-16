@@ -18,11 +18,56 @@
 | **阶段 7** | 挑剔用户视角真机 E2E 走查与吃狗粮闭环 | ✅ **已完成** | 是 | 真机 Redmi K60 (`23013RK75C`) 实测全链路、9 项缺陷 100% 修复与真机复验销项、`QA-ISSUES-DEVICE.md` |
 | **阶段 8** | 全网真实书源聚合检索、智能连通与一键换源 | ✅ **已完成** | 是 | 12 组书源实时并发打捞、毫秒测速、阅读器平滑换源、桌面定制图标实装、真机实测证据链留存 |
 | **阶段 9** | 后台批量章节与全本离线下载调度引擎 | ✅ **已完成** | 是 | 3工作槽并发调度、实时进度流、断网安全落盘、飞行模式秒开阅读、8项真机证据链归档 |
-| **阶段 10** | 本地图书生态（大文件流式 TXT 智能分章、EPUB 精排解析、WiFi 网页传书） | 🔄 **进行中** | 是 | GBK/UTF-8 自动识别、正则章回切分、EPUB 解包排版、WiFi 局域网传书服务 |
-| **阶段 11** | 听书（TTS）自然语音朗读与锁屏后台音频服务 | ⏳ **待开始** | 是 | 朗读语音播报、语速音调控制、后台音频播放与媒体通知中心控制 |
+| **阶段 10** | 本地图书生态（大文件流式 TXT 智能分章、EPUB 精排解析、WiFi 网页传书） | ✅ **已完成** | 是 | GBK/UTF-8 自动识别、正则章回切分、EPUB 解包排版、WiFi 局域网传书服务、7项真机证据 |
+| **阶段 11** | 听书（TTS）自然语音朗读与锁屏后台音频服务 | 🔄 **进行中** | 是 | 朗读语音播报、语速音调控制、后台音频播放与媒体通知中心控制 |
 | **阶段 12** | 读者划线批注、书签笔记系统与 WebDAV 多端云漫游 | ⏳ **待开始** | 否 | 划线高亮、段落批注、书签、WebDAV 增量云同步与全端漫游 |
 | **阶段 13** | iOS 与纯血鸿蒙（HarmonyOS NEXT）双端落地与真机适配 | ⏳ **待开始** | 是 | 纯血鸿蒙 OpenHarmony-TPC 适配、iOS 沙盒与多端交互自适应 |
 | **阶段 14** | 生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版 | ⏳ **待开始** | 否 | ProGuard 混淆、资源压缩瘦身、多架构分包拆分、GitHub Releases 自动化发版 |
+
+---
+
+### 阶段 10：本地图书生态（大文件流式 TXT 智能分章、EPUB 精排解析、WiFi 网页传书）
+- **开始时间**：2026-09-17 05:15
+- **完成时间**：2026-09-17 05:35
+- **目标设备**：Redmi K60 (`23013RK75C` / `22ecd9e7`，Android 15 API 35，3200×1440 2K AMOLED)
+- **当前负责人**：Antigravity
+- **本阶段交付内容**：
+  - [x] **纯 Dart 原生解包依赖 (`archive: ^4.3.0`)**：
+    - 引入零原生平台绑定的纯 Dart archive 库，实现 Zip/EPUB 解包能力，完美契合跨端与纯血鸿蒙准入门禁；
+  - [x] **TXT 智能流式分章引擎 (`TxtParserEngine`)**：
+    - UTF-8、BOM 与 GBK / GB18030 字符集启发式无损嗅探；
+    - 300 字符安全章回正则智能切分（覆盖「第X章/节/回/集/卷」、汉字大写数字、阿拉伯数字等）；
+    - 自动将前序内容归入「第 0 章 前言」；
+    - 基于 `RandomAccessFile` 字节偏移量（byteOffset / byteLength）毫秒级流式局部 Seek 读取，彻底解决几十兆乃至几百兆大文件 OOM 崩溃痛点；
+    - 2em 中文全角段落对齐清洗；
+  - [x] **EPUB 电子书精排解析引擎 (`EpubParserEngine`)**：
+    - 纯 Dart 级无损解包 container.xml、OPF 清单清单表、NCX 目录树与 Spine 线性阅读顺序；
+    - 封面图智能探测提取；XHTML 结构清理与标签剥离排版清洗；
+  - [x] **局域网 WiFi 极速网页传书服务 (`WifiTransferServer`)**：
+    - 基于轻量 `HttpServer.bind`，自动探测并绑定局域网 IPv4 地址；
+    - 内置 Modern Soft UI 响应式拖拽传书网页端（Squircle 卡片、呼吸灯指示器、原生文件选择与实时进度）；
+    - 支持电脑/手机浏览器访问 `http://{IP}:8888` 极速批量上传 `.txt` 与 `.epub` 文件；
+    - 服务端自动拦截处理 multipart/form-data 流，完成安全重名处理并触发 `onFileReceived` 钩子；
+  - [x] **本地图书沙盒管理与全端联动 (`LocalBookService`)**：
+    - 归档持久化：文件拷贝至 `local_books/`，分章目录元数据缓存至 `meta/{bookId}_toc.json`；
+    - 自动入架：解析完成后自动生成 `BookItem` 并存入 `StorageService.addBookToShelf`，广播通知书架即时重绘；
+    - `ShelfPage` 书架顶部挂载「WiFi传书」胶囊入口，卡片智能标注 `本地TXT` / `本地EPUB` 徽标；
+    - `ReaderScreen` 深度整合：优先读取本地字节流，本地图书智能隐藏无效换源与重复下载按钮；
+  - [x] **自动化测试回归**：
+    - 新增 `test/phase10_local_books_test.dart`（覆盖编码嗅探、分章定位、RandomAccessFile 局部流式读取、EPUB 解包、WiFi 服务与 UI 挂载）；
+    - `flutter analyze`：**0 issues found!**
+    - `flutter test`：**44/44 个测试用例 100% 全部通过**；
+  - [x] **真机 E2E 验证与 7 项高清证据链归档 (`docs/evidence/`)**：
+    - `phase10_01_shelf_wifi_button.png`：Redmi K60 书架顶栏展示「WiFi传书」微胶囊；
+    - `phase10_02_wifi_dialog_running.png`：点击弹出 Modern Soft UI 24px Squircle 局域网极速传书弹窗，展示 `http://192.168.1.2:8888` 与运行呼吸灯；
+    - `phase10_03_wifi_file_uploaded.png`：通过真实 HTTP 上传《凡人修仙传.txt》，弹窗实时展示「本次已接收 凡人修仙传.txt 已入架」，后台藏书量跃升至 5 本；
+    - `phase10_04_shelf_with_local_book.png`：关闭弹窗，书架实时渲染《凡人修仙传》卡片并标有 `本地TXT` 专属徽标；
+    - `phase10_05_local_reader_rendering.png`：点击进入阅读器，0ms 秒开首章「前言」，纯净排版与 2em 首行缩进完美呈现；
+    - `phase10_06_local_catalog_drawer.png`：呼出目录抽屉，展示完整智能切分的 4 个章节，且全部带有绿色本地离线图标；
+    - `phase10_07_local_reader_night_mode.png`：跳转「第二章 离家远行」并开启 OLED 深空纯黑夜间模式，文字排版舒适温润。
+- **真机验收标准与存证**：
+  - 真实物理机 Redmi K60 完整覆盖 WiFi 传书、自动分章、入架更新、流式秒开、章节跳转与夜间模式，7 项实测证据全部达标准予验收合入。
+
 
 ---
 
