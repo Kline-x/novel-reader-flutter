@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import '../../local_books/services/local_book_service.dart';
 import '../../shelf/models/book_item.dart';
 import '../../sources/services/builtin_sources.dart';
+import '../../tts/presentation/tts_control_sheet.dart';
+import '../../tts/presentation/tts_mini_player.dart';
+import '../../tts/services/tts_service.dart';
 import '../data/storage_service.dart';
 import '../services/download_service.dart';
 import 'catalog_drawer.dart';
@@ -546,6 +549,41 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
+  void _openTts() {
+    final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
+        ? _chapters[_currentChapterIndex].title
+        : '第${_currentChapterIndex + 1}章';
+    final fullText = _currentParagraphs.join('\n\n');
+
+    final tts = TtsService();
+    tts.onChapterComplete = () async {
+      if (_currentChapterIndex + 1 < _chapters.length) {
+        _nextChapter();
+        final newTitle = _chapters[_currentChapterIndex].title;
+        final newText = _currentParagraphs.join('\n\n');
+        await tts.playChapter(
+          bookId: widget.bookId,
+          bookTitle: widget.bookTitle,
+          chapterIndex: _currentChapterIndex,
+          chapterTitle: newTitle,
+          content: newText,
+        );
+      } else {
+        await tts.stop();
+      }
+    };
+
+    tts.playChapter(
+      bookId: widget.bookId,
+      bookTitle: widget.bookTitle,
+      chapterIndex: _currentChapterIndex,
+      chapterTitle: currentTitle,
+      content: fullText,
+    );
+
+    TtsControlSheet.show(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
@@ -567,29 +605,42 @@ class _ReaderScreenState extends State<ReaderScreen> {
           },
           onOpenDownload: _openDownloadSheet,
         ),
-        body: ReaderViewport(
-          paragraphs: _currentParagraphs,
-          bookTitle: widget.bookTitle,
-          chapterTitle: currentTitle,
-          initialCharOffset: _currentCharOffset,
-          turnMode: _turnMode,
-          theme: _theme,
-          fontSize: _fontSize,
-          lineHeight: _lineHeight,
-          onBack: () {
-            SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-            Navigator.of(context).maybePop();
-          },
-          onOpenCatalog: _openCatalogDrawer,
-          onOpenTypography: _openTypographyDrawer,
-          onOpenSourceSwitcher: _openSourceSwitcher,
-          onOpenDownload: _openDownloadSheet,
-          onToggleTheme: _toggleNightMode,
-          onNextChapter: _nextChapter,
-          onPreviousChapter: _previousChapter,
-          onProgressChanged: (charOffset) {
-            _currentCharOffset = charOffset;
-          },
+        body: Stack(
+          children: [
+            ReaderViewport(
+              paragraphs: _currentParagraphs,
+              bookTitle: widget.bookTitle,
+              chapterTitle: currentTitle,
+              initialCharOffset: _currentCharOffset,
+              turnMode: _turnMode,
+              theme: _theme,
+              fontSize: _fontSize,
+              lineHeight: _lineHeight,
+              onBack: () {
+                SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+                Navigator.of(context).maybePop();
+              },
+              onOpenCatalog: _openCatalogDrawer,
+              onOpenTypography: _openTypographyDrawer,
+              onOpenSourceSwitcher: _openSourceSwitcher,
+              onOpenDownload: _openDownloadSheet,
+              onOpenTts: _openTts,
+              onToggleTheme: _toggleNightMode,
+              onNextChapter: _nextChapter,
+              onPreviousChapter: _previousChapter,
+              onProgressChanged: (charOffset) {
+                _currentCharOffset = charOffset;
+              },
+            ),
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 12.0,
+              child: SafeArea(
+                child: TtsMiniPlayer(),
+              ),
+            ),
+          ],
         ),
       ),
     );

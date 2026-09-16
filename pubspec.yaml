@@ -21,6 +21,7 @@ dependencies:
   fast_gbk: ^1.0.0
   path_provider: ^2.1.2
   archive: ^4.3.0
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:

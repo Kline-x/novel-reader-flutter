@@ -24,6 +24,7 @@ class ReaderViewport extends StatefulWidget {
   final VoidCallback onOpenTypography;
   final VoidCallback onOpenSourceSwitcher;
   final VoidCallback? onOpenDownload;
+  final VoidCallback? onOpenTts;
   final VoidCallback? onToggleTheme;
   final VoidCallback? onNextChapter;
   final VoidCallback? onPreviousChapter;
@@ -44,6 +45,7 @@ class ReaderViewport extends StatefulWidget {
     required this.onOpenTypography,
     required this.onOpenSourceSwitcher,
     this.onOpenDownload,
+    this.onOpenTts,
     this.onToggleTheme,
     this.onNextChapter,
     this.onPreviousChapter,
@@ -533,6 +535,32 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                     ),
                   ),
                 ),
+                // 听书按钮
+                if (widget.onOpenTts != null) ...[
+                  const SizedBox(width: 8.0),
+                  GestureDetector(
+                    key: const ValueKey('reader_top_tts_btn'),
+                    onTap: widget.onOpenTts,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                      decoration: BoxDecoration(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.headphones_rounded, size: 16, color: widget.theme.textColor),
+                          const SizedBox(width: 4.0),
+                          Text(
+                            '听书',
+                            style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
