@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../shelf/models/book_item.dart';
 import '../../sources/services/builtin_sources.dart';
+import '../data/storage_service.dart';
+import '../services/download_service.dart';
 import 'catalog_drawer.dart';
+import 'download_sheet.dart';
 import 'reader_page_theme.dart';
 import 'reader_viewport.dart';
 import 'typography_drawer.dart';
@@ -33,6 +37,9 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final StorageService _storage = StorageService();
+  final DownloadService _downloadService = DownloadService();
+  StreamSubscription<DownloadProgress>? _downloadSub;
 
   late int _currentChapterIndex;
   late int _currentCharOffset;
@@ -55,14 +62,31 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _currentCharOffset = widget.initialCharOffset;
     _currentSourceName = widget.book?.sourceName ?? '笔趣阁CP';
 
+    _downloadSub = _downloadService.progressStream.listen((p) {
+      if (p.bookId == widget.bookId && mounted) {
+        _refreshCachedIndices();
+      }
+    });
+
     _initChaptersAndContent();
+    _refreshCachedIndices();
   }
 
   @override
   void dispose() {
+    _downloadSub?.cancel();
     // 退出阅读器时恢复系统原生 EdgeToEdge 布局
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  Future<void> _refreshCachedIndices() async {
+    final cached = await _storage.getDownloadedChapterIndices(widget.bookId);
+    if (mounted && cached.isNotEmpty) {
+      setState(() {
+        _chapters = _chapters.map((c) => c.copyWith(isCached: cached.contains(c.index))).toList();
+      });
+    }
   }
 
   void _initChaptersAndContent() {
@@ -74,7 +98,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         index: i,
         title: '第 ${i + 1} 章 $name',
         url: 'https://example.com/ch/$i',
-        isCached: i < 5,
+        isCached: false,
       );
     });
 
@@ -93,11 +117,30 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
-  void _loadChapterContent(int chapterIndex) {
-    setState(() {
-      _currentChapterIndex = chapterIndex;
-      _currentParagraphs = _getParagraphsForBookAndChapter(widget.bookId, chapterIndex);
-    });
+  Future<void> _loadChapterContent(int chapterIndex) async {
+    // 优先读取本地沙盒离线长文本缓存 (0ms 秒开)
+    final cached = await _storage.getChapterContent(widget.bookId, chapterIndex);
+    if (cached != null && cached.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _currentChapterIndex = chapterIndex;
+          _currentParagraphs = cached;
+        });
+      }
+      return;
+    }
+
+    final paragraphs = _getParagraphsForBookAndChapter(widget.bookId, chapterIndex);
+    if (mounted) {
+      setState(() {
+        _currentChapterIndex = chapterIndex;
+        _currentParagraphs = paragraphs;
+      });
+    }
+
+    // 异步自动落盘至冷存储
+    await _storage.saveChapterContent(widget.bookId, chapterIndex, paragraphs);
+    _refreshCachedIndices();
   }
 
   static List<String> _getParagraphsForBookAndChapter(String bookId, int chapterIndex) {
@@ -428,6 +471,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
   );
   }
 
+  void _openDownloadSheet() {
+    DownloadSheet.show(
+      context,
+      bookId: widget.bookId,
+      bookTitle: widget.bookTitle,
+      chapters: _chapters,
+      currentChapterIndex: _currentChapterIndex,
+      onCacheUpdated: _refreshCachedIndices,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
@@ -447,6 +501,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           onSelectChapter: (idx) {
             _loadChapterContent(idx);
           },
+          onOpenDownload: _openDownloadSheet,
         ),
         body: ReaderViewport(
           paragraphs: _currentParagraphs,
@@ -464,6 +519,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           onOpenCatalog: _openCatalogDrawer,
           onOpenTypography: _openTypographyDrawer,
           onOpenSourceSwitcher: _openSourceSwitcher,
+          onOpenDownload: _openDownloadSheet,
           onToggleTheme: _toggleNightMode,
           onNextChapter: _nextChapter,
           onPreviousChapter: _previousChapter,

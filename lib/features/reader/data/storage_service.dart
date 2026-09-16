@@ -283,6 +283,34 @@ class StorageService {
     return await file.exists();
   }
 
+  /// 获取某本书所有已下载章节的索引集合
+  Future<Set<int>> getDownloadedChapterIndices(String bookId) async {
+    final baseDir = await getCacheDirectory();
+    final bookDir = Directory('${baseDir.path}/$bookId');
+    if (!await bookDir.exists()) return {};
+
+    final indices = <int>{};
+    try {
+      await for (final entity in bookDir.list()) {
+        if (entity is File && entity.path.endsWith('.txt')) {
+          final fileName = entity.uri.pathSegments.last;
+          final idxStr = fileName.replaceAll('.txt', '');
+          final idx = int.tryParse(idxStr);
+          if (idx != null) {
+            indices.add(idx);
+          }
+        }
+      }
+    } catch (_) {}
+    return indices;
+  }
+
+  /// 获取某本书已下载的章节总数
+  Future<int> getDownloadedChaptersCount(String bookId) async {
+    final indices = await getDownloadedChapterIndices(bookId);
+    return indices.length;
+  }
+
   /// 统计单本书籍正文缓存占用字节数
   Future<int> getBookCacheSize(String bookId) async {
     final baseDir = await getCacheDirectory();

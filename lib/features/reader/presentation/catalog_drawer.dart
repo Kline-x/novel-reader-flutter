@@ -9,12 +9,14 @@ class CatalogDrawer extends StatefulWidget {
   final List<ChapterItem> chapters;
   final int currentChapterIndex;
   final ValueChanged<int> onSelectChapter;
+  final VoidCallback? onOpenDownload;
 
   const CatalogDrawer({
     super.key,
     required this.chapters,
     required this.currentChapterIndex,
     required this.onSelectChapter,
+    this.onOpenDownload,
   });
 
   @override
@@ -88,6 +90,20 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                     ),
                   ),
                   const SizedBox(width: 8.0),
+                  if (widget.onOpenDownload != null) ...[
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onOpenDownload!();
+                      },
+                      icon: const Icon(Icons.download_rounded, size: 16),
+                      label: const Text('缓存'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                      ),
+                    ),
+                    const SizedBox(width: 4.0),
+                  ],
                   // 正倒序切换按钮
                   TextButton.icon(
                     onPressed: () => setState(() => _isAscending = !_isAscending),

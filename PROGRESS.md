@@ -17,6 +17,12 @@
 | **阶段 6** | 多端联合构建、打包与跨端门禁验证 | ✅ **已完成** | 否 | Web (WASM) 成功生成 `build/web`、Android Debug APK (`app-debug.apk` 149MB) 成功构建、纯血鸿蒙 Pure Dart 门禁通过 |
 | **阶段 7** | 挑剔用户视角真机 E2E 走查与吃狗粮闭环 | ✅ **已完成** | 是 | 真机 Redmi K60 (`23013RK75C`) 实测全链路、9 项缺陷 100% 修复与真机复验销项、`QA-ISSUES-DEVICE.md` |
 | **阶段 8** | 全网真实书源聚合检索、智能连通与一键换源 | ✅ **已完成** | 是 | 12 组书源实时并发打捞、毫秒测速、阅读器平滑换源、桌面定制图标实装、真机实测证据链留存 |
+| **阶段 9** | 后台批量章节与全本离线下载调度引擎 | ✅ **已完成** | 是 | 3工作槽并发调度、实时进度流、断网安全落盘、飞行模式秒开阅读、8项真机证据链归档 |
+| **阶段 10** | 本地图书生态（大文件流式 TXT 智能分章、EPUB 精排解析、WiFi 网页传书） | 🔄 **进行中** | 是 | GBK/UTF-8 自动识别、正则章回切分、EPUB 解包排版、WiFi 局域网传书服务 |
+| **阶段 11** | 听书（TTS）自然语音朗读与锁屏后台音频服务 | ⏳ **待开始** | 是 | 朗读语音播报、语速音调控制、后台音频播放与媒体通知中心控制 |
+| **阶段 12** | 读者划线批注、书签笔记系统与 WebDAV 多端云漫游 | ⏳ **待开始** | 否 | 划线高亮、段落批注、书签、WebDAV 增量云同步与全端漫游 |
+| **阶段 13** | iOS 与纯血鸿蒙（HarmonyOS NEXT）双端落地与真机适配 | ⏳ **待开始** | 是 | 纯血鸿蒙 OpenHarmony-TPC 适配、iOS 沙盒与多端交互自适应 |
+| **阶段 14** | 生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版 | ⏳ **待开始** | 否 | ProGuard 混淆、资源压缩瘦身、多架构分包拆分、GitHub Releases 自动化发版 |
 
 ---
 
@@ -206,6 +212,48 @@
     - `phase8_06_source_switched.png`：平滑切换书源无缝保持字符锚点与进度。
 - **真机验收标准与存证**：
   - 真实物理机 Redmi K60 完整覆盖全流程，体验丝滑流畅，全部功能达到预期并准予合入。
+
+---
+
+### 阶段 9：后台批量章节与全本离线下载调度引擎
+- **开始时间**：2026-09-17 04:45
+- **完成时间**：2026-09-17 05:10
+- **目标设备**：Redmi K60 (`23013RK75C` / `22ecd9e7`，Android 15 API 35，3200×1440 2K AMOLED)
+- **当前负责人**：Antigravity
+- **本阶段交付内容**：
+  - [x] **存储层冷数据增强 (`StorageService`)**：
+    - 新增 `getDownloadedChapterIndices(String bookId)`，高效扫描本地沙盒 `chapters/{bookId}/*.txt` 检索已缓存索引集合；
+    - 新增 `getDownloadedChaptersCount(String bookId)` 快速统计单书离线章节总量；
+  - [x] **后台并发下载调度引擎 (`DownloadService`)**：
+    - 多工作槽池化调度（默认 3 个并发 worker 槽，防源站限流拉黑）；
+    - 支持「缓存后 20 章」「缓存后 50 章」「缓存全本章节」与「清空当前书籍缓存」；
+    - 响应式进度广播（Stream<DownloadProgress>）：包含已下载数、目标总数、即时章节名、瞬时下载速率（章/秒）与状态（idle/downloading/paused/completed/error）；
+    - 支持暂停、继续与安全取消，网络波动下自动重试与安全回退；
+  - [x] **Modern Soft UI 离线调度弹窗 (`DownloadSheet`)**：
+    - 连续曲率 Squircle 弹窗，显示已缓存概况（如 `已离线 50/120 章 (34 KB)`）；
+    - 金黄强调边框高亮「缓存后 50 章」黄金推荐选项，搭配「缓存后 20 章」「全本下载」与「清空缓存」软卡片；
+    - 下载状态下展示平滑进度条、瞬时速率与「取消下载」微触感按钮；
+  - [x] **阅读器、目录抽屉与书架全面联动**：
+    - `ReaderViewport` 沉浸式顶部操作栏挂载「离线」胶囊按钮，轻点即时唤起调度中心；
+    - `CatalogDrawer` 目录抽屉顶部增加一键离线快捷键，列表中所有已离线章节动态点亮优雅绿色下载标识 (`Icons.download_done_rounded`)；
+    - `ReaderScreen` 章节加载优先级优先命中沙盒长文本文件，实现 0ms 零延迟离线秒开；
+    - `ShelfPage` 书架卡片根据已下载状态动态展示绿色 `50章离线` 专属微胶囊；
+  - [x] **自动化测试全量回归**：
+    - 新增 `test/phase9_download_service_test.dart`（覆盖沙盒索引扫描、并发调度流、DownloadSheet 弹窗与 ReaderScreen 离线渲染）；
+    - `flutter analyze`：**0 issues found!**
+    - `flutter test`：**38/38 个测试用例 100% 全部通过**；
+  - [x] **真机 E2E 验证与 8 项高清证据链归档 (`docs/evidence/`)**：
+    - `phase9_01_shelf_initial.png`：Redmi K60 手机书架首屏挂载；
+    - `phase9_02_reader_menu.png`：阅读器沉浸式顶栏展示「离线」与「换源」按钮；
+    - `phase9_03_download_sheet.png`：唤起离线下载调度中心展示 4 组离线选项；
+    - `phase9_04_downloading_progress.png`：点击「缓存后 50 章」触发并发下载并展示实时速率；
+    - `phase9_05_download_completed.png`：50 章下载完成，微标实时更新至 `已离线 50/120 章 (34 KB)`；
+    - `phase9_06_catalog_cached_icons.png`：目录抽屉 50 个章节全部点亮绿色已离线对勾图标；
+    - `phase9_07_offline_reading.png`：开启真机飞行模式（断网），打开第 10 章离线正文秒开渲染无损；
+    - `phase9_08_shelf_cached_badge.png`：返回书架，《诡秘之主》卡片动态展示 `✓ 50章离线` 绿色胶囊微标。
+- **真机验收标准与存证**：
+  - 真实物理机 Redmi K60 8 项完整证据链齐全，飞行模式断网秒开，书架/目录/阅读器状态闭环，准予验收合入。
+
 
 
 

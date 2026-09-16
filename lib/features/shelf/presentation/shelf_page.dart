@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lpinyin/lpinyin.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
+import '../../reader/data/storage_service.dart';
 import '../../reader/presentation/reader_screen.dart';
 
 class BookItem {
@@ -81,14 +82,35 @@ class _ShelfPageState extends State<ShelfPage> {
     ),
   ];
 
+  final StorageService _storageService = StorageService();
+  Map<String, int> _cachedCountMap = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshAllCachedCounts();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  void _openReader(BookItem book) {
-    Navigator.of(context).push(
+  Future<void> _refreshAllCachedCounts() async {
+    final counts = <String, int>{};
+    for (final b in _books) {
+      counts[b.id] = await _storageService.getDownloadedChaptersCount(b.id);
+    }
+    if (mounted) {
+      setState(() {
+        _cachedCountMap = counts;
+      });
+    }
+  }
+
+  Future<void> _openReader(BookItem book) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReaderScreen(
           bookId: book.id,
@@ -98,6 +120,7 @@ class _ShelfPageState extends State<ShelfPage> {
         ),
       ),
     );
+    _refreshAllCachedCounts();
   }
 
   @override
@@ -364,13 +387,38 @@ class _ShelfPageState extends State<ShelfPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            book.title,
-                            style: TextStyle(
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.w700,
-                              color: colors.textPrimary,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                book.title,
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.textPrimary,
+                                ),
+                              ),
+                              if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
+                                const SizedBox(width: 8.0),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.download_done_rounded, size: 10.0, color: Colors.green),
+                                      const SizedBox(width: 2.0),
+                                      Text(
+                                        '${_cachedCountMap[book.id]}章离线',
+                                        style: const TextStyle(fontSize: 9.0, color: Colors.green, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 4.0),
                           Text(
@@ -478,9 +526,17 @@ class _ShelfPageState extends State<ShelfPage> {
                       color: colors.textPrimary,
                     ),
                   ),
-                  Text(
-                    '${(book.progress * 100).toInt()}% 已读',
-                    style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                  Row(
+                    children: [
+                      Text(
+                        '${(book.progress * 100).toInt()}% 已读',
+                        style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                      ),
+                      if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
+                        const Spacer(),
+                        const Icon(Icons.download_done_rounded, size: 12.0, color: Colors.green),
+                      ],
+                    ],
                   ),
                 ],
               ),

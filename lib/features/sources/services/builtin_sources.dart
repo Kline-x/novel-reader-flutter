@@ -319,4 +319,12 @@ class BuiltinSources {
       ),
     ),
   ];
+
+  static SourceRule? findByName(String name) {
+    try {
+      return all.firstWhere((s) => s.name == name);
+    } catch (_) {
+      return null;
+    }
+  }
 }

@@ -23,6 +23,7 @@ class ReaderViewport extends StatefulWidget {
   final VoidCallback onOpenCatalog;
   final VoidCallback onOpenTypography;
   final VoidCallback onOpenSourceSwitcher;
+  final VoidCallback? onOpenDownload;
   final VoidCallback? onToggleTheme;
   final VoidCallback? onNextChapter;
   final VoidCallback? onPreviousChapter;
@@ -42,6 +43,7 @@ class ReaderViewport extends StatefulWidget {
     required this.onOpenCatalog,
     required this.onOpenTypography,
     required this.onOpenSourceSwitcher,
+    this.onOpenDownload,
     this.onToggleTheme,
     this.onNextChapter,
     this.onPreviousChapter,
@@ -484,6 +486,31 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                // 离线缓存按钮
+                if (widget.onOpenDownload != null) ...[
+                  GestureDetector(
+                    onTap: widget.onOpenDownload,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                      decoration: BoxDecoration(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.download_rounded, size: 16, color: widget.theme.textColor),
+                          const SizedBox(width: 4.0),
+                          Text(
+                            '离线',
+                            style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8.0),
+                ],
                 // 换源按钮
                 GestureDetector(
                   onTap: widget.onOpenSourceSwitcher,
