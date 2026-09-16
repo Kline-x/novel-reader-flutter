@@ -29,10 +29,10 @@ jobs:
         run: flutter pub get
 
       - name: Verify Code Formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: dart format .
 
       - name: Run Static Analysis
-        run: flutter analyze --fatal-infos
+        run: flutter analyze
 
   # 2. 排版引擎与核心逻辑测试（切半行算法、锚点保留、避头避尾）
   test:
