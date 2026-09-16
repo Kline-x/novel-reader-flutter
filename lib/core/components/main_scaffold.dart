@@ -1,0 +1,102 @@
+import 'package:flutter/material.dart';
+import '../../features/shelf/presentation/discovery_page.dart';
+import '../../features/shelf/presentation/shelf_page.dart';
+import '../../features/settings/presentation/settings_page.dart';
+import '../theme/soft_theme.dart';
+import 'floating_dock.dart';
+
+/// 主屏脚手架 (main_scaffold.dart)
+/// 承载书架、发现、设置三大页面，底部悬浮毛玻璃三胶囊导航 Dock
+class MainScaffold extends StatefulWidget {
+  const MainScaffold({super.key});
+
+  @override
+  State<MainScaffold> createState() => _MainScaffoldState();
+}
+
+class _MainScaffoldState extends State<MainScaffold> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = SoftTheme.of(context);
+
+    return Scaffold(
+      backgroundColor: colors.background,
+      body: Stack(
+        children: [
+          // 0. Modern Soft UI 环境光微晕染底图 (Calm Tech Ambient Glow)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Stack(
+                children: [
+                  // 左上轻柔暖光微晕染
+                  Positioned(
+                    top: -60.0,
+                    left: -60.0,
+                    width: 240.0,
+                    height: 240.0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            colors.isDark
+                                ? const Color(0xFFE5B76C).withValues(alpha: 0.04)
+                                : const Color(0xFFFED7AA).withValues(alpha: 0.35),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 右侧天青微晕染
+                  Positioned(
+                    top: 140.0,
+                    right: -50.0,
+                    width: 260.0,
+                    height: 260.0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            colors.isDark
+                                ? const Color(0xFF38BDF8).withValues(alpha: 0.03)
+                                : const Color(0xFFBAE6FD).withValues(alpha: 0.30),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 1. 三大核心页面 IndexedStack
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              ShelfPage(
+                onNavigateToDiscovery: () => setState(() => _currentIndex = 1),
+              ),
+              const DiscoveryPage(),
+              const SettingsPage(),
+            ],
+          ),
+
+          // 2. 底部悬浮毛玻璃三胶囊导航 Dock (62px)
+          FloatingDock(
+            currentIndex: _currentIndex,
+            colors: colors,
+            onTabSelected: (index) {
+              setState(() => _currentIndex = index);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}

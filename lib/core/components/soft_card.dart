@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../theme/soft_theme.dart';
 
 /// Modern Soft UI 连续曲率微浮雕卡片 (SoftCard)
-class SoftCard extends StatelessWidget {
+/// 遵循 24px Squircle 连续曲率、双层环境微阴影与点击下陷 scale/inset 反馈
+class SoftCard extends StatefulWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry margin;
@@ -18,35 +19,56 @@ class SoftCard extends StatelessWidget {
     required this.colors,
     this.padding = const EdgeInsets.all(16.0),
     this.margin = EdgeInsets.zero,
-    this.radius = 20.0,
+    this.radius = SoftDecorations.squircleCardRadius,
     this.onTap,
     this.elevation = 1.0,
     this.border,
   });
 
   @override
+  State<SoftCard> createState() => _SoftCardState();
+}
+
+class _SoftCardState extends State<SoftCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    Widget cardContent = Container(
-      padding: padding,
+    final effectiveElevation = (_isPressed && widget.onTap != null)
+        ? widget.elevation * 0.35
+        : widget.elevation;
+
+    Widget cardContent = AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      padding: widget.padding,
       decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(radius),
-        border: border ?? Border.all(color: colors.border, width: 1.0),
-        boxShadow: SoftDecorations.softShadows(colors, elevation: elevation),
+        color: widget.colors.card,
+        borderRadius: BorderRadius.circular(widget.radius),
+        border: widget.border ?? Border.all(color: widget.colors.border, width: 1.0),
+        boxShadow: SoftDecorations.softShadows(widget.colors, elevation: effectiveElevation),
       ),
-      child: child,
+      child: widget.child,
     );
 
-    if (onTap != null) {
+    if (widget.onTap != null) {
       cardContent = GestureDetector(
-        onTap: onTap,
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.onTap,
         behavior: HitTestBehavior.opaque,
-        child: cardContent,
+        child: AnimatedScale(
+          scale: _isPressed ? 0.975 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          child: cardContent,
+        ),
       );
     }
 
-    if (margin != EdgeInsets.zero) {
-      return Padding(padding: margin, child: cardContent);
+    if (widget.margin != EdgeInsets.zero) {
+      return Padding(padding: widget.margin, child: cardContent);
     }
 
     return cardContent;

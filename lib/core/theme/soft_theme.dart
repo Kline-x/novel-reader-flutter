@@ -154,4 +154,56 @@ class SoftDecorations {
       ),
     ];
   }
+
+  /// 悬浮毛玻璃胶囊底栏专用阴影 (Floating Dock Shadow)
+  static List<BoxShadow> dockShadow(SoftColors colors) {
+    if (colors.isDark) {
+      return [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.5),
+          offset: const Offset(0, 10),
+          blurRadius: 24,
+          spreadRadius: -4,
+        ),
+      ];
+    }
+    return [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.08),
+        offset: const Offset(0, 14),
+        blurRadius: 28,
+        spreadRadius: -6,
+      ),
+      BoxShadow(
+        color: Colors.white.withValues(alpha: 0.8),
+        offset: const Offset(0, -1),
+        blurRadius: 6,
+      ),
+    ];
+  }
+
+  /// Squircle 连续曲率圆角常量
+  static const double squircleCardRadius = 24.0;
+  static const double squircleSubCardRadius = 16.0;
+  static const double pillRadius = 9999.0;
 }
+
+/// SoftTheme InheritedWidget，支持通过 SoftTheme.of(context) 获取当前 SoftColors
+class SoftTheme extends InheritedWidget {
+  final SoftColors colors;
+
+  const SoftTheme({
+    super.key,
+    required this.colors,
+    required super.child,
+  });
+
+  static SoftColors of(BuildContext context) {
+    final theme = context.dependOnInheritedWidgetOfExactType<SoftTheme>();
+    return theme?.colors ?? SoftColors.parchment;
+  }
+
+  @override
+  bool updateShouldNotify(SoftTheme oldWidget) => colors != oldWidget.colors;
+}
+

@@ -40,24 +40,29 @@ class _SoftButtonState extends State<SoftButton> {
       onTapCancel: widget.onPressed == null ? null : () => setState(() => _isPressed = false),
       onTap: widget.onPressed,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 100),
         curve: Curves.easeOutCubic,
-        padding: widget.padding,
-        decoration: BoxDecoration(
-          color: widget.isActive
-              ? widget.colors.accent.withValues(alpha: widget.colors.isDark ? 0.25 : 0.15)
-              : widget.colors.surface,
-          borderRadius: BorderRadius.circular(effectiveRadius),
-          border: Border.all(
-            color: widget.isActive ? widget.colors.accent : widget.colors.border,
-            width: widget.isActive ? 1.5 : 1.0,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutCubic,
+          padding: widget.padding,
+          decoration: BoxDecoration(
+            color: widget.isActive
+                ? widget.colors.accent.withValues(alpha: widget.colors.isDark ? 0.25 : 0.15)
+                : widget.colors.surface,
+            borderRadius: BorderRadius.circular(effectiveRadius),
+            border: Border.all(
+              color: widget.isActive ? widget.colors.accent : widget.colors.border,
+              width: widget.isActive ? 1.5 : 1.0,
+            ),
+            boxShadow: isDepressed
+                ? SoftDecorations.insetShadows(widget.colors)
+                : SoftDecorations.softShadows(widget.colors, elevation: 0.8),
           ),
-          boxShadow: isDepressed
-              ? SoftDecorations.insetShadows(widget.colors)
-              : SoftDecorations.softShadows(widget.colors, elevation: 0.8),
+          child: widget.child,
         ),
-        child: widget.child,
       ),
     );
   }

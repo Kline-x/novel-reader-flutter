@@ -45,9 +45,20 @@
 
 ---
 
-## 四、 下一步做什么（阶段 2 与阶段 3 并行攻坚清单）
+## 四、 阶段交付成果与当前工程就绪状态
 
-1. **子 Agent 1 (UI 专家)**：根据 `modern_soft_reader_prototype.html`，组装书架 Bento 看板、分类网格与个人设置中心页面；
-2. **子 Agent 2 (排版视口专家)**：基于 `ReaderLayoutEngine` 封装自绘 Viewport 与手势翻页状态机（水平平移 Slide、覆盖 Cover、3D 仿真 Curl、流式垂直滚动 Scroll）；
-3. **子 Agent 3 (书源数据专家)**：接入 `fast_gbk` 与多源网络请求嗅探管道，完成 12 组书源在线联调与冷热分离存储（SQLite + 沙盒文本）。
+1. **已交付阶段清单**：
+   - **阶段 1（工程基线与CI/CD）**：Flutter 3.47.4、CocoaPods 1.17.0、GitHub Actions 四层防御流水线、纯血鸿蒙 Pure Dart 准入门禁；
+   - **阶段 2（Modern Soft UI 体系）**：羊皮纸/水墨白/豆沙青/深空暗夜 4 款微晕染主题、Squircle 连续曲率、双层软阴影、62px 悬浮毛玻璃 Dock、书架 Bento 看板、`lpinyin` 汉字字典序重排、个人设置中心与 WiFi 局域网传书；
+   - **阶段 3（纯内存排版引擎）**：出版级 35 类避头避尾中文标点禁则表、2em 全角缩进、整数行绝对截断数学公式、字符级进度锚点（`charOffset` 二分反查无跳页）、4 种翻页动效（平移/覆盖/仿真/滚动）；
+   - **阶段 4（书源生态与冷热存储）**：12 组优质内置书源、Dio 字节流嗅探、`fast_gbk` 无损转码根治乱码、广告降噪清洗、SharedPreferences 热进度 + 沙盒 `chapters/{bookId}/{ch}.txt` 冷正文分级存储；
+   - **阶段 5（上层抽屉与状态联动）**：目录检索与章定位抽屉、排版控制抽屉（字号/行距/主题/翻页模式）、Riverpod 驱动排版与持久化联动；
+   - **阶段 6（多端构建与打包验证）**：Web WASM 产物编译成功（`build/web`）、Android Debug APK 成功构建（`build/app/outputs/flutter-apk/app-debug.apk` 149MB）。
+2. **全量自动化验证存证**：
+   - `flutter analyze`：0 issues found!
+   - `flutter test`：31/31 个测试用例 100% 全部通过。
+3. **后续演进方向**：
+   - 真机多端联调与性能 Profile（60/120fps 翻页掉帧分析）；
+   - 生产签名密钥配置与 Release APK / HAP 产物构建。
+
 

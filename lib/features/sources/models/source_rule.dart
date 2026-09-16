@@ -1,5 +1,6 @@
-/// 书源规则数据模型 (source_rule.dart)
-/// 兼容 Legado (开源阅读) 3.0 规范，统一跨平台抓取逻辑
+// 书源规则数据模型 (source_rule.dart)
+// 兼容 Legado (开源阅读) 3.0 规范，统一跨平台抓取逻辑
+library;
 
 class RuleSelector {
   final String selector;

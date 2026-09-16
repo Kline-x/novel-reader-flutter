@@ -1,4 +1,5 @@
-/// 阅读排版数据模型 (page_models.dart)
+// 阅读排版数据模型 (page_models.dart)
+library;
 
 /// 单行排版数据元
 class PageLineItem {
