@@ -266,6 +266,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   }
 
   void _performSearch(String rawQuery) {
+    FocusScope.of(context).unfocus();
     final query = rawQuery.trim();
     if (query.isEmpty) {
       _clearSearch();
@@ -293,8 +294,11 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               _searchResults.add(item);
             }
           }
-          // 按延迟择优排序
-          _searchResults.sort((a, b) => (a.latencyMs ?? 999).compareTo(b.latencyMs ?? 999));
+          // 智能关键词相关度优先，相同相关度按网络延迟择优重排
+          final ranked = MultiSourceService.rankResults(_searchResults, query);
+          _searchResults
+            ..clear()
+            ..addAll(ranked);
         });
       },
       onError: (_) {

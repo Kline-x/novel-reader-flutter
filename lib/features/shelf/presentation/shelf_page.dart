@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_card.dart';
+import '../../../core/components/swipe_reveal_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../../core/utils/platform_adaptive_helper.dart';
 import '../../local_books/presentation/wifi_transfer_dialog.dart';
@@ -85,8 +86,10 @@ class _ShelfPageState extends State<ShelfPage> {
       ));
     }
 
+    final savedGridView = await _storageService.getShelfGridView();
     if (mounted) {
       setState(() {
+        _isGridView = savedGridView;
         _books.clear();
         _books.addAll(loaded);
       });
@@ -383,7 +386,11 @@ class _ShelfPageState extends State<ShelfPage> {
                     // 视图模式切换按钮
                     GestureDetector(
                       key: const ValueKey('shelf_view_toggle'),
-                      onTap: () => setState(() => _isGridView = !_isGridView),
+                      onTap: () async {
+                        final next = !_isGridView;
+                        setState(() => _isGridView = next);
+                        await _storageService.setShelfGridView(next);
+                      },
                       child: Container(
                         padding: const EdgeInsets.all(8.0),
                         decoration: BoxDecoration(
@@ -558,8 +565,38 @@ class _ShelfPageState extends State<ShelfPage> {
     );
   }
 
+  Future<void> _confirmRemoveBook(BookItem book, SoftColors colors) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
+        title: Text('移出书架', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold)),
+        content: Text('确定要将《${book.title}》从书架中移除吗？', style: TextStyle(color: colors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('取消', style: TextStyle(color: colors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _removeBook(book);
+    }
+  }
+
   Future<void> _removeBook(BookItem book) async {
-    await _storageService.removeFromBookshelf(book.id);
+    await _storageService.removeFromBookshelf(book.id, title: book.title);
     await _loadBooksFromStorage();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -572,7 +609,7 @@ class _ShelfPageState extends State<ShelfPage> {
     }
   }
 
-  /// 列表视图（支持右滑/左滑出现删除按钮与真全彩渐变封面）
+  /// 列表视图（支持轻量阻尼滑动展露移出按钮与真全彩渐变封面）
   Widget _buildListView(List<BookItem> books, SoftColors colors) {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 110.0),
@@ -582,68 +619,9 @@ class _ShelfPageState extends State<ShelfPage> {
             final book = books[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 12.0),
-              child: Dismissible(
-                key: ValueKey('shelf_dismiss_${book.id}_$index'),
-                direction: DismissDirection.horizontal,
-                background: Container(
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.only(left: 20.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDC2626),
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
-                      SizedBox(width: 4.0),
-                      Text('删除', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    ],
-                  ),
-                ),
-                secondaryBackground: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDC2626),
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
-                      SizedBox(width: 4.0),
-                      Text('删除', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    ],
-                  ),
-                ),
-                confirmDismiss: (direction) async {
-                  return await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: colors.card,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
-                      title: Text('移出书架', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold)),
-                      content: Text('确定要将《${book.title}》从书架中移除吗？', style: TextStyle(color: colors.textSecondary)),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: Text('取消', style: TextStyle(color: colors.textSecondary)),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFDC2626),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-                          ),
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('删除'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                onDismissed: (_) => _removeBook(book),
+              child: SwipeRevealCard(
+                key: ValueKey('shelf_swipe_${book.id}_$index'),
+                onDelete: () => _confirmRemoveBook(book, colors),
                 child: SoftCard(
                   colors: colors,
                   onTap: () => _openReader(book),

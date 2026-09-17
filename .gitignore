@@ -83,3 +83,4 @@ migrate_working_dir/
 # Local cache & test evidence temporary files
 /docs/evidence/tmp/
 *.incomplete
+downloaded_apks/

@@ -122,6 +122,7 @@ class StorageService {
   static const String _prefixProgress = 'novel_reader_progress_';
   static const String _keySettings = 'novel_reader_user_settings';
   static const String _keyHasSeeded = 'novel_reader_has_seeded';
+  static const String _keyShelfGridView = 'novel_reader_shelf_grid_view';
 
   static final StreamController<void> _shelfUpdateController = StreamController<void>.broadcast();
   static Stream<void> get shelfUpdateStream => _shelfUpdateController.stream;
@@ -300,6 +301,18 @@ class StorageService {
     } catch (_) {
       return const ReaderSettings();
     }
+  }
+
+  /// 获取书架视图模式（网格/列表）
+  Future<bool> getShelfGridView() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_keyShelfGridView) ?? false;
+  }
+
+  /// 保存书架视图模式
+  Future<void> setShelfGridView(bool isGrid) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyShelfGridView, isGrid);
   }
 
   /// 添加书籍至书架（若已存在则更新元数据）

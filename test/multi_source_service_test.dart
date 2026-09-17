@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_reader_flutter/features/sources/models/book_search_result.dart';
 import 'package:novel_reader_flutter/features/sources/services/builtin_sources.dart';
 import 'package:novel_reader_flutter/features/sources/services/multi_source_service.dart';
 
@@ -162,6 +163,48 @@ void main() {
         expect(l.isAvailable, isTrue);
         expect(l.latencyMs, isNotNull);
       }
+    });
+
+    test('智能搜索相关度排序 (rankResults) 优先展示精准匹配而非仅看网络延迟', () {
+      final itemLowRelevanceFast = BookSearchResult(
+        id: '1',
+        title: '某某传',
+        author: '张三',
+        bookUrl: 'https://example.com/1',
+        sourceId: 'fast_source',
+        sourceName: '极速源',
+        latencyMs: 10,
+      );
+
+      final itemHighRelevanceSlow = BookSearchResult(
+        id: '2',
+        title: '诡秘之主',
+        author: '爱潜水的乌贼',
+        bookUrl: 'https://example.com/2',
+        sourceId: 'slow_source',
+        sourceName: '稳定源',
+        latencyMs: 350,
+      );
+
+      final itemPrefixMatch = BookSearchResult(
+        id: '3',
+        title: '诡秘：外神竟是我自己',
+        author: '网友',
+        bookUrl: 'https://example.com/3',
+        sourceId: 'med_source',
+        sourceName: '普通源',
+        latencyMs: 100,
+      );
+
+      final ranked = MultiSourceService.rankResults(
+        [itemLowRelevanceFast, itemPrefixMatch, itemHighRelevanceSlow],
+        '诡秘之主',
+      );
+
+      // 精确匹配《诡秘之主》必须排在第一位，即使延迟高
+      expect(ranked.first.title, '诡秘之主');
+      expect(ranked[1].title, '诡秘：外神竟是我自己');
+      expect(ranked.last.title, '某某传');
     });
   });
 }
