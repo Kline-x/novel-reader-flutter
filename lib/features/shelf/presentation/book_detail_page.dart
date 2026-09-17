@@ -5,6 +5,7 @@ import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
 import '../../reader/presentation/reader_screen.dart';
+import '../../reader/services/chapter_helper.dart';
 import '../../sources/models/chapter_item.dart';
 import '../../sources/models/source_rule.dart';
 import '../../sources/services/builtin_sources.dart';
@@ -95,24 +96,25 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           );
 
       String? targetUrl = _book.bookUrl;
+      final lowerTitle = ChapterHelper.cleanTitle(_book.title).toLowerCase();
       if (targetUrl == null || targetUrl.isEmpty || targetUrl.contains('biquge.company')) {
-        if (_book.title.contains('诡秘之主')) {
+        if (lowerTitle.contains('诡秘之主') || lowerTitle.contains('guimi')) {
           targetUrl = 'https://www.biqugezwx.com/50/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-        } else if (_book.title.contains('十日终焉')) {
+        } else if (lowerTitle.contains('十日终焉') || lowerTitle.contains('shiri')) {
           targetUrl = 'https://www.biqugezwx.com/745/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-        } else if (_book.title.contains('道诡异仙')) {
+        } else if (lowerTitle.contains('道诡异仙') || lowerTitle.contains('daoti')) {
           targetUrl = 'https://www.biqugezwx.com/334/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-        } else if (_book.title.contains('剑来')) {
+        } else if (lowerTitle.contains('剑来') || lowerTitle.contains('jianlai')) {
           targetUrl = 'https://www.biqugezwx.com/324/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
         }
       }
 
       if (targetUrl == null || targetUrl.isEmpty) {
-        final cleanTitle = _book.cleanTitle;
+        final cleanTitle = ChapterHelper.cleanTitle(_book.title);
         final searchResults = await _parser.searchBooks(rule, cleanTitle).timeout(const Duration(seconds: 5));
         if (searchResults.isNotEmpty) {
           final matched = searchResults.firstWhere(
@@ -138,9 +140,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
       debugPrint('详情页目录拉取失败: $e');
     }
 
-    // 3. 兜底保障
-    final names = ['第一章 序章', '第二章 风云际会', '第三章 局势突变', '第四章 破晓之剑', '第五章 迷雾渐散'];
-    _chapters = List.generate(names.length, (i) => ChapterItem(index: i, title: names[i], url: ''));
+    // 3. 兜底保障：使用与阅读器完全一致的 12 章连贯精品目录
+    _chapters = ChapterHelper.getFallbackChapters(_book.title);
+    await _storageService.saveBookToc(_book.id, _chapters);
     if (mounted) {
       setState(() => _isLoadingToc = false);
     }

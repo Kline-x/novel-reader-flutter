@@ -99,6 +99,58 @@ void main() {
         reason: '新页面必须严密包含该字符偏移锚点，保证读者阅读视口精准不跳脱！',
       );
     });
+
+    test('页面交界处字符偏移无缝映射与边界包含验证 (解决翻到第2页退出重进误判第1页缺陷)', () {
+      const page0 = ChapterPage(
+        pageIndex: 0,
+        lines: [],
+        charStart: 0,
+        charEnd: 120,
+        isFirstPage: true,
+        isLastPage: false,
+      );
+      const page1 = ChapterPage(
+        pageIndex: 1,
+        lines: [],
+        charStart: 120,
+        charEnd: 250,
+        isFirstPage: false,
+        isLastPage: false,
+      );
+      const page2 = ChapterPage(
+        pageIndex: 2,
+        lines: [],
+        charStart: 250,
+        charEnd: 380,
+        isFirstPage: false,
+        isLastPage: true,
+      );
+
+      final pages = [page0, page1, page2];
+
+      // 验证 page0 区间 [0, 120)
+      expect(page0.containsCharOffset(0), isTrue);
+      expect(page0.containsCharOffset(119), isTrue);
+      expect(page0.containsCharOffset(120), isFalse,
+          reason: 'charEnd 120 严禁被非末尾页 page0 包含，否则第2页首字符会被错误归类到第1页！');
+
+      // 验证 page1 区间 [120, 250)
+      expect(page1.containsCharOffset(120), isTrue);
+      expect(page1.containsCharOffset(249), isTrue);
+      expect(page1.containsCharOffset(250), isFalse);
+
+      // 验证 page2 区间 [250, 380] 作为末页闭合
+      expect(page2.containsCharOffset(250), isTrue);
+      expect(page2.containsCharOffset(380), isTrue);
+
+      // 验证 findPageByCharOffset 映射
+      expect(ReaderLayoutEngine.findPageByCharOffset(pages, 0), 0);
+      expect(ReaderLayoutEngine.findPageByCharOffset(pages, 119), 0);
+      expect(ReaderLayoutEngine.findPageByCharOffset(pages, 120), 1,
+          reason: '偏移 120 必须精准解析为第 2 页 (index 1)');
+      expect(ReaderLayoutEngine.findPageByCharOffset(pages, 250), 2,
+          reason: '偏移 250 必须精准解析为第 3 页 (index 2)');
+    });
   });
 }
 

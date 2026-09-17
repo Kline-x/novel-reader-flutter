@@ -235,28 +235,24 @@ class ReaderLayoutEngine {
     return pages;
   }
 
-  /// 根据字符级偏移量，逆向二分查找所在新页码（解决改字号、转屏后进度跳脱）
+  /// 根据字符级偏移量，逆向精准匹配所在新页码（解决改字号、转屏后进度跳脱）
   static int findPageByCharOffset(List<ChapterPage> pages, int charOffset) {
     if (pages.isEmpty) return 0;
     if (charOffset <= pages.first.charStart) return 0;
     if (charOffset >= pages.last.charEnd) return pages.length - 1;
 
-    int low = 0;
-    int high = pages.length - 1;
-
-    while (low <= high) {
-      final mid = (low + high) ~/ 2;
-      final page = pages[mid];
-
-      if (page.containsCharOffset(charOffset)) {
-        return mid;
-      } else if (charOffset < page.charStart) {
-        high = mid - 1;
-      } else {
-        low = mid + 1;
+    for (int i = 0; i < pages.length; i++) {
+      if (pages[i].containsCharOffset(charOffset)) {
+        return i;
       }
     }
 
-    return low.clamp(0, pages.length - 1);
+    // 若因字符清洗或段间隙未完全精准命中，回退至最接近的有效页
+    for (int i = pages.length - 1; i >= 0; i--) {
+      if (charOffset >= pages[i].charStart) {
+        return i;
+      }
+    }
+    return 0;
   }
 }

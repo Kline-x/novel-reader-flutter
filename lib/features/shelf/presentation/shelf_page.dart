@@ -35,6 +35,7 @@ class _ShelfPageState extends State<ShelfPage> {
   final StorageService _storageService = StorageService();
   Map<String, int> _cachedCountMap = {};
   StreamSubscription<ShelfBook>? _localBookSub;
+  int _todayReadingMinutes = 0;
 
   @override
   void initState() {
@@ -87,9 +88,11 @@ class _ShelfPageState extends State<ShelfPage> {
     }
 
     final savedGridView = await _storageService.getShelfGridView();
+    final todayMins = await _storageService.getTodayReadingMinutes();
     if (mounted) {
       setState(() {
         _isGridView = savedGridView;
+        _todayReadingMinutes = todayMins;
         _books.clear();
         _books.addAll(loaded);
       });
@@ -510,7 +513,7 @@ class _ShelfPageState extends State<ShelfPage> {
                   text: TextSpan(
                     children: [
                       TextSpan(
-                        text: '48',
+                        text: '$_todayReadingMinutes',
                         style: TextStyle(
                           fontSize: 26.0,
                           fontWeight: FontWeight.w800,

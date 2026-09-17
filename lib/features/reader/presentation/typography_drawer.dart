@@ -122,28 +122,47 @@ class TypographyDrawer extends StatelessWidget {
           ),
           const SizedBox(height: 16.0),
 
-          // 3. 翻页模式选择
+          // 3. 翻页模式选择（四等分自适应圆角胶囊，拒绝单行横向截断）
           Row(
             children: [
               const Text('翻页', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 24.0),
+              const SizedBox(width: 16.0),
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: PageTurnMode.values.map((mode) {
-                      final isSelected = mode == turnMode;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ChoiceChip(
-                          label: Text(mode.title, style: const TextStyle(fontSize: 12.0)),
-                          selected: isSelected,
-                          selectedColor: const Color(0xFF5B7FFF).withValues(alpha: 0.2),
-                          onSelected: (_) => onTurnModeChanged(mode),
+                child: Row(
+                  children: PageTurnMode.values.map((mode) {
+                    final isSelected = mode == turnMode;
+                    final shortTitle = mode.title.replaceAll('翻页', '');
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                        child: GestureDetector(
+                          onTap: () => onTurnModeChanged(mode),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(vertical: 7.0),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF5B7FFF)
+                                  : (isDark ? Colors.white10 : const Color(0xFFEBECEE)),
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            child: Center(
+                              child: Text(
+                                shortTitle,
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDark ? Colors.white70 : const Color(0xFF333333)),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      );
-                    }).toList(),
-                  ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ],

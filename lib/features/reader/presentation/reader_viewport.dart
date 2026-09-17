@@ -162,8 +162,6 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         _activeCharOffset = widget.initialCharOffset;
         if (widget.initialCharOffset >= 999999 || widget.initialCharOffset == -1) {
           _currentPageIndex = 999999;
-        } else {
-          _currentPageIndex = 0;
         }
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -219,14 +217,28 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       targetPageIndex = ReaderLayoutEngine.findPageByCharOffset(newPages, anchor);
     }
 
+    final newIndex = targetPageIndex.clamp(0, newPages.isEmpty ? 0 : newPages.length - 1);
+    if (newPages.isNotEmpty && newIndex < newPages.length) {
+      _activeCharOffset = newPages[newIndex].charStart;
+    }
+
     setState(() {
       _pages = newPages;
-      _currentPageIndex = targetPageIndex.clamp(0, newPages.isEmpty ? 0 : newPages.length - 1);
+      _currentPageIndex = newIndex;
+      if (!_pageController.hasClients) {
+        _pageController.dispose();
+        _pageController = PageController(initialPage: _currentPageIndex);
+      }
     });
 
     if (_pageController.hasClients) {
       _pageController.jumpToPage(_currentPageIndex);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _pageController.hasClients && _pageController.page?.round() != _currentPageIndex) {
+        _pageController.jumpToPage(_currentPageIndex);
+      }
+    });
   }
 
   void _handleTap(TapUpDetails details, Size size) {

@@ -123,6 +123,41 @@ class StorageService {
   static const String _keySettings = 'novel_reader_user_settings';
   static const String _keyHasSeeded = 'novel_reader_has_seeded';
   static const String _keyShelfGridView = 'novel_reader_shelf_grid_view';
+  static const String _prefixReadingSeconds = 'novel_reader_daily_seconds_';
+
+  static ReaderSettings currentSettings = const ReaderSettings();
+
+  /// 全局启动预热：预加载阅读偏好设置
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keySettings);
+      if (raw != null) {
+        currentSettings = ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      }
+    } catch (_) {}
+  }
+
+  static String _getTodayDateKey() {
+    final now = DateTime.now();
+    return '${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 获取今日累计阅读分钟数（初次冷启动为0）
+  Future<int> getTodayReadingMinutes() async {
+    final prefs = await _getPrefs();
+    final sec = prefs.getInt('$_prefixReadingSeconds${_getTodayDateKey()}') ?? 0;
+    return (sec / 60).floor();
+  }
+
+  /// 累加今日阅读秒数
+  Future<void> addReadingSeconds(int seconds) async {
+    if (seconds <= 0) return;
+    final prefs = await _getPrefs();
+    final key = '$_prefixReadingSeconds${_getTodayDateKey()}';
+    final current = prefs.getInt(key) ?? 0;
+    await prefs.setInt(key, current + seconds);
+  }
 
   static final StreamController<void> _shelfUpdateController = StreamController<void>.broadcast();
   static Stream<void> get shelfUpdateStream => _shelfUpdateController.stream;
@@ -287,6 +322,7 @@ class StorageService {
 
   /// 保存阅读器外观与排版设置
   Future<void> saveReaderSettings(ReaderSettings settings) async {
+    currentSettings = settings;
     final prefs = await _getPrefs();
     await prefs.setString(_keySettings, jsonEncode(settings.toJson()));
   }
@@ -295,11 +331,16 @@ class StorageService {
   Future<ReaderSettings> getReaderSettings() async {
     final prefs = await _getPrefs();
     final raw = prefs.getString(_keySettings);
-    if (raw == null) return const ReaderSettings();
+    if (raw == null) {
+      currentSettings = const ReaderSettings();
+      return currentSettings;
+    }
     try {
-      return ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      currentSettings = ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      return currentSettings;
     } catch (_) {
-      return const ReaderSettings();
+      currentSettings = const ReaderSettings();
+      return currentSettings;
     }
   }
 

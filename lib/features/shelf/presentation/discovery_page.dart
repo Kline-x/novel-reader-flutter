@@ -6,6 +6,7 @@ import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
+import '../../reader/services/chapter_helper.dart';
 import '../../sources/models/book_search_result.dart';
 import '../../sources/services/multi_source_service.dart';
 import '../models/book_item.dart';
@@ -327,12 +328,13 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   }
 
   void _injectFallbackResults(String query) {
+    final cleanQuery = query.replaceAll(RegExp(r'[《》【】\s]'), '').trim();
     final fallbacks = [
       BookSearchResult(
-        id: 'biquge_cp_$query',
-        title: query.startsWith('《') ? query : '《$query》',
-        author: query == '诡秘之主' ? '爱潜水的乌贼' : (query == '道诡异仙' ? '狐尾的笔' : '网络作家'),
-        bookUrl: 'https://www.biquge.company/book/$query',
+        id: 'biquge_cp_$cleanQuery',
+        title: cleanQuery,
+        author: cleanQuery == '诡秘之主' ? '爱潜水的乌贼' : (cleanQuery == '道诡异仙' ? '狐尾的笔' : '网络作家'),
+        bookUrl: 'https://www.biquge.company/book/$cleanQuery',
         latestChapter: '最新章节连载中',
         intro: '全网优质书源收录，极速纯净无弹窗阅读。',
         sourceId: 'biquge_cp',
@@ -340,10 +342,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         latencyMs: 86,
       ),
       BookSearchResult(
-        id: 'situ_read_$query',
-        title: query.startsWith('《') ? query : '《$query》',
-        author: query == '十日终焉' ? '杀虫队队员' : (query == '剑来' ? '烽火戏诸侯' : '网络作家'),
-        bookUrl: 'https://www.sto66.com/book/$query',
+        id: 'situ_read_$cleanQuery',
+        title: cleanQuery,
+        author: cleanQuery == '十日终焉' ? '杀虫队队员' : (cleanQuery == '剑来' ? '烽火戏诸侯' : '网络作家'),
+        bookUrl: 'https://www.sto66.com/book/$cleanQuery',
         latestChapter: '全本精校校验完结',
         intro: '思兔全本小说优质书源，目录完整无缺章。',
         sourceId: 'situ_read',
@@ -351,10 +353,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         latencyMs: 142,
       ),
       BookSearchResult(
-        id: 'tiantian_$query',
-        title: query.startsWith('《') ? query : '《$query》',
+        id: 'tiantian_$cleanQuery',
+        title: cleanQuery,
         author: '起点热门精选',
-        bookUrl: 'https://www.ttkan.co/book/$query',
+        bookUrl: 'https://www.ttkan.co/book/$cleanQuery',
         latestChapter: 'VIP最新精校更新',
         intro: '天天看小说备用高可用线路。',
         sourceId: 'tiantian',
@@ -412,9 +414,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   }
 
   void _addBookToShelf(BookSearchResult result) {
+    final cleanT = ChapterHelper.cleanTitle(result.title);
     final book = BookItem(
       id: result.id,
-      title: result.title,
+      title: cleanT,
       author: result.author,
       latestChapter: result.latestChapter ?? '连载更新中',
       totalChapters: 120,
@@ -433,7 +436,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
     _storageService.addBookToShelf(ShelfBook(
       bookId: result.id,
-      title: result.title,
+      title: cleanT,
       author: result.author,
       sourceId: result.sourceId,
       sourceName: result.sourceName,
@@ -444,12 +447,12 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
     setState(() {
       _shelfBookIds.add(result.id);
-      _shelfBookTitles.add(result.title.replaceAll(RegExp(r'[《》\s]'), ''));
+      _shelfBookTitles.add(cleanT);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('已成功将《${result.title}》收入藏书阁！'),
+        content: Text('已成功将《$cleanT》收入藏书阁！'),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -608,103 +611,107 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final item = _searchResults[index];
+                      final cleanItemTitle = ChapterHelper.cleanTitle(item.title);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12.0),
-                        child: SoftCard(
-                          colors: colors,
-                          padding: const EdgeInsets.all(14.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  BookCoverWidget(
-                                    title: item.title,
-                                    author: item.author,
-                                    width: 48.0,
-                                    height: 66.0,
-                                    paletteIndex: BookCoverWidget.hashTitleToPalette(item.title),
-                                  ),
-                                  const SizedBox(width: 12.0),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.title,
-                                          style: TextStyle(
-                                            fontSize: 15.0,
-                                            fontWeight: FontWeight.bold,
-                                            color: colors.textPrimary,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _openBookFromResult(item),
+                          child: SoftCard(
+                            colors: colors,
+                            padding: const EdgeInsets.all(14.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    BookCoverWidget(
+                                      title: cleanItemTitle,
+                                      author: item.author,
+                                      width: 48.0,
+                                      height: 66.0,
+                                      paletteIndex: BookCoverWidget.hashTitleToPalette(cleanItemTitle),
+                                    ),
+                                    const SizedBox(width: 12.0),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            cleanItemTitle,
+                                            style: TextStyle(
+                                              fontSize: 15.0,
+                                              fontWeight: FontWeight.bold,
+                                              color: colors.textPrimary,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 4.0),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              item.author,
-                                              style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
-                                            ),
-                                            const SizedBox(width: 8.0),
-                                            // 书源标签
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-                                              decoration: BoxDecoration(
-                                                color: colors.accent.withValues(alpha: 0.12),
-                                                borderRadius: BorderRadius.circular(4.0),
+                                          const SizedBox(height: 4.0),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                item.author,
+                                                style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
                                               ),
-                                              child: Text(
-                                                item.sourceName,
-                                                style: TextStyle(fontSize: 10.0, color: colors.accent, fontWeight: FontWeight.w600),
+                                              const SizedBox(width: 8.0),
+                                              // 书源标签
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                                                decoration: BoxDecoration(
+                                                  color: colors.accent.withValues(alpha: 0.12),
+                                                  borderRadius: BorderRadius.circular(4.0),
+                                                ),
+                                                child: Text(
+                                                  item.sourceName,
+                                                  style: TextStyle(fontSize: 10.0, color: colors.accent, fontWeight: FontWeight.w600),
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 6.0),
-                                            // 延迟指示
+                                              const SizedBox(width: 6.0),
+                                              // 延迟指示
+                                              Text(
+                                                '${item.latencyMs ?? 99}ms',
+                                                style: const TextStyle(fontSize: 10.0, color: Colors.green),
+                                              ),
+                                            ],
+                                          ),
+                                          if (item.latestChapter != null) ...[
+                                            const SizedBox(height: 4.0),
                                             Text(
-                                              '${item.latencyMs ?? 99}ms',
-                                              style: const TextStyle(fontSize: 10.0, color: Colors.green),
+                                              item.latestChapter!,
+                                              style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
-                                        ),
-                                        if (item.latestChapter != null) ...[
-                                          const SizedBox(height: 4.0),
-                                          Text(
-                                            item.latestChapter!,
-                                            style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
                                         ],
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10.0),
-                              // 底部按钮栏
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Builder(
-                                    builder: (context) {
-                                      final inShelf = _isBookInShelf(item.id, item.title);
-                                      return SoftButton(
-                                        colors: colors,
-                                        onPressed: inShelf
-                                            ? () {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('《${item.title}》已在书架中'),
-                                                    behavior: SnackBarBehavior.floating,
-                                                    duration: const Duration(seconds: 1),
-                                                  ),
-                                                );
-                                              }
-                                            : () => _addBookToShelf(item),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                  ],
+                                ),
+                                const SizedBox(height: 10.0),
+                                // 底部按钮栏
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Builder(
+                                      builder: (context) {
+                                        final inShelf = _isBookInShelf(item.id, item.title);
+                                        return SoftButton(
+                                          colors: colors,
+                                          onPressed: inShelf
+                                              ? () {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('《$cleanItemTitle》已在书架中'),
+                                                      behavior: SnackBarBehavior.floating,
+                                                      duration: const Duration(seconds: 1),
+                                                    ),
+                                                  );
+                                                }
+                                              : () => _addBookToShelf(item),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Icon(
                                               inShelf ? Icons.check_circle_rounded : Icons.bookmark_add_outlined,
@@ -745,7 +752,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                             ],
                           ),
                         ),
-                      );
+                      ),
+                    );
                     },
                     childCount: _searchResults.length,
                   ),

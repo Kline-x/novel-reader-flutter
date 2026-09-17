@@ -8,9 +8,13 @@ import 'core/theme/theme_provider.dart';
 
 import 'features/local_books/services/local_book_service.dart';
 import 'features/local_books/services/wifi_transfer_server.dart';
+import 'features/reader/data/storage_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 预热持久化阅读设置
+  await StorageService.init();
 
   // 绑定局域网 WiFi 传书与本地图书自动解析入架
   WifiTransferServer().onFileReceived = (file) async {

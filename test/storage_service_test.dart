@@ -166,5 +166,36 @@ void main() {
       expect(current.length, 4);
       expect(current.any((b) => b.title == '诡秘之主'), isTrue);
     });
+
+    test('真实阅读时长累加与日维度统计验证 (解决今日阅读假数据 48 分钟缺陷)', () async {
+      // 初始阅读时长应为 0 分钟
+      expect(await storage.getTodayReadingMinutes(), 0);
+
+      // 阅读 125 秒 (2 分钟 5 秒)
+      await storage.addReadingSeconds(125);
+      expect(await storage.getTodayReadingMinutes(), 2);
+
+      // 再阅读 60 秒 (累计 185 秒 = 3 分钟)
+      await storage.addReadingSeconds(60);
+      expect(await storage.getTodayReadingMinutes(), 3);
+    });
+
+    test('全局排版设置启动预加载与内存同步读取 (StorageService.init)', () async {
+      // 预先写入定制排版
+      await storage.saveReaderSettings(const ReaderSettings(
+        fontSize: 22.0,
+        lineHeight: 36.0,
+        themeIndex: 1, // 米黄
+        turnMode: 'cover',
+      ));
+
+      // 模拟应用启动全局预热
+      await StorageService.init();
+
+      // 验证内存缓存立即同步可用，0ms 延迟
+      expect(StorageService.currentSettings.fontSize, 22.0);
+      expect(StorageService.currentSettings.themeIndex, 1);
+      expect(StorageService.currentSettings.turnMode, 'cover');
+    });
   });
 }

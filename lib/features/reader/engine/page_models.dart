@@ -44,9 +44,12 @@ class ChapterPage {
 
   int get totalChars => charEnd - charStart;
 
-  /// 检查特定字符绝对偏移量是否落在本页内
+  /// 检查特定字符绝对偏移量是否落在本页内（左闭右开区间，仅尾页包含末尾边界）
   bool containsCharOffset(int offset) {
-    return offset >= charStart && offset <= charEnd;
+    if (isLastPage) {
+      return offset >= charStart && offset <= charEnd;
+    }
+    return offset >= charStart && offset < charEnd;
   }
 }
 
