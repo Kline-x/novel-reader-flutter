@@ -63,11 +63,11 @@
    - **阶段 13（纯血鸿蒙与 iOS 双端落地与适配）**：纯血鸿蒙 OpenHarmony NEXT `ohos/` 原生 Stage 架构工程、OpenHarmony-TPC 准入门禁实景 100% 审计、iOS 权限声明与 13.0+ 部署规范、多端形态断点与异形屏/挖孔屏安全区自适应、65/65 全量自动化测试全绿与 3 项 Redmi K60 真机证据链归档；
    - **阶段 14（生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版）**：定制 ProGuard/R8 混淆、资源极客瘦身（arm64-v8a 削减至 22.0MB，瘦身率 85.2%）、`--split-per-abi` 独立分包、GitHub Releases 全自动发版流水线（`.github/workflows/release.yml`）、70/70 全量自动化测试全绿与 2 项 Redmi K60 真机 Release 运行证据链归档；
    - **阶段 15（1:1 原型书籍详情页、真实高可用书源生态与阅读器无损翻页交互）**：1:1 对齐原型 `BookDetailPage`（Hero大图、Squircle立体书封、状态/字数/评分卡片、作品简介展开折叠、千章目录在读/已读标记、可用书源原地切换）、全面接入 100% 真实连通的「笔趣阁ZWX」千章真实正文彻底根除假数据、阅读器末页向后顺畅跨章翻页、书架常驻「本地导入」与「WiFi传书」入口、书籍长按呼出现代轻拟态管理底栏、DownloadService 全本 1000 章秒速离线落盘与 13 项 Redmi K60 真机证据链归档；
-   - **阶段 16（5 轮真实深度真机实测打磨与全景缺陷排查归档）**：基于 iQOO Neo11（Android 16, 1440×3168）真机完成 5 轮全维度深挖实测，全量定位 26 项系统性缺陷 + 8 项专项隐患，完整归档于 `docs/deep_inspection_report.md`，并在 `PROGRESS.md` 中锁定了下次启动统一修改时的首要攻坚任务（P0：阅读页顶部全屏对齐与沉浸状态栏重构、深色/黑色主题全链路穿透与黑底黑字彻底清零）。
+    - **阶段 16（真机 E2E 循环排查、扩大范围极限走查与零缺陷交付闭环）**：基于真实物理设备 Redmi K60 与 iQOO Neo11 深度实测，前两轮定位的 26+8+1 项缺陷已 100% 修复销项（含阅读页透明沉浸状态栏与挖孔避让、深色模式全穿透黑底黑字清零、TTS Mini 悬浮条 RenderBox 物理布局重排根治 HitTest 手势脱节、目录搜索高亮与书签溢出修复、书架网格小字与独立微胶囊徽标、设置中心真实容量统计与物理清理、WebDAV空配置拦截等），第二轮扩大范围极限走查零遗留缺陷，全工程 95/95 测试用例 100% 通过，86 张高清真机证据链全量归档。
 2. **全量自动化验证存证**：
-   - `flutter analyze`：0 issues found!
-   - `flutter test`：测试用例 100% 全部通过。
-3. **下次统一开工首要指引 (P0)**：
-   - 阅读页彻底废弃 `immersiveSticky` 隐藏系统栏，改用 `edgeToEdge` 透明沉浸状态栏并与外层页面基准线严格对齐；
-   - 排版抽屉 6 处黑底黑字前景色显式补全，目录抽屉/书签笔记/划线Dialog/下载Sheet/听书Mini条全面注入阅读器深色主题，根除夜间纯白眩光与黑底黑字隐形；
-   - 详细清单查阅：`docs/deep_inspection_report.md` 与 `PROGRESS.md`。
+   - `flutter analyze`：0 issues found!（0 error, 0 warning）
+   - `flutter test`：95/95 个测试用例 100% 全部通过。
+3. **下一步演进建议**：
+   - 当前基线已达成零缺陷交付闭环门禁；
+   - 随时可执行打包发布（Android Release APK / Web WASM）或推送远端；
+   - 详细缺陷修复全景查阅：`docs/deep_inspection_report.md`、`PROGRESS.md` 与 `AGENTS.md`。

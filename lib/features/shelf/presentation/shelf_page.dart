@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lpinyin/lpinyin.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/swipe_reveal_card.dart';
@@ -222,7 +224,7 @@ class _ShelfPageState extends State<ShelfPage> {
                 },
               ),
               ListTile(
-                leading: Icon(book.isPinned ? Icons.vertical_align_bottom : Icons.vertical_align_top, color: colors.accent),
+                leading: Icon(book.isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded, color: colors.accent),
                 title: Text(book.isPinned ? '取消置顶' : '置顶此书', style: TextStyle(color: colors.textPrimary)),
                 onTap: () async {
                   Navigator.pop(context);
@@ -233,12 +235,9 @@ class _ShelfPageState extends State<ShelfPage> {
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
                 title: const Text('从书架移出', style: TextStyle(color: Colors.redAccent)),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(context);
-                  await _storageService.removeBookFromShelf(book.id);
-                  setState(() {
-                    _books.removeWhere((b) => b.id == book.id);
-                  });
+                  _confirmRemoveBook(book, colors);
                 },
               ),
             ],
@@ -249,36 +248,229 @@ class _ShelfPageState extends State<ShelfPage> {
     );
   }
 
+  Future<void> _importLocalFile(File file) async {
+    try {
+      if (!await file.exists()) {
+        throw FileSystemException('所选文件不存在', file.path);
+      }
+      final shelfBook = await LocalBookService().importFile(file);
+      await _loadBooksFromStorage();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已成功导入《${shelfBook.title}》至书架'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('导入图书失败：$e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _showLocalImportDialog() {
     final colors = SoftTheme.of(context);
-    showDialog(
+    final pathController = TextEditingController();
+
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-        title: Row(
-          children: [
-            Icon(Icons.file_upload_outlined, color: colors.accent),
-            const SizedBox(width: 8.0),
-            Text('本地图书导入', style: TextStyle(color: colors.textPrimary, fontSize: 17.0)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('支持导入格式：TXT（自动智能正则分章）、EPUB（图文排版）。', style: TextStyle(color: colors.textSecondary, fontSize: 13.0)),
-            const SizedBox(height: 12.0),
-            Text('如需电脑批量传输，亦可点击顶栏【WiFi传书】在同一局域网浏览器内秒速上传。', style: TextStyle(color: colors.textSecondary, fontSize: 12.0)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('知道了', style: TextStyle(color: colors.accent)),
-          ),
-        ],
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              padding: EdgeInsets.fromLTRB(
+                20.0,
+                16.0,
+                20.0,
+                MediaQuery.of(context).viewInsets.bottom + 24.0,
+              ),
+              decoration: BoxDecoration(
+                color: colors.card,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+                boxShadow: SoftDecorations.softShadows(colors, elevation: 2.0),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38.0,
+                      height: 4.0,
+                      decoration: BoxDecoration(
+                        color: colors.border,
+                        borderRadius: BorderRadius.circular(2.0),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: colors.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: Icon(Icons.file_upload_outlined, color: colors.accent, size: 22.0),
+                      ),
+                      const SizedBox(width: 10.0),
+                      Text(
+                        '导入本地图书',
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close_rounded, color: colors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8.0),
+                  Text(
+                    '支持导入 .txt（智能正则分章）与 .epub（标准排版），导入后可离线极速畅读。',
+                    style: TextStyle(fontSize: 12.0, color: colors.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 16.0),
+                  TextField(
+                    key: const ValueKey('input_local_import_path'),
+                    controller: pathController,
+                    style: TextStyle(fontSize: 13.0, color: colors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: '输入或粘贴文件绝对路径 (.txt / .epub)',
+                      hintStyle: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                      filled: true,
+                      fillColor: colors.surface,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14.0),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('btn_scan_local_books'),
+                          onPressed: () async {
+                            final docDir = await getApplicationDocumentsDirectory();
+                            final files = <File>[];
+                            try {
+                              await for (final f in docDir.list(recursive: true)) {
+                                if (f is File && (f.path.endsWith('.txt') || f.path.endsWith('.epub'))) {
+                                  files.add(f);
+                                }
+                              }
+                            } catch (_) {}
+
+                            if (files.isEmpty) {
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('沙盒文档目录中暂无图书，请填入路径或使用 WiFi 传书'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } else {
+                              final picked = files.first;
+                              pathController.text = picked.path;
+                              setSheetState(() {});
+                            }
+                          },
+                          icon: const Icon(Icons.folder_open_rounded, size: 16.0),
+                          label: const Text('扫描沙盒图书'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colors.textPrimary,
+                            side: BorderSide(color: colors.border),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                            padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10.0),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          key: const ValueKey('btn_confirm_import_file'),
+                          onPressed: () async {
+                            final path = pathController.text.trim();
+                            if (path.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('请输入或选择有效的文件路径'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              return;
+                            }
+                            Navigator.pop(ctx);
+                            await _importLocalFile(File(path));
+                          },
+                          icon: const Icon(Icons.check_rounded, size: 16.0),
+                          label: const Text('确认导入'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colors.accent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                            padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12.0),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      WifiTransferDialog.show(context);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.wifi_tethering_rounded, size: 18.0, color: colors.accent),
+                          const SizedBox(width: 8.0),
+                          Expanded(
+                            child: Text(
+                              '局域网电脑无线秒传？点击开启 WiFi 传书',
+                              style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios_rounded, size: 12.0, color: colors.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -616,14 +808,51 @@ class _ShelfPageState extends State<ShelfPage> {
   }
 
   Future<void> _removeBook(BookItem book) async {
+    final originalBooks = await _storageService.getBookshelf();
+    final originalShelfBook = originalBooks.firstWhere(
+      (b) => b.bookId == book.id,
+      orElse: () => ShelfBook(
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        coverUrl: book.coverUrl,
+        lastChapterTitle: book.lastChapter,
+        totalChapters: book.totalChapters,
+        lastReadTime: DateTime.now(),
+        filePath: book.filePath,
+        bookUrl: book.bookUrl,
+        sourceName: book.sourceName,
+        sourceId: book.sourceId,
+        isPinned: book.isPinned,
+      ),
+    );
+
     await _storageService.removeFromBookshelf(book.id, title: book.title);
     await _loadBooksFromStorage();
     if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('已从书架移出《${book.title}》'),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 1),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: '撤销',
+            textColor: Colors.amberAccent,
+            onPressed: () async {
+              await _storageService.addToBookshelf(originalShelfBook);
+              await _loadBooksFromStorage();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('已恢复《${book.title}》至书架'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
         ),
       );
     }
@@ -671,18 +900,22 @@ class _ShelfPageState extends State<ShelfPage> {
                                     margin: const EdgeInsets.only(right: 6.0),
                                     padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: Colors.amber.withValues(alpha: 0.15),
+                                      color: colors.isDark ? Colors.amber.withValues(alpha: 0.22) : Colors.amber.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4.0),
-                                      border: Border.all(color: Colors.amber.withValues(alpha: 0.5), width: 0.5),
+                                      border: Border.all(color: colors.isDark ? const Color(0xFFFFC107) : Colors.amber.shade700, width: 0.6),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.push_pin_rounded, size: 10.0, color: Colors.amber),
+                                        const Icon(Icons.push_pin_rounded, size: 10.0, color: Color(0xFFFFC107)),
                                         const SizedBox(width: 2.0),
                                         Text(
                                           '置顶',
-                                          style: TextStyle(fontSize: 9.0, color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+                                          style: TextStyle(
+                                            fontSize: 9.0,
+                                            color: colors.isDark ? const Color(0xFFFFD54F) : Colors.amber.shade900,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -824,7 +1057,7 @@ class _ShelfPageState extends State<ShelfPage> {
           crossAxisCount: PlatformAdaptiveHelper.instance.getShelfGridColumnCount(context),
           mainAxisSpacing: 16.0,
           crossAxisSpacing: 14.0,
-          childAspectRatio: 0.62,
+          childAspectRatio: 0.58,
         ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
@@ -846,17 +1079,86 @@ class _ShelfPageState extends State<ShelfPage> {
                           height: double.infinity,
                           borderRadius: 14.0,
                         ),
+                        // 置顶徽标 (D16 调优)
                         if (book.isPinned)
                           Positioned(
                             top: 6.0,
                             right: 6.0,
                             child: Container(
-                              padding: const EdgeInsets.all(4.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.65),
-                                shape: BoxShape.circle,
+                                color: const Color(0xFF14161B).withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(6.0),
+                                border: Border.all(color: const Color(0xFFFFC107), width: 0.8),
                               ),
-                              child: const Icon(Icons.push_pin_rounded, size: 12.0, color: Colors.amber),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.push_pin_rounded, size: 10.0, color: Color(0xFFFFC107)),
+                                  SizedBox(width: 2.0),
+                                  Text(
+                                    '置顶',
+                                    style: TextStyle(
+                                      fontSize: 9.0,
+                                      color: Color(0xFFFFD54F),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        // 独立离线徽标微胶囊 (4.4 与进度解耦)
+                        if (book.isLocal)
+                          Positioned(
+                            top: 6.0,
+                            left: 6.0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF14161B).withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(6.0),
+                                border: Border.all(color: colors.accent.withValues(alpha: 0.8), width: 0.6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
+                                    size: 10.0,
+                                    color: colors.accent,
+                                  ),
+                                  const SizedBox(width: 2.0),
+                                  Text(
+                                    book.isEpub ? 'EPUB' : 'TXT',
+                                    style: TextStyle(fontSize: 9.0, color: colors.accent, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0)
+                          Positioned(
+                            top: 6.0,
+                            left: 6.0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF14161B).withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(6.0),
+                                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.8), width: 0.6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.download_done_rounded, size: 10.0, color: Colors.greenAccent),
+                                  const SizedBox(width: 2.0),
+                                  Text(
+                                    '${_cachedCountMap[book.id]}章',
+                                    style: const TextStyle(fontSize: 9.0, color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                       ],
@@ -873,24 +1175,22 @@ class _ShelfPageState extends State<ShelfPage> {
                       color: colors.textPrimary,
                     ),
                   ),
-                  Row(
-                    children: [
-                      Text(
-                        '${(book.progress * 100).toInt()}% 已读',
-                        style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
-                      ),
-                      if (book.isLocal) ...[
-                        const Spacer(),
-                        Icon(
-                          book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
-                          size: 12.0,
-                          color: colors.accent,
-                        ),
-                      ] else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
-                        const Spacer(),
-                        const Icon(Icons.download_done_rounded, size: 12.0, color: Colors.green),
-                      ],
-                    ],
+                  const SizedBox(height: 2.0),
+                  // 【4.3】最新章节精致小字
+                  Text(
+                    book.lastChapter,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: colors.textSecondary.withValues(alpha: 0.85),
+                    ),
+                  ),
+                  const SizedBox(height: 2.0),
+                  // 独立阅读进度（彻底解耦）
+                  Text(
+                    '${(book.progress * 100).toInt()}% 已读',
+                    style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
                   ),
                 ],
               ),

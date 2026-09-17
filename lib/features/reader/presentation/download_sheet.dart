@@ -14,6 +14,7 @@ class DownloadSheet extends StatefulWidget {
   final List<ChapterItem> chapters;
   final int currentChapterIndex;
   final VoidCallback? onCacheUpdated;
+  final bool isDark;
 
   const DownloadSheet({
     super.key,
@@ -22,6 +23,7 @@ class DownloadSheet extends StatefulWidget {
     required this.chapters,
     required this.currentChapterIndex,
     this.onCacheUpdated,
+    this.isDark = false,
   });
 
   static Future<void> show(
@@ -31,6 +33,7 @@ class DownloadSheet extends StatefulWidget {
     required List<ChapterItem> chapters,
     required int currentChapterIndex,
     VoidCallback? onCacheUpdated,
+    bool isDark = false,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -42,6 +45,7 @@ class DownloadSheet extends StatefulWidget {
         chapters: chapters,
         currentChapterIndex: currentChapterIndex,
         onCacheUpdated: onCacheUpdated,
+        isDark: isDark,
       ),
     );
   }
@@ -119,12 +123,13 @@ class _DownloadSheetState extends State<DownloadSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = SoftTheme.of(context);
+    final colors = widget.isDark ? SoftColors.night : SoftTheme.of(context);
     final totalChapters = widget.chapters.length;
     final isDownloading = _currentProgress != null &&
         _currentProgress!.status == DownloadStatus.downloading;
 
     return Material(
+      key: const ValueKey('download_sheet_material'),
       color: colors.card,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
       child: SafeArea(

@@ -29,6 +29,8 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
   bool _isRunning = false;
   String _serverUrl = '';
   final List<String> _receivedFiles = [];
+  bool _isCopied = false;
+  Timer? _copiedTimer;
 
   @override
   void initState() {
@@ -79,6 +81,7 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
 
   @override
   void dispose() {
+    _copiedTimer?.cancel();
     _sub?.cancel();
     super.dispose();
   }
@@ -204,20 +207,32 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                       onPressed: _isRunning
                           ? () {
                               Clipboard.setData(ClipboardData(text: _serverUrl));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('传书网址已复制至剪贴板'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
+                              _copiedTimer?.cancel();
+                              setState(() => _isCopied = true);
+                              _copiedTimer = Timer(const Duration(milliseconds: 1500), () {
+                                if (mounted) {
+                                  setState(() => _isCopied = false);
+                                }
+                              });
                             }
                           : null,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.copy_rounded, size: 14.0, color: _isRunning ? Colors.white : colors.textSecondary),
+                          Icon(
+                            _isCopied ? Icons.check_rounded : Icons.copy_rounded,
+                            size: 14.0,
+                            color: _isRunning ? Colors.white : colors.textSecondary,
+                          ),
                           const SizedBox(width: 4.0),
-                          Text('复制网址', style: TextStyle(fontSize: 13.0, color: _isRunning ? Colors.white : colors.textSecondary)),
+                          Text(
+                            _isCopied ? '✓ 已复制' : '复制网址',
+                            style: TextStyle(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w600,
+                              color: _isRunning ? Colors.white : colors.textSecondary,
+                            ),
+                          ),
                         ],
                       ),
                     ),

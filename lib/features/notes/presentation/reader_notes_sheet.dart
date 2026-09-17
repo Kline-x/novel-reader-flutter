@@ -12,12 +12,14 @@ class ReaderNotesSheet extends StatefulWidget {
   final String bookId;
   final String bookTitle;
   final void Function(int chapterIndex, int charOffset) onNavigate;
+  final bool isDark;
 
   const ReaderNotesSheet({
     super.key,
     required this.bookId,
     required this.bookTitle,
     required this.onNavigate,
+    this.isDark = false,
   });
 
   static Future<void> show(
@@ -25,6 +27,7 @@ class ReaderNotesSheet extends StatefulWidget {
     required String bookId,
     required String bookTitle,
     required void Function(int chapterIndex, int charOffset) onNavigate,
+    bool isDark = false,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -34,6 +37,7 @@ class ReaderNotesSheet extends StatefulWidget {
         bookId: bookId,
         bookTitle: bookTitle,
         onNavigate: onNavigate,
+        isDark: isDark,
       ),
     );
   }
@@ -50,6 +54,7 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
   List<Bookmark> _bookmarks = [];
   List<Annotation> _annotations = [];
   bool _isLoading = true;
+  String? _exportFeedback;
 
   @override
   void initState() {
@@ -83,20 +88,26 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
       widget.bookId,
       widget.bookTitle,
     );
-    await Clipboard.setData(ClipboardData(text: md));
+    try {
+      await Clipboard.setData(ClipboardData(text: md));
+    } catch (_) {}
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('已成功导出 Markdown 笔记并复制到剪贴板！'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      setState(() {
+        _exportFeedback = '✓ 笔记已成功导出并复制至剪贴板';
+      });
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _exportFeedback = null;
+          });
+        }
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = SoftTheme.of(context);
+    final colors = widget.isDark ? SoftColors.night : SoftTheme.of(context);
     final maxHeight = MediaQuery.of(context).size.height * 0.75;
 
     return Container(
@@ -164,6 +175,35 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
               ),
             ),
 
+            // 就地行内反馈提示条（防止 SnackBar 被 ModalBottomSheet 遮挡）
+            if (_exportFeedback != null)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                decoration: BoxDecoration(
+                  color: widget.isDark ? const Color(0xFF103A20) : const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10.0),
+                  border: Border.all(color: const Color(0xFF07C160).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, size: 16.0, color: Color(0xFF07C160)),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        _exportFeedback!,
+                        style: TextStyle(
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w600,
+                          color: widget.isDark ? const Color(0xFF70E1A0) : const Color(0xFF1B5E20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // 标签切换栏
             TabBar(
               controller: _tabController,
@@ -171,6 +211,7 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
               indicatorWeight: 3.0,
               labelColor: colors.textPrimary,
               unselectedLabelColor: colors.textSecondary,
+              dividerColor: widget.isDark ? Colors.white12 : null,
               tabs: [
                 Tab(text: '书签 (${_bookmarks.length})'),
                 Tab(text: '划线笔记 (${_annotations.length})'),

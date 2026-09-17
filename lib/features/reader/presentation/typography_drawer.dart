@@ -29,6 +29,8 @@ class TypographyDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = currentTheme.isDark;
     final cardBg = isDark ? const Color(0xFF282A2D) : const Color(0xFFF1F2F4);
+    final textColor = isDark ? Colors.white : const Color(0xFF1F2329);
+    final subTextColor = isDark ? Colors.white70 : const Color(0xFF646A73);
 
     return Container(
       padding: EdgeInsets.only(
@@ -58,7 +60,7 @@ class TypographyDrawer extends StatelessWidget {
               width: 36.0,
               height: 4.0,
               decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.4),
+                color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2.0),
               ),
             ),
@@ -68,7 +70,7 @@ class TypographyDrawer extends StatelessWidget {
           // 1. 字号调节 (A- / A+ 滑块)
           Row(
             children: [
-              const Text('字号', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600)),
+              Text('字号', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600, color: textColor)),
               const SizedBox(width: 16.0),
               _buildRoundButton(
                 icon: Icons.text_decrease,
@@ -76,6 +78,7 @@ class TypographyDrawer extends StatelessWidget {
                   if (fontSize > 12.0) onFontSizeChanged(fontSize - 1.0);
                 },
                 bgColor: cardBg,
+                iconColor: textColor,
               ),
               Expanded(
                 child: Slider(
@@ -85,6 +88,7 @@ class TypographyDrawer extends StatelessWidget {
                   divisions: 20,
                   label: '${fontSize.toInt()}px',
                   activeColor: const Color(0xFF5B7FFF),
+                  inactiveColor: isDark ? Colors.white24 : null,
                   onChanged: onFontSizeChanged,
                 ),
               ),
@@ -94,6 +98,7 @@ class TypographyDrawer extends StatelessWidget {
                   if (fontSize < 32.0) onFontSizeChanged(fontSize + 1.0);
                 },
                 bgColor: cardBg,
+                iconColor: textColor,
               ),
               const SizedBox(width: 8.0),
               SizedBox(
@@ -101,7 +106,7 @@ class TypographyDrawer extends StatelessWidget {
                 child: Text(
                   '${fontSize.toInt()}',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
                 ),
               ),
             ],
@@ -111,13 +116,13 @@ class TypographyDrawer extends StatelessWidget {
           // 2. 行距调节
           Row(
             children: [
-              const Text('行距', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600)),
+              Text('行距', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600, color: textColor)),
               const SizedBox(width: 24.0),
-              _buildLineSpacingChip(label: '紧凑', value: fontSize * 1.4, current: lineHeight),
+              _buildLineSpacingChip(label: '紧凑', value: fontSize * 1.4, current: lineHeight, subTextColor: subTextColor, isDark: isDark),
               const SizedBox(width: 12.0),
-              _buildLineSpacingChip(label: '舒适', value: fontSize * 1.7, current: lineHeight),
+              _buildLineSpacingChip(label: '舒适', value: fontSize * 1.7, current: lineHeight, subTextColor: subTextColor, isDark: isDark),
               const SizedBox(width: 12.0),
-              _buildLineSpacingChip(label: '宽松', value: fontSize * 2.0, current: lineHeight),
+              _buildLineSpacingChip(label: '宽松', value: fontSize * 2.0, current: lineHeight, subTextColor: subTextColor, isDark: isDark),
             ],
           ),
           const SizedBox(height: 16.0),
@@ -125,7 +130,7 @@ class TypographyDrawer extends StatelessWidget {
           // 3. 翻页模式选择（四等分自适应圆角胶囊，拒绝单行横向截断）
           Row(
             children: [
-              const Text('翻页', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600)),
+              Text('翻页', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600, color: textColor)),
               const SizedBox(width: 16.0),
               Expanded(
                 child: Row(
@@ -210,6 +215,7 @@ class TypographyDrawer extends StatelessWidget {
     required IconData icon,
     required VoidCallback onTap,
     required Color bgColor,
+    Color? iconColor,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -220,7 +226,7 @@ class TypographyDrawer extends StatelessWidget {
           color: bgColor,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 18),
+        child: Icon(icon, size: 18, color: iconColor),
       ),
     );
   }
@@ -229,6 +235,8 @@ class TypographyDrawer extends StatelessWidget {
     required String label,
     required double value,
     required double current,
+    required Color subTextColor,
+    required bool isDark,
   }) {
     final isSelected = (value - current).abs() < 1.0;
     return GestureDetector(
@@ -241,7 +249,7 @@ class TypographyDrawer extends StatelessWidget {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16.0),
           border: Border.all(
-            color: isSelected ? const Color(0xFF5B7FFF) : Colors.grey.withValues(alpha: 0.3),
+            color: isSelected ? const Color(0xFF5B7FFF) : (isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3)),
           ),
         ),
         child: Text(
@@ -249,7 +257,7 @@ class TypographyDrawer extends StatelessWidget {
           style: TextStyle(
             fontSize: 12.0,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? const Color(0xFF5B7FFF) : null,
+            color: isSelected ? const Color(0xFF5B7FFF) : subTextColor,
           ),
         ),
       ),

@@ -15,6 +15,7 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    await StorageService().clearAllCache();
     await StorageService().seedDefaultBooks();
   });
 
@@ -241,6 +242,12 @@ void main() {
     });
 
     testWidgets('缓存清空弹窗取消与确认清空流程验证', (tester) async {
+      // 写入真实离线章节正文缓存
+      final storage = StorageService();
+      await storage.saveChapterContent('guimi_01', 1, List.generate(50, (i) => '第$i行小说正文测试缓存段落内容'));
+      final totalBytes = await storage.getTotalCacheSize();
+      final expectedInitial = StorageService.formatBytes(totalBytes);
+
       await tester.pumpWidget(createTestWidget(tester));
       await tester.pumpAndSettle();
 
@@ -248,8 +255,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tab_settings')));
       await tester.pumpAndSettle();
 
-      // 验证初始缓存大小为 24.8 MB
-      expect(find.text('24.8 MB'), findsOneWidget);
+      // 验证真实初始缓存大小
+      expect(find.text(expectedInitial), findsOneWidget);
 
       // 点击清理缓存按钮唤起弹窗
       await tester.tap(find.byKey(const ValueKey('btn_clear_cache')));
@@ -264,7 +271,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('清空离线缓存'), findsNothing);
-      expect(find.text('24.8 MB'), findsOneWidget);
+      expect(find.text(expectedInitial), findsOneWidget);
 
       // 2. 再次打开弹窗并确认清空
       await tester.tap(find.byKey(const ValueKey('btn_clear_cache')));
@@ -273,9 +280,9 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('btn_confirm_clear_cache')));
       await tester.pumpAndSettle();
 
-      // 弹窗关闭，缓存更新为 0.0 KB 并弹出 SnackBar
+      // 弹窗关闭，缓存更新为 0 B 并弹出 SnackBar
       expect(find.text('清空离线缓存'), findsNothing);
-      expect(find.text('0.0 KB'), findsOneWidget);
+      expect(find.text('0 B'), findsOneWidget);
       expect(find.text('离线缓存已完全清空'), findsOneWidget);
     });
   });

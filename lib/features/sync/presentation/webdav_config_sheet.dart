@@ -88,14 +88,25 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
   }
 
   void _testConnection() async {
+    final currentCfg = _buildCurrentConfig();
+    if (!currentCfg.isConfigured) {
+      setState(() {
+        _isTesting = false;
+        _testResult = '✕ 请先完善 WebDAV 账号与密码';
+        _syncStatusMessage = null;
+      });
+      return;
+    }
+
     await _saveConfig();
     setState(() {
       _isTesting = true;
       _testResult = null;
+      _syncStatusMessage = null;
     });
 
     final success = await _webDavService.testConnection(
-      testConfig: _buildCurrentConfig(),
+      testConfig: currentCfg,
     );
 
     if (mounted) {
@@ -107,9 +118,20 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
   }
 
   void _triggerSync() async {
+    final currentCfg = _buildCurrentConfig();
+    if (!currentCfg.isConfigured) {
+      setState(() {
+        _isSyncing = false;
+        _testResult = null;
+        _syncStatusMessage = '同步失败：请先完善 WebDAV 配置（账号与密码不能为空）';
+      });
+      return;
+    }
+
     await _saveConfig();
     setState(() {
       _isSyncing = true;
+      _testResult = null; // 重置上一轮的测试错误状态，杜绝红绿冲突
       _syncStatusMessage = '正在进行增量合并与多端漫游...';
     });
 
@@ -118,10 +140,12 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
     if (mounted) {
       setState(() {
         _isSyncing = false;
-        _lastSyncTime = result.syncTime;
-        _syncStatusMessage = result.success
-            ? '同步成功：书架 ${result.syncedBooks} 本 · 书签 ${result.syncedBookmarks} 个 · 笔记 ${result.syncedAnnotations} 条'
-            : '同步失败：${result.message}';
+        if (result.success) {
+          _lastSyncTime = result.syncTime;
+          _syncStatusMessage = '同步成功：书架 ${result.syncedBooks} 本 · 书签 ${result.syncedBookmarks} 个 · 笔记 ${result.syncedAnnotations} 条';
+        } else {
+          _syncStatusMessage = '同步失败：${result.message}';
+        }
       });
     }
   }
@@ -299,24 +323,40 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
               ],
 
               if (_syncStatusMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(10.0),
-                  decoration: BoxDecoration(
-                    color: colors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.sync_rounded, size: 16.0, color: colors.accent),
-                      const SizedBox(width: 6.0),
-                      Expanded(
-                        child: Text(
-                          _syncStatusMessage!,
-                          style: TextStyle(fontSize: 12.0, color: colors.textPrimary),
-                        ),
+                Builder(
+                  builder: (context) {
+                    final isFailed = _syncStatusMessage!.startsWith('同步失败');
+                    final isSuccess = _syncStatusMessage!.startsWith('同步成功');
+                    final bg = isFailed
+                        ? Colors.red.withValues(alpha: 0.1)
+                        : (isSuccess ? Colors.green.withValues(alpha: 0.1) : colors.accent.withValues(alpha: 0.12));
+                    final fg = isFailed
+                        ? Colors.red
+                        : (isSuccess ? Colors.green : colors.textPrimary);
+                    final icon = isFailed
+                        ? Icons.error_outline_rounded
+                        : (isSuccess ? Icons.check_circle_outline_rounded : Icons.sync_rounded);
+
+                    return Container(
+                      padding: const EdgeInsets.all(10.0),
+                      decoration: BoxDecoration(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(10.0),
                       ),
-                    ],
-                  ),
+                      child: Row(
+                        children: [
+                          Icon(icon, size: 16.0, color: fg),
+                          const SizedBox(width: 6.0),
+                          Expanded(
+                            child: Text(
+                              _syncStatusMessage!,
+                              style: TextStyle(fontSize: 12.0, color: fg),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12.0),
               ],

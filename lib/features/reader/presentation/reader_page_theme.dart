@@ -33,16 +33,25 @@ class ReaderThemeOption {
     name: '纸白',
     background: Color(0xFFFFFDF7),
     textColor: Color(0xFF23262B),
-    subTextColor: Color(0xFF6E7480),
+    subTextColor: Color(0xFF555B66), // WCAG 4.5:1 高对比度灰阶
     isDark: false,
   );
 
   static const ReaderThemeOption cream = ReaderThemeOption(
     id: 'cream',
-    name: '米黄',
+    name: '羊皮纸',
     background: Color(0xFFF6EFDF),
     textColor: Color(0xFF3B3225),
-    subTextColor: Color(0xFF8A7F6D),
+    subTextColor: Color(0xFF5A5043), // 调校为深暖褐灰，对比度 > 5.0:1
+    isDark: false,
+  );
+
+  static const ReaderThemeOption green = ReaderThemeOption(
+    id: 'green',
+    name: '青润',
+    background: Color(0xFFEBF2EB),
+    textColor: Color(0xFF1B2E1E),
+    subTextColor: Color(0xFF3D5341), // 调校为墨绿深色次级文本，清晰可辨
     isDark: false,
   );
 
@@ -51,7 +60,7 @@ class ReaderThemeOption {
     name: '深墨',
     background: Color(0xFF1C1E26),
     textColor: Color(0xFFC9CCD8),
-    subTextColor: Color(0xFF8A8FA0),
+    subTextColor: Color(0xFF9096A8),
     isDark: true,
   );
 
@@ -60,7 +69,7 @@ class ReaderThemeOption {
     name: '极夜',
     background: Color(0xFF0B0C10),
     textColor: Color(0xFFB8BCC9),
-    subTextColor: Color(0xFF7C8190),
+    subTextColor: Color(0xFF888D9C),
     isDark: true,
   );
 
@@ -69,6 +78,7 @@ class ReaderThemeOption {
   static const List<ReaderThemeOption> presets = [
     paper,
     cream,
+    green,
     ink,
     night,
   ];

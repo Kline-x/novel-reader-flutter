@@ -21,11 +21,13 @@ void main() async {
     await LocalBookService().importFile(file);
   };
 
-  // 设置透明沉浸式系统状态栏
+  // 设置全局统一的透明沉浸式系统状态栏与手势底栏 (edgeToEdge)
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
@@ -44,6 +46,18 @@ class NovelReaderApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = ref.watch(softColorsProvider);
+
+    // 动态联动状态栏与导航栏图标明暗 (解决 T5 深色背景白图标，浅色背景黑图标)
+    final iconBrightness = colors.isDark ? Brightness.light : Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: iconBrightness,
+        statusBarBrightness: colors.isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: iconBrightness,
+      ),
+    );
 
     return SoftTheme(
       colors: colors,

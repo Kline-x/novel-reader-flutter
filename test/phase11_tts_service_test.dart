@@ -161,5 +161,91 @@ void main() {
       await tester.pump();
       expect(tts.isStopped, isTrue);
     });
+
+    testWidgets('TtsMiniPlayer 外部布局驱动与44dp热区及opaque命中验证', (tester) async {
+      final tts = TtsService();
+      await tts.stop();
+
+      double receivedOffset = 0.0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return Stack(
+                  children: [
+                    Positioned(
+                      bottom: 44.0 + receivedOffset,
+                      left: 0,
+                      right: 0,
+                      child: TtsMiniPlayer(
+                        offsetY: receivedOffset,
+                        onOffsetYChanged: (newOffset) {
+                          setState(() {
+                            receivedOffset = newOffset;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tts.playChapter(
+        bookId: 'test_book_tts_offset',
+        bookTitle: '剑来',
+        chapterIndex: 0,
+        chapterTitle: '第一章 惊蛰',
+        content: '陈平安走在泥泞的小路上。',
+      );
+      await tester.pump();
+
+      // 验证按钮存在并检查其热区与 HitTestBehavior.opaque
+      final toggleFinder = find.byKey(const ValueKey('tts_mini_toggle'));
+      final closeFinder = find.byKey(const ValueKey('tts_mini_close'));
+      expect(toggleFinder, findsOneWidget);
+      expect(closeFinder, findsOneWidget);
+
+      final toggleGesture = tester.widget<GestureDetector>(toggleFinder);
+      final closeGesture = tester.widget<GestureDetector>(closeFinder);
+      expect(toggleGesture.behavior, equals(HitTestBehavior.opaque));
+      expect(closeGesture.behavior, equals(HitTestBehavior.opaque));
+
+      // 验证按钮热区尺寸为 44x44
+      final toggleSize = tester.getSize(toggleFinder);
+      final closeSize = tester.getSize(closeFinder);
+      expect(toggleSize.width, equals(44.0));
+      expect(toggleSize.height, equals(44.0));
+      expect(closeSize.width, equals(44.0));
+      expect(closeSize.height, equals(44.0));
+
+      // 模拟向上拖拽 100dp
+      await tester.drag(find.byKey(const ValueKey('tts_mini_player_tap')), const Offset(0, -100));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 验证外部回调被触发且位移扣除 touchSlop 后不小于 80
+      expect(receivedOffset, greaterThanOrEqualTo(80.0));
+
+      // 拖拽后直接点击暂停按钮，验证事件秒级响应正常切换
+      expect(tts.isPlaying, isTrue);
+      await tester.tap(toggleFinder);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tts.isPaused, isTrue);
+
+      // 再次点击恢复播放
+      await tester.tap(toggleFinder);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tts.isPlaying, isTrue);
+
+      // 点击关闭
+      await tester.tap(closeFinder);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tts.isStopped, isTrue);
+    });
   });
 }

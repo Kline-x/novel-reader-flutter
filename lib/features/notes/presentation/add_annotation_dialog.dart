@@ -13,6 +13,7 @@ class AddAnnotationDialog extends StatefulWidget {
   final int charStart;
   final int charEnd;
   final String selectedText;
+  final bool isDark;
 
   const AddAnnotationDialog({
     super.key,
@@ -23,6 +24,7 @@ class AddAnnotationDialog extends StatefulWidget {
     required this.charStart,
     required this.charEnd,
     required this.selectedText,
+    this.isDark = false,
   });
 
   static Future<Annotation?> show(
@@ -34,6 +36,7 @@ class AddAnnotationDialog extends StatefulWidget {
     required int charStart,
     required int charEnd,
     required String selectedText,
+    bool isDark = false,
   }) {
     return showDialog<Annotation>(
       context: context,
@@ -45,6 +48,7 @@ class AddAnnotationDialog extends StatefulWidget {
         charStart: charStart,
         charEnd: charEnd,
         selectedText: selectedText,
+        isDark: isDark,
       ),
     );
   }
@@ -85,7 +89,7 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = SoftTheme.of(context);
+    final colors = widget.isDark ? SoftColors.night : SoftTheme.of(context);
 
     return Dialog(
       backgroundColor: colors.card,

@@ -37,10 +37,20 @@ class _MainScaffoldState extends State<MainScaffold> {
           _lastBackPressTime = now;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('再按一次退出藏书阁'),
+              content: Text(
+                '再按一次退出藏书阁',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
               backgroundColor: colors.card,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                side: BorderSide(color: colors.border),
+              ),
               elevation: 4.0,
             ),
           );

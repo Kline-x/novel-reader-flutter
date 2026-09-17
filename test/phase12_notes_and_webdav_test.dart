@@ -148,6 +148,13 @@ void main() {
     });
 
     test('WebDAV 增量同步模拟与书架/书签对齐验证', () async {
+      // 设置完整 WebDAV 凭据
+      await webDavService.saveConfig(const WebDavConfig(
+        serverUrl: 'https://dav.jianguoyun.com/dav/',
+        username: 'test_user',
+        password: 'test_password',
+      ));
+
       // 准备本地书架书籍与书签
       final now = DateTime.now();
       await storageService.addToBookshelf(ShelfBook(
@@ -179,6 +186,20 @@ void main() {
       expect(result.syncedBooks, 1);
       expect(result.syncedBookmarks, 1);
       expect(result.message, contains('增量漫游同步成功'));
+    });
+
+    test('WebDAV 空配置拦截测试：未配置账号密码时拒绝同步并提示完善配置', () async {
+      await webDavService.saveConfig(const WebDavConfig(
+        serverUrl: 'https://dav.jianguoyun.com/dav/',
+        username: '',
+        password: '',
+      ));
+      final result = await webDavService.sync(
+        storageService: storageService,
+        notesService: notesService,
+      );
+      expect(result.success, isFalse);
+      expect(result.message, contains('请先完善 WebDAV 配置'));
     });
   });
 

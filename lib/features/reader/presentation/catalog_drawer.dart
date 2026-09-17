@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../sources/models/chapter_item.dart';
+import 'reader_page_theme.dart';
 export '../../sources/models/chapter_item.dart';
 
-
 /// 全功能目录抽屉 (catalog_drawer.dart)
-/// 支持关键词快速检索、正倒序瞬时切换、当前章节高亮与自动定位
+/// 支持关键词快速检索、正倒序瞬时切换、当前章节高亮与自动定位，全面适配深色模式
 class CatalogDrawer extends StatefulWidget {
   final List<ChapterItem> chapters;
   final int currentChapterIndex;
   final ValueChanged<int> onSelectChapter;
   final VoidCallback? onOpenDownload;
   final VoidCallback? onOpenNotes;
+  final ReaderThemeOption? theme;
+  final bool isDark;
 
   const CatalogDrawer({
     super.key,
@@ -19,6 +21,8 @@ class CatalogDrawer extends StatefulWidget {
     required this.onSelectChapter,
     this.onOpenDownload,
     this.onOpenNotes,
+    this.theme,
+    this.isDark = false,
   });
 
   @override
@@ -59,9 +63,14 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = widget.theme?.isDark ?? widget.isDark;
+    final primaryTextColor = isDark ? Colors.white : (Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF1F2329));
+    final secondaryTextColor = isDark ? Colors.white54 : (Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8F959E));
+    final accentColor = isDark ? const Color(0xFF7098FF) : const Color(0xFF5B7FFF);
+
     var displayList = widget.chapters.where((c) {
       if (_filterKeyword.isEmpty) return true;
-      return c.title.contains(_filterKeyword);
+      return c.title.toLowerCase().contains(_filterKeyword.toLowerCase());
     }).toList();
 
     if (!_isAscending) {
@@ -70,7 +79,7 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.85,
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: isDark ? const Color(0xFF1E2022) : Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
         child: Column(
           children: [
@@ -85,7 +94,7 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                       style: TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.titleLarge?.color,
+                        color: primaryTextColor,
                       ),
                       children: [
                         TextSpan(
@@ -93,7 +102,7 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                           style: TextStyle(
                             fontSize: 12.0,
                             fontWeight: FontWeight.normal,
-                            color: Theme.of(context).textTheme.bodySmall?.color,
+                            color: secondaryTextColor,
                           ),
                         ),
                       ],
@@ -107,8 +116,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                         Navigator.of(context).pop();
                         widget.onOpenNotes!();
                       },
-                      icon: const Icon(Icons.rate_review_rounded, size: 14),
-                      label: const Text('笔记', style: TextStyle(fontSize: 12)),
+                      icon: Icon(Icons.rate_review_rounded, size: 14, color: accentColor),
+                      label: Text('笔记', style: TextStyle(fontSize: 12, color: accentColor)),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         visualDensity: VisualDensity.compact,
@@ -123,8 +132,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                         Navigator.of(context).pop();
                         widget.onOpenDownload!();
                       },
-                      icon: const Icon(Icons.download_rounded, size: 14),
-                      label: const Text('缓存', style: TextStyle(fontSize: 12)),
+                      icon: Icon(Icons.download_rounded, size: 14, color: accentColor),
+                      label: Text('缓存', style: TextStyle(fontSize: 12, color: accentColor)),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         visualDensity: VisualDensity.compact,
@@ -136,8 +145,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                   // 正倒序切换按钮
                   TextButton.icon(
                     onPressed: () => setState(() => _isAscending = !_isAscending),
-                    icon: Icon(_isAscending ? Icons.arrow_downward : Icons.arrow_upward, size: 14),
-                    label: Text(_isAscending ? '倒序' : '正序', style: const TextStyle(fontSize: 12)),
+                    icon: Icon(_isAscending ? Icons.arrow_downward : Icons.arrow_upward, size: 14, color: accentColor),
+                    label: Text(_isAscending ? '倒序' : '正序', style: TextStyle(fontSize: 12, color: accentColor)),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 4.0),
                       visualDensity: VisualDensity.compact,
@@ -154,21 +163,34 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
               child: Container(
                 height: 40.0,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.08),
+                  color: isDark ? const Color(0xFF282A2D) : Theme.of(context).dividerColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(
+                    color: isDark ? Colors.white12 : Colors.transparent,
+                  ),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 child: Row(
                   children: [
-                    Icon(Icons.search, size: 18, color: Theme.of(context).hintColor),
+                    Icon(
+                      Icons.search,
+                      size: 18,
+                      color: isDark ? Colors.white54 : Theme.of(context).hintColor,
+                    ),
                     const SizedBox(width: 8.0),
                     Expanded(
                       child: TextField(
                         controller: _searchController,
-                        style: const TextStyle(fontSize: 14.0),
-                        decoration: const InputDecoration(
+                        style: TextStyle(
+                          fontSize: 14.0,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        decoration: InputDecoration(
                           hintText: '搜索章节名...',
-                          hintStyle: TextStyle(fontSize: 13.0),
+                          hintStyle: TextStyle(
+                            fontSize: 13.0,
+                            color: isDark ? Colors.white38 : Theme.of(context).hintColor,
+                          ),
                           border: InputBorder.none,
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
@@ -182,14 +204,31 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                           _searchController.clear();
                           setState(() => _filterKeyword = '');
                         },
-                        child: const Icon(Icons.clear, size: 16),
+                        child: Icon(Icons.clear, size: 16, color: isDark ? Colors.white54 : null),
                       ),
                   ],
                 ),
               ),
             ),
 
-            const Divider(height: 1),
+            // 搜索命中计数提示
+            if (_filterKeyword.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '找到 ${displayList.length} 个相关章节',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w600,
+                      color: accentColor,
+                    ),
+                  ),
+                ),
+              ),
+
+            Divider(height: 1, color: isDark ? Colors.white12 : null),
 
             // 章节列表
             Expanded(
@@ -210,20 +249,16 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       alignment: Alignment.centerLeft,
                       color: isCurrent
-                          ? const Color(0xFF5B7FFF).withValues(alpha: 0.12)
+                          ? const Color(0xFF5B7FFF).withValues(alpha: isDark ? 0.22 : 0.12)
                           : Colors.transparent,
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
+                            child: _buildChapterTitle(
                               chapter.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 14.0,
-                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                                color: isCurrent ? const Color(0xFF5B7FFF) : null,
-                              ),
+                              isCurrent: isCurrent,
+                              isDark: isDark,
+                              accentColor: accentColor,
                             ),
                           ),
                           if (chapter.isCached)
@@ -240,6 +275,75 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// 构建章节标题（支持关键词高亮与深色适配）
+  Widget _buildChapterTitle(
+    String title, {
+    required bool isCurrent,
+    required bool isDark,
+    required Color accentColor,
+  }) {
+    final defaultColor = isCurrent ? const Color(0xFF5B7FFF) : (isDark ? Colors.white70 : const Color(0xFF1F2329));
+
+    if (_filterKeyword.isEmpty || !title.toLowerCase().contains(_filterKeyword.toLowerCase())) {
+      return Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 14.0,
+          fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+          color: defaultColor,
+        ),
+      );
+    }
+
+    // 分割关键词以进行精确高亮
+    final spans = <TextSpan>[];
+    final lowerTitle = title.toLowerCase();
+    final lowerKeyword = _filterKeyword.toLowerCase();
+    int start = 0;
+
+    while (true) {
+      final index = lowerTitle.indexOf(lowerKeyword, start);
+      if (index == -1) {
+        if (start < title.length) {
+          spans.add(TextSpan(
+            text: title.substring(start),
+            style: TextStyle(color: defaultColor),
+          ));
+        }
+        break;
+      }
+      if (index > start) {
+        spans.add(TextSpan(
+          text: title.substring(start, index),
+          style: TextStyle(color: defaultColor),
+        ));
+      }
+      spans.add(TextSpan(
+        text: title.substring(index, index + _filterKeyword.length),
+        style: TextStyle(
+          color: accentColor,
+          fontWeight: FontWeight.bold,
+          backgroundColor: accentColor.withValues(alpha: 0.18),
+        ),
+      ));
+      start = index + _filterKeyword.length;
+    }
+
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: TextStyle(
+          fontSize: 14.0,
+          fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+        ),
+        children: spans,
       ),
     );
   }

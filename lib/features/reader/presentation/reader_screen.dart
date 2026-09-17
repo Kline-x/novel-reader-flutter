@@ -9,6 +9,7 @@ import '../../sources/services/multi_source_service.dart';
 import '../../sources/models/source_rule.dart';
 import '../../tts/presentation/tts_control_sheet.dart';
 import '../../tts/presentation/tts_mini_player.dart';
+import '../../tts/services/tts_sentence_splitter.dart';
 import '../../tts/services/tts_service.dart';
 import '../../notes/models/annotation.dart';
 import '../../notes/models/bookmark.dart';
@@ -65,6 +66,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   bool _isCurrentPageBookmarked = false;
   bool _isInShelf = false;
   List<Annotation> _annotations = [];
+  double _ttsMiniOffsetY = 0.0;
 
   late int _currentChapterIndex;
   late int _currentCharOffset;
@@ -85,8 +87,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    // 启用沉浸式全屏阅读，隐藏系统状态栏与导航栏
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // 启用全局统一的透明沉浸式布局，不隐藏系统栏，消除页面跳转与进退砸落 (解决 1.4 / T1)
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _currentChapterIndex = widget.initialChapterIndex;
     _currentCharOffset = widget.initialCharOffset;
     _currentSourceName = widget.sourceName ?? widget.book?.sourceName ?? '笔趣阁CP';
@@ -104,6 +106,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
     _sessionStartTime = DateTime.now();
 
+    // 动态联动状态栏与导航栏图标明暗 (解决 T5 黑色背景白图标，浅色背景黑图标)
+    _applySystemBarTheme();
+
     _checkShelfStatus();
     _loadAnnotations();
     _loadSettings();
@@ -117,6 +122,21 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _initChaptersAndContent();
   }
 
+  /// 联动系统状态栏与导航栏图标明暗 (解决 T5 动态明暗自适应)
+  void _applySystemBarTheme() {
+    final isDark = _theme.isDark;
+    final iconBrightness = isDark ? Brightness.light : Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: iconBrightness,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: iconBrightness,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _storage.saveReadingProgress(
@@ -128,8 +148,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final durationSec = DateTime.now().difference(_sessionStartTime).inSeconds;
     _storage.addReadingSeconds(durationSec);
     _downloadSub?.cancel();
-    // 退出阅读器时恢复系统原生 EdgeToEdge 布局
+    // 保持系统原生 EdgeToEdge 布局并恢复全局状态栏样式
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _storage.getGlobalTheme().then((themeStr) {
+      final isDark = themeStr == 'dark' || themeStr == 'night';
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        ),
+      );
+    });
     super.dispose();
   }
 
@@ -454,6 +486,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           orElse: () => PageTurnMode.slide,
         );
       });
+      _applySystemBarTheme();
     }
   }
 
@@ -472,11 +505,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void _toggleNightMode() {
     setState(() {
       if (_theme.isDark) {
-        _theme = ReaderThemeOption.presets[0]; // 羊皮纸
+        _theme = ReaderThemeOption.presets[0]; // 浅色纸白/羊皮纸
       } else {
-        _theme = ReaderThemeOption.presets[3]; // OLED暗夜
+        _theme = ReaderThemeOption.presets.firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
       }
     });
+    _applySystemBarTheme();
     _persistSettings();
   }
 
@@ -520,6 +554,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               },
               onThemeChanged: (newTheme) {
                 setState(() => _theme = newTheme);
+                _applySystemBarTheme();
                 _persistSettings();
                 setModalState(() {});
               },
@@ -762,6 +797,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       bookTitle: widget.bookTitle,
       chapters: _chapters,
       currentChapterIndex: _currentChapterIndex,
+      isDark: _theme.isDark,
       onCacheUpdated: _refreshCachedIndices,
     );
   }
@@ -771,6 +807,23 @@ class _ReaderScreenState extends State<ReaderScreen> {
         ? _chapters[_currentChapterIndex].title
         : '第${_currentChapterIndex + 1}章';
     final fullText = _currentParagraphs.join('\n\n');
+
+    // 动态映射当前视口首行字符偏移量到句子索引 (解决 2.1 启动朗读位置同步，读到哪听到哪)
+    int startSentenceIndex = 0;
+    if (_currentCharOffset > 0 && fullText.isNotEmpty) {
+      final sentences = TtsSentenceSplitter.split(fullText);
+      for (int i = 0; i < sentences.length; i++) {
+        if (_currentCharOffset >= sentences[i].startIndex &&
+            _currentCharOffset < sentences[i].endIndex) {
+          startSentenceIndex = i;
+          break;
+        }
+        if (sentences[i].startIndex >= _currentCharOffset) {
+          startSentenceIndex = i;
+          break;
+        }
+      }
+    }
 
     final tts = TtsService();
     tts.onChapterComplete = () async {
@@ -784,6 +837,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           chapterIndex: _currentChapterIndex,
           chapterTitle: newTitle,
           content: newText,
+          startSentenceIndex: 0,
         );
       } else {
         await tts.stop();
@@ -796,6 +850,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       chapterIndex: _currentChapterIndex,
       chapterTitle: currentTitle,
       content: fullText,
+      startSentenceIndex: startSentenceIndex,
     );
 
     TtsControlSheet.show(context);
@@ -869,6 +924,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       context,
       bookId: widget.bookId,
       bookTitle: widget.bookTitle,
+      isDark: _theme.isDark,
       onNavigate: (chIdx, offset) {
         _loadChapterContent(chIdx, initialCharOffset: offset);
       },
@@ -893,6 +949,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       charStart: _currentCharOffset,
       charEnd: _currentCharOffset + excerpt.length,
       selectedText: excerpt,
+      isDark: _theme.isDark,
     );
 
     if (result != null) {
@@ -900,10 +957,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
       await _loadAnnotations();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('已成功添加划线批注并存入笔记'),
-            duration: Duration(milliseconds: 1200),
+          SnackBar(
+            content: const Text('已成功添加划线批注并存入笔记'),
+            duration: const Duration(milliseconds: 1200),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: _theme.isDark ? const Color(0xFF282A2D) : null,
           ),
         );
       }
@@ -919,14 +977,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     return PopScope(
       canPop: true,
-      onPopInvokedWithResult: (didPop, _) {
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      },
       child: Scaffold(
         key: _scaffoldKey,
         drawer: CatalogDrawer(
           chapters: _chapters,
           currentChapterIndex: _currentChapterIndex,
+          theme: _theme,
+          isDark: _theme.isDark,
           onSelectChapter: (idx) {
             _loadChapterContent(idx);
           },
@@ -956,7 +1013,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   chapterIndex: _currentChapterIndex,
                   charOffset: _currentCharOffset,
                 );
-                SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
                 Navigator.of(context).maybePop();
               },
               onOpenCatalog: _openCatalogDrawer,
@@ -981,12 +1037,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
               onAddAnnotation: _openAddAnnotation,
               isBookmarked: _isCurrentPageBookmarked,
             ),
-            const Positioned(
+            Positioned(
               left: 0,
               right: 0,
-              bottom: 12.0,
+              bottom: 44.0 + _ttsMiniOffsetY,
               child: SafeArea(
-                child: TtsMiniPlayer(),
+                child: TtsMiniPlayer(
+                  isDark: _theme.isDark,
+                  offsetY: _ttsMiniOffsetY,
+                  onOffsetYChanged: (newOffset) {
+                    setState(() {
+                      _ttsMiniOffsetY = newOffset;
+                    });
+                  },
+                ),
               ),
             ),
           ],

@@ -156,8 +156,17 @@ class WebDavService {
     final localBookmarks = await notes.getAllBookmarks();
     final localAnnotations = await notes.getAllAnnotations();
 
-    // 在单测隔离模式下，直接模拟合并与更新
-    if (_isTestMode || !config.isConfigured) {
+    // 拦截空配置：在账号或密码为空时禁止返回 success: true
+    if (!config.isConfigured) {
+      return SyncResult(
+        success: false,
+        message: '请先完善 WebDAV 配置（账号与密码不能为空）',
+        syncTime: now,
+      );
+    }
+
+    // 在单测隔离模式下，配置完备时模拟合并与更新
+    if (_isTestMode) {
       final updatedConfig = config.copyWith(lastSyncTime: now);
       await saveConfig(updatedConfig);
       return SyncResult(

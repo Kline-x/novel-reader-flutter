@@ -8,14 +8,19 @@ import '../services/tts_service.dart';
 
 /// Modern Soft UI 听书控制弹窗
 class TtsControlSheet extends StatefulWidget {
-  const TtsControlSheet({super.key});
+  final bool isDark;
 
-  static Future<void> show(BuildContext context) {
+  const TtsControlSheet({
+    super.key,
+    this.isDark = false,
+  });
+
+  static Future<void> show(BuildContext context, {bool isDark = false}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => const TtsControlSheet(),
+      builder: (ctx) => TtsControlSheet(isDark: isDark),
     );
   }
 
@@ -43,7 +48,7 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = SoftTheme.of(context);
+    final colors = widget.isDark ? SoftColors.night : SoftTheme.of(context);
     final isPlaying = _ttsService.isPlaying;
     final bookTitle = _ttsService.bookTitle;
     final chapterTitle = _ttsService.chapterTitle;
@@ -317,28 +322,33 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
                     final isSelected = (speed - rate).abs() < 0.05;
                     return GestureDetector(
                       key: ValueKey('tts_rate_${rate}x'),
+                      behavior: HitTestBehavior.opaque,
                       onTap: () => _ttsService.setSpeechRate(rate),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                        decoration: BoxDecoration(
-                          color: isSelected ? colors.accent : colors.card,
-                          borderRadius: BorderRadius.circular(10.0),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: colors.accent.withValues(alpha: 0.3),
-                                    blurRadius: 4.0,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : SoftDecorations.softShadows(colors, elevation: 0.5),
-                        ),
-                        child: Text(
-                          '${rate}x',
-                          style: TextStyle(
-                            fontSize: 11.0,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Colors.white : colors.textPrimary,
+                        constraints: const BoxConstraints(minHeight: 48.0, minWidth: 44.0),
+                        alignment: Alignment.center,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                          decoration: BoxDecoration(
+                            color: isSelected ? colors.accent : colors.card,
+                            borderRadius: BorderRadius.circular(10.0),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: colors.accent.withValues(alpha: 0.3),
+                                      blurRadius: 4.0,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : SoftDecorations.softShadows(colors, elevation: 0.5),
+                          ),
+                          child: Text(
+                            '${rate}x',
+                            style: TextStyle(
+                              fontSize: 11.0,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.white : colors.textPrimary,
+                            ),
                           ),
                         ),
                       ),
@@ -348,7 +358,7 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 14.0),
+          const SizedBox(height: 10.0),
 
           // 定时关闭
           Row(
@@ -369,28 +379,33 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
                     final isSelected = timer == opt;
                     return GestureDetector(
                       key: ValueKey('tts_timer_${opt.name}'),
+                      behavior: HitTestBehavior.opaque,
                       onTap: () => _ttsService.setTimer(opt),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
-                        decoration: BoxDecoration(
-                          color: isSelected ? colors.accent : colors.card,
-                          borderRadius: BorderRadius.circular(10.0),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: colors.accent.withValues(alpha: 0.3),
-                                    blurRadius: 4.0,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : SoftDecorations.softShadows(colors, elevation: 0.5),
-                        ),
-                        child: Text(
-                          opt.label,
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Colors.white : colors.textPrimary,
+                        constraints: const BoxConstraints(minHeight: 48.0, minWidth: 40.0),
+                        alignment: Alignment.center,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                          decoration: BoxDecoration(
+                            color: isSelected ? colors.accent : colors.card,
+                            borderRadius: BorderRadius.circular(10.0),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: colors.accent.withValues(alpha: 0.3),
+                                      blurRadius: 4.0,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : SoftDecorations.softShadows(colors, elevation: 0.5),
+                          ),
+                          child: Text(
+                            opt.label,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.white : colors.textPrimary,
+                            ),
                           ),
                         ),
                       ),

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/soft_switch.dart';
 import '../../../core/theme/soft_theme.dart';
+import '../../../core/theme/theme_provider.dart';
+import '../../local_books/presentation/wifi_transfer_dialog.dart';
+import '../../reader/data/storage_service.dart';
 import '../../sync/presentation/webdav_config_sheet.dart';
 
 /// 设置中心页面 (settings_page.dart)
-/// Modern Soft UI 风格：个人看板、物理音量翻页、WebDAV 云同步、WiFi 传书、缓存清理
+/// Modern Soft UI 风格：外观与主题、个人看板、物理音量翻页、WebDAV 云同步、WiFi 传书、缓存清理
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -14,9 +18,43 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final StorageService _storageService = StorageService();
+
   bool _volumeKeyPaging = true;
   bool _screenAwake = true;
-  String _cacheSize = '24.8 MB';
+  String _cacheSize = '0 B';
+  bool _followSystem = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final vPaging = await _storageService.getVolumeKeyPaging();
+    final sAwake = await _storageService.getKeepScreenAwake();
+    final cacheBytes = await _storageService.getTotalCacheSize();
+    final themeStr = await _storageService.getGlobalTheme();
+
+    if (mounted) {
+      setState(() {
+        _volumeKeyPaging = vPaging;
+        _screenAwake = sAwake;
+        _cacheSize = StorageService.formatBytes(cacheBytes);
+        _followSystem = themeStr == 'system';
+      });
+    }
+  }
+
+  Future<void> _refreshCacheSize() async {
+    final cacheBytes = await _storageService.getTotalCacheSize();
+    if (mounted) {
+      setState(() {
+        _cacheSize = StorageService.formatBytes(cacheBytes);
+      });
+    }
+  }
 
   void _triggerWebDavSync() async {
     WebDavConfigSheet.show(context);
@@ -51,12 +89,15 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             TextButton(
               key: const ValueKey('btn_confirm_clear_cache'),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(ctx).pop();
-                setState(() => _cacheSize = '0.0 KB');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('离线缓存已完全清空')),
-                );
+                await _storageService.clearAllCache();
+                await _refreshCacheSize();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('离线缓存已完全清空')),
+                  );
+                }
               },
               child: const Text('确认清空', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             ),
@@ -69,6 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final colors = SoftTheme.of(context);
+    final currentTheme = colors.type;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -132,7 +174,96 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16.0),
 
-            // 2. 阅读体验控制
+            // 2. 外观与主题 (任务 5.5)
+            _buildSectionHeader('外观与主题', colors),
+            SoftCard(
+              colors: colors,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('跟随系统深色模式', style: TextStyle(color: colors.textPrimary, fontSize: 14.0)),
+                    subtitle: Text('开启后将自动匹配系统深浅色切换', style: TextStyle(fontSize: 11.5, color: colors.textSecondary)),
+                    trailing: SoftSwitch(
+                      key: const ValueKey('switch_follow_system_theme'),
+                      value: _followSystem,
+                      colors: colors,
+                      onChanged: (val) async {
+                        setState(() {
+                          _followSystem = val;
+                        });
+                        final platformBrightness = MediaQuery.of(context).platformBrightness;
+                        if (val) {
+                          await _storageService.setGlobalTheme('system');
+                        } else {
+                          await _storageService.setGlobalTheme(ThemeNotifier.paletteToString(colors.type));
+                        }
+                        if (!mounted) return;
+                        try {
+                          ProviderScope.containerOf(this.context, listen: false)
+                              .read(themeProvider.notifier)
+                              .setFollowSystem(val, currentBrightness: platformBrightness);
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
+                  Divider(height: 16.0, color: colors.border),
+                  Text(
+                    '主题配色风格',
+                    style: TextStyle(fontSize: 12.0, color: colors.textSecondary, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10.0),
+                  Row(
+                    children: [
+                      _buildThemeChip(
+                        key: const ValueKey('theme_chip_paper'),
+                        title: '纯白雅致',
+                        palette: SoftPaletteType.paper,
+                        previewBg: const Color(0xFFF7F7F7),
+                        previewBorder: const Color(0xFFE0E0E0),
+                        isSelected: !_followSystem && currentTheme == SoftPaletteType.paper,
+                        colors: colors,
+                      ),
+                      const SizedBox(width: 8.0),
+                      _buildThemeChip(
+                        key: const ValueKey('theme_chip_parchment'),
+                        title: '羊皮纸',
+                        palette: SoftPaletteType.parchment,
+                        previewBg: const Color(0xFFF5F4F1),
+                        previewBorder: const Color(0xFFDCD8CF),
+                        isSelected: !_followSystem && currentTheme == SoftPaletteType.parchment,
+                        colors: colors,
+                      ),
+                      const SizedBox(width: 8.0),
+                      _buildThemeChip(
+                        key: const ValueKey('theme_chip_beanGreen'),
+                        title: '水墨绿',
+                        palette: SoftPaletteType.beanGreen,
+                        previewBg: const Color(0xFFEDF4ED),
+                        previewBorder: const Color(0xFFCDE0CD),
+                        isSelected: !_followSystem && currentTheme == SoftPaletteType.beanGreen,
+                        colors: colors,
+                      ),
+                      const SizedBox(width: 8.0),
+                      _buildThemeChip(
+                        key: const ValueKey('theme_chip_night'),
+                        title: '极夜黑',
+                        palette: SoftPaletteType.night,
+                        previewBg: const Color(0xFF1F1F28),
+                        previewBorder: const Color(0xFF38384A),
+                        isSelected: !_followSystem && currentTheme == SoftPaletteType.night,
+                        colors: colors,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16.0),
+
+            // 3. 阅读体验控制
             _buildSectionHeader('阅读控制', colors),
             SoftCard(
               colors: colors,
@@ -147,7 +278,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       key: const ValueKey('switch_volume_paging'),
                       value: _volumeKeyPaging,
                       colors: colors,
-                      onChanged: (val) => setState(() => _volumeKeyPaging = val),
+                      onChanged: (val) async {
+                        setState(() => _volumeKeyPaging = val);
+                        await _storageService.setVolumeKeyPaging(val);
+                      },
                     ),
                   ),
                   Divider(height: 1, color: colors.border),
@@ -158,7 +292,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       key: const ValueKey('switch_screen_awake'),
                       value: _screenAwake,
                       colors: colors,
-                      onChanged: (val) => setState(() => _screenAwake = val),
+                      onChanged: (val) async {
+                        setState(() => _screenAwake = val);
+                        await _storageService.setKeepScreenAwake(val);
+                      },
                     ),
                   ),
                 ],
@@ -166,7 +303,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16.0),
 
-            // 3. 数据与云同步 (WebDAV & WiFi)
+            // 4. 数据与云同步 (WebDAV & WiFi)
             _buildSectionHeader('数据与多端同步', colors),
             SoftCard(
               colors: colors,
@@ -196,12 +333,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   Divider(height: 1, color: colors.border),
                   GestureDetector(
+                    key: const ValueKey('settings_wifi_transfer_tile'),
                     behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('已启动本地服务：http://192.168.1.100:8080')),
-                      );
-                    },
+                    onTap: () => WifiTransferDialog.show(context),
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Text('📶', style: TextStyle(fontSize: 20.0)),
@@ -215,7 +349,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16.0),
 
-            // 4. 存储与系统
+            // 5. 存储与系统
             _buildSectionHeader('存储管理与关于', colors),
             SoftCard(
               colors: colors,
@@ -249,6 +383,69 @@ class _SettingsPageState extends State<SettingsPage> {
 
             const SizedBox(height: 100.0),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeChip({
+    required Key key,
+    required String title,
+    required SoftPaletteType palette,
+    required Color previewBg,
+    required Color previewBorder,
+    required bool isSelected,
+    required SoftColors colors,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        key: key,
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          setState(() => _followSystem = false);
+          _storageService.setGlobalTheme(ThemeNotifier.paletteToString(palette));
+          try {
+            ProviderScope.containerOf(context, listen: false)
+                .read(themeProvider.notifier)
+                .setPalette(palette);
+          } catch (_) {}
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          decoration: BoxDecoration(
+            color: previewBg,
+            borderRadius: BorderRadius.circular(12.0),
+            border: Border.all(
+              color: isSelected ? colors.accent : previewBorder,
+              width: isSelected ? 2.0 : 1.0,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: colors.accent.withValues(alpha: 0.25),
+                      blurRadius: 6.0,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: palette == SoftPaletteType.night ? Colors.white : const Color(0xFF14161B),
+                ),
+              ),
+              if (isSelected) ...[
+                const SizedBox(height: 2.0),
+                Icon(Icons.check_circle_rounded, size: 12.0, color: colors.accent),
+              ],
+            ],
+          ),
         ),
       ),
     );
