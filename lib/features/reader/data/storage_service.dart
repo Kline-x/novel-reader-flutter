@@ -120,6 +120,8 @@ class StorageService {
 
   static const String _keyShelfList = 'novel_reader_bookshelf_list';
   static const String _prefixProgress = 'novel_reader_progress_';
+  static const String _keySettings = 'novel_reader_user_settings';
+  static const String _keyHasSeeded = 'novel_reader_has_seeded';
 
   static final StreamController<void> _shelfUpdateController = StreamController<void>.broadcast();
   static Stream<void> get shelfUpdateStream => _shelfUpdateController.stream;
@@ -201,54 +203,7 @@ class StorageService {
     final prefs = await _getPrefs();
     final rawList = prefs.getStringList(_keyShelfList);
     if (rawList == null || rawList.isEmpty) {
-      final defaultBooks = [
-        ShelfBook(
-          bookId: 'guimi_01',
-          title: '诡秘之主',
-          author: '爱潜水的乌贼',
-          bookUrl: 'https://www.biqugezwx.com/50/',
-          sourceName: '笔趣阁ZWX',
-          sourceId: 'biqugezwx:笔趣阁ZWX',
-          lastChapterTitle: '第一千四百三十二章 愚者',
-          totalChapters: 1432,
-          lastReadTime: DateTime.now(),
-        ),
-        ShelfBook(
-          bookId: 'shiri_02',
-          title: '十日终焉',
-          author: '杀虫队队员',
-          bookUrl: 'https://www.biqugezwx.com/745/',
-          sourceName: '笔趣阁ZWX',
-          sourceId: 'biqugezwx:笔趣阁ZWX',
-          lastChapterTitle: '张丽娟（终）',
-          totalChapters: 1386,
-          lastReadTime: DateTime.now(),
-        ),
-        ShelfBook(
-          bookId: 'daoti_03',
-          title: '道诡异仙',
-          author: '狐尾的笔',
-          bookUrl: 'https://www.biqugezwx.com/334/',
-          sourceName: '笔趣阁ZWX',
-          sourceId: 'biqugezwx:笔趣阁ZWX',
-          lastChapterTitle: '第 1056 章 大千录',
-          totalChapters: 1056,
-          lastReadTime: DateTime.now(),
-        ),
-        ShelfBook(
-          bookId: 'jianlai_04',
-          title: '剑来',
-          author: '烽火戏诸侯',
-          bookUrl: 'https://www.biqugezwx.com/324/',
-          sourceName: '笔趣阁ZWX',
-          sourceId: 'biqugezwx:笔趣阁ZWX',
-          lastChapterTitle: '第一千一百五十四章 签文',
-          totalChapters: 1156,
-          lastReadTime: DateTime.now(),
-        ),
-      ];
-      await saveBookshelf(defaultBooks);
-      return defaultBooks;
+      return [];
     }
 
     final books = <ShelfBook>[];
@@ -267,6 +222,84 @@ class StorageService {
     final stringList = books.map((b) => jsonEncode(b.toJson())).toList();
     await prefs.setStringList(_keyShelfList, stringList);
     _shelfUpdateController.add(null);
+  }
+
+  /// 判断是否已初始化过默认书目
+  Future<bool> hasSeededDefaultBooks() async {
+    final prefs = await _getPrefs();
+    return prefs.getBool(_keyHasSeeded) ?? false;
+  }
+
+  /// 首次启动书架初始化默认书目
+  Future<List<ShelfBook>> seedDefaultBooks() async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(_keyHasSeeded, true);
+    final defaultBooks = [
+      ShelfBook(
+        bookId: 'guimi_01',
+        title: '诡秘之主',
+        author: '爱潜水的乌贼',
+        bookUrl: 'https://www.biqugezwx.com/50/',
+        sourceName: '笔趣阁ZWX',
+        sourceId: 'biqugezwx:笔趣阁ZWX',
+        lastChapterTitle: '第一千四百三十二章 愚者',
+        totalChapters: 1432,
+        lastReadTime: DateTime.now(),
+      ),
+      ShelfBook(
+        bookId: 'shiri_02',
+        title: '十日终焉',
+        author: '杀虫队队员',
+        bookUrl: 'https://www.biqugezwx.com/745/',
+        sourceName: '笔趣阁ZWX',
+        sourceId: 'biqugezwx:笔趣阁ZWX',
+        lastChapterTitle: '张丽娟（终）',
+        totalChapters: 1386,
+        lastReadTime: DateTime.now(),
+      ),
+      ShelfBook(
+        bookId: 'daoti_03',
+        title: '道诡异仙',
+        author: '狐尾的笔',
+        bookUrl: 'https://www.biqugezwx.com/334/',
+        sourceName: '笔趣阁ZWX',
+        sourceId: 'biqugezwx:笔趣阁ZWX',
+        lastChapterTitle: '第 1056 章 大千录',
+        totalChapters: 1056,
+        lastReadTime: DateTime.now(),
+      ),
+      ShelfBook(
+        bookId: 'jianlai_04',
+        title: '剑来',
+        author: '烽火戏诸侯',
+        bookUrl: 'https://www.biqugezwx.com/324/',
+        sourceName: '笔趣阁ZWX',
+        sourceId: 'biqugezwx:笔趣阁ZWX',
+        lastChapterTitle: '第一千一百五十四章 签文',
+        totalChapters: 1156,
+        lastReadTime: DateTime.now(),
+      ),
+    ];
+    await saveBookshelf(defaultBooks);
+    return defaultBooks;
+  }
+
+  /// 保存阅读器外观与排版设置
+  Future<void> saveReaderSettings(ReaderSettings settings) async {
+    final prefs = await _getPrefs();
+    await prefs.setString(_keySettings, jsonEncode(settings.toJson()));
+  }
+
+  /// 获取持久化的阅读器外观与排版设置
+  Future<ReaderSettings> getReaderSettings() async {
+    final prefs = await _getPrefs();
+    final raw = prefs.getString(_keySettings);
+    if (raw == null) return const ReaderSettings();
+    try {
+      return ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return const ReaderSettings();
+    }
   }
 
   /// 添加书籍至书架（若已存在则更新元数据）
@@ -530,3 +563,35 @@ class StorageService {
     return '${size.toStringAsFixed(size < 10 && i > 0 ? 1 : 0)} ${suffixes[i]}';
   }
 }
+
+/// 阅读器外观与排版持久化设置模型
+class ReaderSettings {
+  final double fontSize;
+  final double lineHeight;
+  final int themeIndex;
+  final String turnMode;
+
+  const ReaderSettings({
+    this.fontSize = 18.0,
+    this.lineHeight = 30.0,
+    this.themeIndex = 0,
+    this.turnMode = 'slide',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'fontSize': fontSize,
+    'lineHeight': lineHeight,
+    'themeIndex': themeIndex,
+    'turnMode': turnMode,
+  };
+
+  factory ReaderSettings.fromJson(Map<String, dynamic> json) {
+    return ReaderSettings(
+      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 18.0,
+      lineHeight: (json['lineHeight'] as num?)?.toDouble() ?? 30.0,
+      themeIndex: json['themeIndex'] as int? ?? 0,
+      turnMode: json['turnMode'] as String? ?? 'slide',
+    );
+  }
+}
+

@@ -78,5 +78,57 @@ void main() {
       expect(paragraphs[0], '第一段内容，关于神秘学的初步探讨。');
       expect(paragraphs[1], '第二段内容，塔罗会的正式召开。');
     });
+
+    test('parseChineseNumber 中文大写数字正确转换', () {
+      expect(SourceParser.parseChineseNumber('一'), 1);
+      expect(SourceParser.parseChineseNumber('二'), 2);
+      expect(SourceParser.parseChineseNumber('九'), 9);
+      expect(SourceParser.parseChineseNumber('十'), 10);
+      expect(SourceParser.parseChineseNumber('二十三'), 23);
+      expect(SourceParser.parseChineseNumber('一百零五'), 105);
+      expect(SourceParser.parseChineseNumber('一千四百三十二'), 1432);
+    });
+
+    test('extractChapterNumber 章节提取与前言/后记识别', () {
+      expect(SourceParser.extractChapterNumber('楔子'), 0);
+      expect(SourceParser.extractChapterNumber('第一章 绯红'), 1);
+      expect(SourceParser.extractChapterNumber('第二章 魔药'), 2);
+      expect(SourceParser.extractChapterNumber('第九章 笔记'), 9);
+      expect(SourceParser.extractChapterNumber('第十章 命运'), 10);
+      expect(SourceParser.extractChapterNumber('第二十三章 占卜'), 23);
+      expect(SourceParser.extractChapterNumber('1417. 尾声'), 1417);
+      expect(SourceParser.extractChapterNumber('后记'), 999999);
+    });
+
+    test('sanitizeAndOrderChapters 修复表格跨列错序与前置最新章节预览', () {
+      final scrambled = [
+        const ChapterItem(index: 0, title: '1417. 尾声', url: 'https://site.com/18871.html'),
+        const ChapterItem(index: 1, title: '第一章 绯红', url: 'https://site.com/17455.html'),
+        const ChapterItem(index: 2, title: '第八章 聚会', url: 'https://site.com/17462.html'),
+        const ChapterItem(index: 3, title: '第十五章 占卜', url: 'https://site.com/17469.html'),
+        const ChapterItem(index: 4, title: '第二章 魔药', url: 'https://site.com/17456.html'),
+        const ChapterItem(index: 5, title: '第九章 笔记', url: 'https://site.com/17463.html'),
+        const ChapterItem(index: 6, title: '第十六章 观众', url: 'https://site.com/17470.html'),
+        const ChapterItem(index: 7, title: '第三章 梅丽莎', url: 'https://site.com/17457.html'),
+        const ChapterItem(index: 8, title: '第十章 命运', url: 'https://site.com/17464.html'),
+        const ChapterItem(index: 9, title: '第二十三章 太阳', url: 'https://site.com/17477.html'),
+        const ChapterItem(index: 10, title: '1417. 尾声', url: 'https://site.com/18871.html'),
+      ];
+
+      final ordered = SourceParser.sanitizeAndOrderChapters(scrambled);
+      expect(ordered.first.title, '第一章 绯红');
+      expect(ordered[0].index, 0);
+      expect(ordered[1].title, '第二章 魔药');
+      expect(ordered[1].index, 1);
+      expect(ordered[2].title, '第三章 梅丽莎');
+      expect(ordered[2].index, 2);
+      expect(ordered[3].title, '第八章 聚会');
+      expect(ordered[4].title, '第九章 笔记');
+      expect(ordered[5].title, '第十章 命运');
+      expect(ordered[6].title, '第十五章 占卜');
+      expect(ordered[7].title, '第十六章 观众');
+      expect(ordered[8].title, '第二十三章 太阳');
+      expect(ordered.last.title, '1417. 尾声');
+    });
   });
 }

@@ -191,31 +191,35 @@ class BookCoverWidget extends StatelessWidget {
         Center(
           child: Padding(
             padding: EdgeInsets.only(
-              top: isCompact ? 4.0 : 8.0,
-              bottom: isCompact ? 14.0 : 20.0,
+              top: isCompact ? 3.0 : 8.0,
+              bottom: isCompact ? 12.0 : 20.0,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (final char in verticalChars)
-                  Text(
-                    char,
-                    style: TextStyle(
-                      fontSize: titleFontSize,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      height: 1.05,
-                      letterSpacing: 1.0,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          offset: const Offset(0, 1.5),
-                          blurRadius: 4.0,
-                        ),
-                      ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final char in verticalChars)
+                    Text(
+                      char,
+                      style: TextStyle(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.05,
+                        letterSpacing: 1.0,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            offset: const Offset(0, 1.5),
+                            blurRadius: 4.0,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

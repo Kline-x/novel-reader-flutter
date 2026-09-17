@@ -85,6 +85,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
   int _animDirection = 1; // 1: 下一页, -1: 上一页
   List<ChapterPage> _pages = [];
   int _currentPageIndex = 0;
+  int _activeCharOffset = 0;
   bool _showMenu = false;
   late String _currentTimeString;
   Timer? _clockTimer;
@@ -95,6 +96,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
+    _activeCharOffset = widget.initialCharOffset;
     _currentTimeString = DateFormat('HH:mm').format(DateTime.now());
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
@@ -155,11 +157,14 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         widget.paragraphs != oldWidget.paragraphs ||
         widget.turnMode != oldWidget.turnMode ||
         widget.initialCharOffset != oldWidget.initialCharOffset) {
-      if (widget.chapterTitle != oldWidget.chapterTitle) {
-        // 章节切换时，若指定 landingOnLastPage (offset >= 999999)，定位到末页；否则首页归零
-        _currentPageIndex = (widget.initialCharOffset >= 999999 || widget.initialCharOffset == -1)
-            ? 999999
-            : 0;
+      if (widget.chapterTitle != oldWidget.chapterTitle ||
+          widget.initialCharOffset != oldWidget.initialCharOffset) {
+        _activeCharOffset = widget.initialCharOffset;
+        if (widget.initialCharOffset >= 999999 || widget.initialCharOffset == -1) {
+          _currentPageIndex = 999999;
+        } else {
+          _currentPageIndex = 0;
+        }
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -207,13 +212,11 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
     );
 
     int targetPageIndex = 0;
-    if (_currentPageIndex >= 999999 || widget.initialCharOffset >= 999999 || widget.initialCharOffset == -1) {
+    final anchor = _activeCharOffset >= 0 ? _activeCharOffset : widget.initialCharOffset;
+    if (_currentPageIndex >= 999999 || anchor >= 999999 || anchor == -1) {
       targetPageIndex = newPages.isEmpty ? 0 : newPages.length - 1;
     } else {
-      final currentAnchorChar = _pages.isNotEmpty && _currentPageIndex < _pages.length
-          ? _pages[_currentPageIndex].charStart
-          : widget.initialCharOffset;
-      targetPageIndex = ReaderLayoutEngine.findPageByCharOffset(newPages, currentAnchorChar);
+      targetPageIndex = ReaderLayoutEngine.findPageByCharOffset(newPages, anchor);
     }
 
     setState(() {
@@ -221,7 +224,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       _currentPageIndex = targetPageIndex.clamp(0, newPages.isEmpty ? 0 : newPages.length - 1);
     });
 
-    if (_pageController.hasClients && _pageController.page?.round() != _currentPageIndex) {
+    if (_pageController.hasClients) {
       _pageController.jumpToPage(_currentPageIndex);
     }
   }
@@ -322,9 +325,12 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
   }
 
   void _notifyProgress() {
-    if (_pages.isNotEmpty && widget.onProgressChanged != null) {
+    if (_pages.isNotEmpty && _currentPageIndex < _pages.length) {
       final currentOffset = _pages[_currentPageIndex].charStart;
-      widget.onProgressChanged!(currentOffset);
+      _activeCharOffset = currentOffset;
+      if (widget.onProgressChanged != null) {
+        widget.onProgressChanged!(currentOffset);
+      }
     }
   }
 
@@ -1158,7 +1164,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                   ],
                 ),
                 const SizedBox(height: 8.0),
-                // 核心功能按键：目录、换源、缓存、听书、日间/夜间、排版
+                // 核心功能按键：目录、听书、日间/夜间、排版
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -1167,12 +1173,6 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                       label: '目录',
                       onTap: widget.onOpenCatalog,
                     ),
-                    if (widget.onOpenSourceSwitcher != null)
-                      _buildActionButton(
-                        icon: Icons.swap_horiz_rounded,
-                        label: '换源',
-                        onTap: widget.onOpenSourceSwitcher!,
-                      ),
                     if (widget.onOpenTts != null)
                       _buildActionButton(
                         icon: Icons.headphones_rounded,

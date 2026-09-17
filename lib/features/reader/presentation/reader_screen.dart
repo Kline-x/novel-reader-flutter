@@ -92,6 +92,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     _checkShelfStatus();
     _loadAnnotations();
+    _loadSettings();
 
     _downloadSub = _downloadService.progressStream.listen((p) {
       if (p.bookId == widget.bookId && mounted) {
@@ -104,6 +105,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   void dispose() {
+    _storage.saveReadingProgress(
+      widget.bookId,
+      chapterIndex: _currentChapterIndex,
+      charOffset: _currentCharOffset,
+    );
     _downloadSub?.cancel();
     // 退出阅读器时恢复系统原生 EdgeToEdge 布局
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -194,7 +200,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             )).toList();
             _currentSourceName = widget.book?.isEpub == true ? '本地EPUB' : '本地TXT';
           });
-          await _loadChapterContent(_currentChapterIndex);
+          await _loadChapterContent(_currentChapterIndex, initialCharOffset: _currentCharOffset);
         }
         return;
       }
@@ -209,7 +215,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           _chapters = cachedList;
         });
       }
-      await _loadChapterContent(_currentChapterIndex);
+      await _loadChapterContent(_currentChapterIndex, initialCharOffset: _currentCharOffset);
       _refreshCachedIndices();
       return;
     }
@@ -292,7 +298,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           if (mounted) {
             setState(() => _isLoading = false);
           }
-          await _loadChapterContent(_currentChapterIndex);
+          await _loadChapterContent(_currentChapterIndex, initialCharOffset: _currentCharOffset);
           _refreshCachedIndices();
           return;
         }
@@ -314,7 +320,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
     }
-    await _loadChapterContent(_currentChapterIndex);
+    await _loadChapterContent(_currentChapterIndex, initialCharOffset: _currentCharOffset);
   }
 
   static List<String> _getChapterNamesForBook(String bookTitle) {
@@ -495,6 +501,32 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
+  Future<void> _loadSettings() async {
+    final s = await _storage.getReaderSettings();
+    if (mounted) {
+      setState(() {
+        _fontSize = s.fontSize;
+        _lineHeight = s.lineHeight;
+        final tIdx = s.themeIndex.clamp(0, ReaderThemeOption.presets.length - 1);
+        _theme = ReaderThemeOption.presets[tIdx];
+        _turnMode = PageTurnMode.values.firstWhere(
+          (m) => m.name == s.turnMode,
+          orElse: () => PageTurnMode.slide,
+        );
+      });
+    }
+  }
+
+  void _persistSettings() {
+    final themeIdx = ReaderThemeOption.presets.indexWhere((t) => t.name == _theme.name);
+    _storage.saveReaderSettings(ReaderSettings(
+      fontSize: _fontSize,
+      lineHeight: _lineHeight,
+      themeIndex: themeIdx >= 0 ? themeIdx : 0,
+      turnMode: _turnMode.name,
+    ));
+  }
+
   void _toggleNightMode() {
     setState(() {
       if (_theme.isDark) {
@@ -503,6 +535,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _theme = ReaderThemeOption.presets[3]; // OLED暗夜
       }
     });
+    _persistSettings();
   }
 
   void _nextChapter() {
@@ -535,18 +568,22 @@ class _ReaderScreenState extends State<ReaderScreen> {
               turnMode: _turnMode,
               onFontSizeChanged: (newSize) {
                 setState(() => _fontSize = newSize);
+                _persistSettings();
                 setModalState(() {});
               },
               onLineHeightChanged: (newH) {
                 setState(() => _lineHeight = newH);
+                _persistSettings();
                 setModalState(() {});
               },
               onThemeChanged: (newTheme) {
                 setState(() => _theme = newTheme);
+                _persistSettings();
                 setModalState(() {});
               },
               onTurnModeChanged: (newMode) {
                 setState(() => _turnMode = newMode);
+                _persistSettings();
                 setModalState(() {});
               },
             );
@@ -971,9 +1008,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
               isInShelf: _isInShelf,
               onAddToShelf: _addToShelf,
               onRetry: () => _loadChapterContent(_currentChapterIndex),
-              onBack: () {
+              onBack: () async {
+                await _storage.saveReadingProgress(
+                  widget.bookId,
+                  chapterIndex: _currentChapterIndex,
+                  charOffset: _currentCharOffset,
+                );
                 SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-                Navigator.of(context).maybePop();
+                if (mounted) Navigator.of(context).maybePop();
               },
               onOpenCatalog: _openCatalogDrawer,
               onOpenTypography: _openTypographyDrawer,
@@ -985,6 +1027,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
               onPreviousChapter: _previousChapter,
               onProgressChanged: (charOffset) {
                 _currentCharOffset = charOffset;
+                _storage.saveReadingProgress(
+                  widget.bookId,
+                  chapterIndex: _currentChapterIndex,
+                  charOffset: charOffset,
+                );
                 _checkBookmarkStatus();
               },
               onToggleBookmark: _toggleBookmark,

@@ -56,7 +56,10 @@ class _ShelfPageState extends State<ShelfPage> {
   }
 
   Future<void> _loadBooksFromStorage() async {
-    final saved = await _storageService.getBookshelf();
+    var saved = await _storageService.getBookshelf();
+    if (saved.isEmpty && !await _storageService.hasSeededDefaultBooks()) {
+      saved = await _storageService.seedDefaultBooks();
+    }
     final List<BookItem> loaded = [];
     for (final s in saved) {
       final prog = await _storageService.getReadingProgress(s.bookId);

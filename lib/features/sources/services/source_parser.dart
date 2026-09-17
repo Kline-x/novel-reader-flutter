@@ -101,7 +101,7 @@ class SourceParser {
       );
     }
 
-    return chapters;
+    return sanitizeAndOrderChapters(chapters);
   }
 
   /// 获取章节正文内容并降噪分段
@@ -361,4 +361,177 @@ class SourceParser {
       return trimmed;
     }
   }
+
+  /// 解析中文大写数字（例如 "一千四百三十二", "二十三", "九", "一百零五"）
+  static int? parseChineseNumber(String s) {
+    if (s.isEmpty) return null;
+    const map = {
+      '零': 0, '〇': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,
+      '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+      '百': 100, '千': 1000, '万': 10000,
+    };
+    int total = 0;
+    int curr = 0;
+    for (int i = 0; i < s.length; i++) {
+      final char = s[i];
+      final val = map[char];
+      if (val == null) continue;
+      if (val >= 10) {
+        if (curr == 0) curr = 1;
+        total += curr * val;
+        curr = 0;
+      } else {
+        curr = val;
+      }
+    }
+    total += curr;
+    return total > 0 ? total : null;
+  }
+
+  /// 提取章节标题中的序号数字（支持阿拉伯数字与中文大写数字）
+  static int? extractChapterNumber(String title) {
+    final t = title.trim();
+    if (t.startsWith('序章') || t.startsWith('引子') || t.startsWith('楔子') || t.startsWith('前言')) {
+      return 0;
+    }
+    // 匹配阿拉伯数字：第123章、第 123 节、123.
+    final arMatch = RegExp(r'第\s*(\d+)\s*[章节回集卷话]').firstMatch(t);
+    if (arMatch != null) {
+      return int.tryParse(arMatch.group(1)!);
+    }
+    final dotMatch = RegExp(r'^(\d+)\s*[\.、\s]').firstMatch(t);
+    if (dotMatch != null) {
+      return int.tryParse(dotMatch.group(1)!);
+    }
+    // 匹配中文数字：第一千二百三十四章
+    final cnMatch = RegExp(r'第\s*([零〇一二两三四五六七八九十百千万]+)\s*[章节回集卷话]').firstMatch(t);
+    if (cnMatch != null) {
+      return parseChineseNumber(cnMatch.group(1)!);
+    }
+    if (t.startsWith('后记') || t.startsWith('尾声') || t.startsWith('番外') || t.startsWith('完本感言')) {
+      return 999999;
+    }
+    return null;
+  }
+
+  /// 提取章节 URL 中包含的自增数字标识（如 /50/17455.html 中的 17455）
+  static int? extractUrlSequenceId(String url) {
+    final match = RegExp(r'/(\d+)\.html').firstMatch(url);
+    if (match != null) {
+      return int.tryParse(match.group(1)!);
+    }
+    return null;
+  }
+
+  /// 清洗并重整章节列表：智能剥离前置“最新章节”预览、消除跳章与乱序、重建单调连续索引
+  static List<ChapterItem> sanitizeAndOrderChapters(List<ChapterItem> rawList) {
+    if (rawList.isEmpty) return [];
+
+    // 1. 识别并剔除前置“最新章节”预览重复项（检查前 15 项在后续是否存在）
+    final lateUrls = <String>{};
+    for (int i = 15; i < rawList.length; i++) {
+      lateUrls.add(rawList[i].url);
+    }
+    final deduped = <ChapterItem>[];
+    for (int i = 0; i < rawList.length; i++) {
+      final item = rawList[i];
+      if (i < 15 && lateUrls.contains(item.url)) {
+        continue;
+      }
+      deduped.add(item);
+    }
+
+    // 2. 基于 URL 进行唯一去重
+    final unique = <ChapterItem>[];
+    final seenUrls = <String>{};
+    for (final item in deduped) {
+      if (seenUrls.add(item.url)) {
+        unique.add(item);
+      }
+    }
+
+    if (unique.length <= 2) {
+      return unique;
+    }
+
+    // 3. 智能检测是否发生乱序（跳章、多列表格跨列错序等）
+    final chapterNumbers = unique.map((c) => extractChapterNumber(c.title)).toList();
+    final numberedCount = chapterNumbers.where((n) => n != null).length;
+
+    bool shouldSort = false;
+    if (numberedCount >= unique.length * 0.5) {
+      int inversions = 0;
+      int? lastNum;
+      for (final num in chapterNumbers) {
+        if (num != null && num < 999999) {
+          if (lastNum != null && num < lastNum) {
+            inversions++;
+          }
+          lastNum = num;
+        }
+      }
+      // 如果发生 2 次以上逆序跳跃，判定为表格跨列或混序排版，需自动重排序
+      if (inversions >= 2) {
+        shouldSort = true;
+      }
+    }
+
+    List<ChapterItem> sortedList = List.of(unique);
+    if (shouldSort) {
+      final indexed = List.generate(sortedList.length, (i) {
+        final item = sortedList[i];
+        final num = chapterNumbers[i];
+        final urlId = extractUrlSequenceId(item.url);
+        return _SortableChapter(
+          originalIndex: i,
+          chapter: item,
+          chapterNumber: num,
+          urlId: urlId,
+        );
+      });
+
+      indexed.sort((a, b) {
+        // 优先按提取的章节号排序
+        if (a.chapterNumber != null && b.chapterNumber != null) {
+          final cmp = a.chapterNumber!.compareTo(b.chapterNumber!);
+          if (cmp != 0) return cmp;
+        } else if (a.chapterNumber != null && b.chapterNumber == null) {
+          if (a.chapterNumber! == 0) return 1;
+        } else if (a.chapterNumber == null && b.chapterNumber != null) {
+          if (b.chapterNumber! == 0) return -1;
+        }
+
+        // 次选：按 URL 序列号递增排序
+        if (a.urlId != null && b.urlId != null) {
+          final cmp = a.urlId!.compareTo(b.urlId!);
+          if (cmp != 0) return cmp;
+        }
+
+        // 兜底保持原始顺序
+        return a.originalIndex.compareTo(b.originalIndex);
+      });
+
+      sortedList = indexed.map((s) => s.chapter).toList();
+    }
+
+    // 4. 重建单调递增连续 index (0..N-1)
+    return List.generate(sortedList.length, (i) {
+      return sortedList[i].copyWith(index: i);
+    });
+  }
 }
+
+class _SortableChapter {
+  final int originalIndex;
+  final ChapterItem chapter;
+  final int? chapterNumber;
+  final int? urlId;
+
+  const _SortableChapter({
+    required this.originalIndex,
+    required this.chapter,
+    this.chapterNumber,
+    this.urlId,
+  });
+}
+

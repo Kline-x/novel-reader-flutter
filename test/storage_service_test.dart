@@ -132,5 +132,39 @@ void main() {
       await storage.clearAllCache();
       expect(await storage.getTotalCacheSize(), 0);
     });
+
+    test('ReaderSettings 排版设置持久化与读取', () async {
+      final initial = await storage.getReaderSettings();
+      expect(initial.fontSize, 18.0);
+      expect(initial.lineHeight, 30.0);
+      expect(initial.themeIndex, 0);
+      expect(initial.turnMode, 'slide');
+
+      await storage.saveReaderSettings(const ReaderSettings(
+        fontSize: 22.0,
+        lineHeight: 34.0,
+        themeIndex: 2,
+        turnMode: 'cover',
+      ));
+
+      final updated = await storage.getReaderSettings();
+      expect(updated.fontSize, 22.0);
+      expect(updated.lineHeight, 34.0);
+      expect(updated.themeIndex, 2);
+      expect(updated.turnMode, 'cover');
+    });
+
+    test('书架默认书籍按需初始化 (seedDefaultBooks)', () async {
+      expect(await storage.hasSeededDefaultBooks(), isFalse);
+      expect(await storage.getBookshelf(), isEmpty);
+
+      final seeded = await storage.seedDefaultBooks();
+      expect(seeded.length, 4);
+      expect(await storage.hasSeededDefaultBooks(), isTrue);
+
+      final current = await storage.getBookshelf();
+      expect(current.length, 4);
+      expect(current.any((b) => b.title == '诡秘之主'), isTrue);
+    });
   });
 }
