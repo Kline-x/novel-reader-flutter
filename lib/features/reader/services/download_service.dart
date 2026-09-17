@@ -98,6 +98,7 @@ class DownloadService {
   final Map<String, bool> _cancelFlags = {};
   final Map<String, bool> _pauseFlags = {};
 
+  final Map<String, String> _taskSources = {};
   final StreamController<DownloadProgress> _progressController =
       StreamController<DownloadProgress>.broadcast();
 
@@ -110,6 +111,41 @@ class DownloadService {
     return t != null && t.status == DownloadStatus.downloading;
   }
 
+  /// 启动全本或指定章数下载
+  Future<void> startDownload({
+    required String bookId,
+    required String bookTitle,
+    int totalChapters = 50,
+    String? sourceName,
+    String? bookUrl,
+  }) async {
+    final sName = sourceName ?? '笔趣阁ZWX';
+    final cachedToc = await _storage.getBookToc(bookId);
+    List<ChapterItem> chapters = [];
+    if (cachedToc != null && cachedToc.isNotEmpty) {
+      chapters = cachedToc.map((e) => ChapterItem.fromJson(e)).toList();
+    }
+    if (chapters.isEmpty && bookUrl != null && bookUrl.isNotEmpty) {
+      final rule = BuiltinSources.findByName(sName) ?? BuiltinSources.findByName('笔趣阁ZWX');
+      if (rule != null) {
+        try {
+          chapters = await _parser.fetchToc(rule, bookUrl);
+          await _storage.saveBookToc(bookId, chapters.map((e) => e.toJson()).toList());
+        } catch (_) {}
+      }
+    }
+    if (chapters.isEmpty) {
+      chapters = List.generate(totalChapters, (i) => ChapterItem(index: i, title: '第${i + 1}章', url: ''));
+    }
+    await startBatchDownload(
+      bookId: bookId,
+      bookTitle: bookTitle,
+      chapters: chapters,
+      count: chapters.isNotEmpty ? chapters.length : totalChapters,
+      sourceName: sName,
+    );
+  }
+
   /// 启动批量章节下载
   Future<void> startBatchDownload({
     required String bookId,
@@ -117,9 +153,14 @@ class DownloadService {
     required List<ChapterItem> chapters,
     int startIndex = 0,
     int count = 50,
+    String? sourceName,
   }) async {
     if (isDownloading(bookId)) {
       return;
+    }
+
+    if (sourceName != null) {
+      _taskSources[bookId] = sourceName;
     }
 
     _cancelFlags[bookId] = false;
@@ -224,8 +265,11 @@ class DownloadService {
         List<String>? paragraphs;
         if (chapter.url.isNotEmpty && chapter.url.startsWith('http')) {
           try {
-            final rule = BuiltinSources.findByName('笔趣阁CP');
-            if (rule != null && !chapter.url.contains('example.com')) {
+            final srcName = _taskSources[bookId] ?? '笔趣阁ZWX';
+            final rule = BuiltinSources.findByName(srcName) ??
+                BuiltinSources.findByName('笔趣阁ZWX') ??
+                BuiltinSources.all.first;
+            if (!chapter.url.contains('example.com')) {
               paragraphs = await _parser.fetchChapterContent(rule, chapter.url);
             }
           } catch (_) {}

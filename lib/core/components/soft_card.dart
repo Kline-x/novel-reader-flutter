@@ -10,6 +10,7 @@ class SoftCard extends StatefulWidget {
   final double radius;
   final SoftColors colors;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final double elevation;
   final Border? border;
 
@@ -21,6 +22,7 @@ class SoftCard extends StatefulWidget {
     this.margin = EdgeInsets.zero,
     this.radius = SoftDecorations.squircleCardRadius,
     this.onTap,
+    this.onLongPress,
     this.elevation = 1.0,
     this.border,
   });
@@ -34,7 +36,7 @@ class _SoftCardState extends State<SoftCard> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveElevation = (_isPressed && widget.onTap != null)
+    final effectiveElevation = (_isPressed && (widget.onTap != null || widget.onLongPress != null))
         ? widget.elevation * 0.35
         : widget.elevation;
 
@@ -51,12 +53,13 @@ class _SoftCardState extends State<SoftCard> {
       child: widget.child,
     );
 
-    if (widget.onTap != null) {
+    if (widget.onTap != null || widget.onLongPress != null) {
       cardContent = GestureDetector(
         onTapDown: (_) => setState(() => _isPressed = true),
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         behavior: HitTestBehavior.opaque,
         child: AnimatedScale(
           scale: _isPressed ? 0.975 : 1.0,

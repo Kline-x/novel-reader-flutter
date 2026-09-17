@@ -327,4 +327,12 @@ class BuiltinSources {
       return null;
     }
   }
+
+  static SourceRule? findById(String id) {
+    try {
+      return all.firstWhere((s) => s.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 }

@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
-import '../../reader/presentation/reader_screen.dart';
+import '../../reader/data/storage_service.dart';
 import '../../sources/models/book_search_result.dart';
 import '../../sources/services/multi_source_service.dart';
 import '../models/book_item.dart';
+import 'book_detail_page.dart';
 import 'shelf_controller.dart';
 
 /// 发现/书城页面 (discovery_page.dart)
@@ -178,25 +179,57 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   }
 
   void _openBookFromHot(Map<String, String> book) {
+    final title = book['title']!;
+    final author = book['author']!;
+    String url = '';
+    String sName = '笔趣阁CP';
+    String sId = 'biqugecompany:笔趣阁CP';
+    if (title.contains('诡秘之主')) {
+      url = 'https://www.biquge.company/book/9053.html';
+    } else if (title.contains('十日终焉')) {
+      url = 'https://www.biquge.company/book/21843.html';
+    } else if (title.contains('道诡异仙')) {
+      url = 'https://www.biqugezwx.com/334/';
+      sName = '笔趣阁ZWX';
+      sId = 'biqugezwx:笔趣阁ZWX';
+    } else if (title.contains('剑来')) {
+      url = 'https://www.biquge.company/book/12497.html';
+    }
+
+    final bookItem = BookItem(
+      id: 'hot_$title',
+      title: title,
+      author: author,
+      bookUrl: url,
+      sourceName: sName,
+      sourceId: sId,
+      category: book['tag'] ?? '热门精选',
+      description: '起点中文网千万级读者力荐神作，全网优质在线书源实时同步更新。',
+    );
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReaderScreen(
-          bookId: book['title']!,
-          bookTitle: book['title']!,
-          author: book['author']!,
-        ),
+        builder: (_) => BookDetailPage(book: bookItem),
       ),
     );
   }
 
   void _openBookFromResult(BookSearchResult result) {
+    final bookItem = BookItem(
+      id: result.id,
+      title: result.title,
+      author: result.author,
+      bookUrl: result.bookUrl,
+      sourceName: result.sourceName,
+      sourceId: result.sourceId,
+      latestChapter: result.latestChapter ?? '连载更新中',
+      category: '全网书源',
+      description: result.intro ?? '由【${result.sourceName}】同步加载收录',
+    );
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReaderScreen(
-          bookId: result.title,
-          bookTitle: result.title,
-          author: result.author,
-        ),
+        builder: (_) => BookDetailPage(book: bookItem),
       ),
     );
   }
@@ -214,10 +247,23 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       lastReadTime: DateTime.now(),
       category: '全网书源',
       sourceName: result.sourceName,
+      sourceId: result.sourceId,
+      bookUrl: result.bookUrl,
       description: result.intro ?? '由【${result.sourceName}】同步加载',
     );
 
     ref.read(shelfProvider.notifier).addBook(book);
+
+    StorageService().addBookToShelf(ShelfBook(
+      bookId: result.id,
+      title: result.title,
+      author: result.author,
+      sourceId: result.sourceId,
+      sourceName: result.sourceName,
+      bookUrl: result.bookUrl,
+      lastReadTime: DateTime.now(),
+      lastChapterTitle: result.latestChapter,
+    ));
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

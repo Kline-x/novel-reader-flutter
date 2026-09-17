@@ -61,11 +61,12 @@
    - **阶段 11（听书 TTS 自然语音朗读引擎与锁屏后台音频服务）**：原生 TTS 引擎适配与环境隔离、中文智能分句保真算法、单例响应式广播流、0.8x~2.0x 语速微调、15~60 分钟睡眠定时、Modern Soft UI 底部控制弹窗、底部悬浮迷你播放器动态音波律动与 5 项真机证据链归档；
    - **阶段 12（读者划线批注、书签笔记系统与 WebDAV 多端增量云漫游）**：4 色高亮主题色彩、选段与批注心得绑定、书签增删查、出版级 Markdown 导出、WebDAV Basic Auth 通信、CRDT 风格三方增量合并、ReaderNotesSheet 28px Squircle 底部抽屉、AddAnnotationDialog 触控弹窗、WebDavConfigSheet 配置中心与 6 项 Redmi K60 真机证据链归档；
    - **阶段 13（纯血鸿蒙与 iOS 双端落地与适配）**：纯血鸿蒙 OpenHarmony NEXT `ohos/` 原生 Stage 架构工程、OpenHarmony-TPC 准入门禁实景 100% 审计、iOS 权限声明与 13.0+ 部署规范、多端形态断点与异形屏/挖孔屏安全区自适应、65/65 全量自动化测试全绿与 3 项 Redmi K60 真机证据链归档；
-   - **阶段 14（生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版）**：定制 ProGuard/R8 混淆、资源极客瘦身（arm64-v8a 削减至 22.0MB，瘦身率 85.2%）、`--split-per-abi` 独立分包、GitHub Releases 全自动发版流水线（`.github/workflows/release.yml`）、70/70 全量自动化测试全绿与 2 项 Redmi K60 真机 Release 运行证据链归档。
+   - **阶段 14（生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版）**：定制 ProGuard/R8 混淆、资源极客瘦身（arm64-v8a 削减至 22.0MB，瘦身率 85.2%）、`--split-per-abi` 独立分包、GitHub Releases 全自动发版流水线（`.github/workflows/release.yml`）、70/70 全量自动化测试全绿与 2 项 Redmi K60 真机 Release 运行证据链归档；
+   - **阶段 15（1:1 原型书籍详情页、真实高可用书源生态与阅读器无损翻页交互）**：1:1 对齐原型 `BookDetailPage`（Hero大图、Squircle立体书封、状态/字数/评分卡片、作品简介展开折叠、千章目录在读/已读标记、可用书源原地切换）、全面接入 100% 真实连通的「笔趣阁ZWX」千章真实正文彻底根除假数据、阅读器末页向后顺畅跨章翻页、书架常驻「本地导入」与「WiFi传书」入口、书籍长按呼出现代轻拟态管理底栏、DownloadService 全本 1000 章秒速离线落盘与 13 项 Redmi K60 真机证据链归档。
 2. **全量自动化验证存证**：
    - `flutter analyze`：0 issues found!
    - `flutter test`：70/70 个测试用例 100% 全部通过。
 3. **全阶段收官状态**：
-   - ✅ **14 个规划阶段已全部交付完毕**：涵盖工程基线、Modern Soft UI 体系、纯内存排版引擎、多书源嗅探、抽屉状态联动、多端构建、真机首轮走查、全网流式聚合与桌面图标定制、后台并发离线下载、本地大文件分章与 WiFi 传书、TTS 语音与后台播放、划线笔记与 WebDAV 增量漫游、纯血鸿蒙与 iOS 双端落地、生产 R8 极客瘦身与 GitHub Releases 全自动发版；
-   - 全链路真机 E2E 证据链完整保存在 `docs/evidence/`（累计 30+ 项真机高清证据）。
+   - ✅ **15 个规划阶段已全部交付完毕**：所有基础功能、原型视觉对齐、真实书源、跨章翻页、离线全本下载、本地导入、听书TTS、划线笔记、WebDAV云漫游、Release极客瘦身与真机验收全部闭环；
+   - 全链路真机 E2E 证据链完整保存在 `docs/evidence/`（累计 45+ 项真机高清证据）。
 

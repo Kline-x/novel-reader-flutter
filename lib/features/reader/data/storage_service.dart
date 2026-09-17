@@ -17,6 +17,8 @@ class ShelfBook {
   final DateTime lastReadTime;
   final String? lastChapterTitle;
   final String? filePath;
+  final String? bookUrl;
+  final String? sourceName;
 
   const ShelfBook({
     required this.bookId,
@@ -30,6 +32,8 @@ class ShelfBook {
     required this.lastReadTime,
     this.lastChapterTitle,
     this.filePath,
+    this.bookUrl,
+    this.sourceName,
   });
 
   bool get isLocal => sourceId?.startsWith('local') == true || filePath != null;
@@ -46,6 +50,8 @@ class ShelfBook {
     DateTime? lastReadTime,
     String? lastChapterTitle,
     String? filePath,
+    String? bookUrl,
+    String? sourceName,
   }) {
     return ShelfBook(
       bookId: bookId ?? this.bookId,
@@ -59,6 +65,8 @@ class ShelfBook {
       lastReadTime: lastReadTime ?? this.lastReadTime,
       lastChapterTitle: lastChapterTitle ?? this.lastChapterTitle,
       filePath: filePath ?? this.filePath,
+      bookUrl: bookUrl ?? this.bookUrl,
+      sourceName: sourceName ?? this.sourceName,
     );
   }
 
@@ -75,6 +83,8 @@ class ShelfBook {
       'lastReadTime': lastReadTime.toIso8601String(),
       'lastChapterTitle': lastChapterTitle,
       if (filePath != null) 'filePath': filePath,
+      if (bookUrl != null) 'bookUrl': bookUrl,
+      if (sourceName != null) 'sourceName': sourceName,
     };
   }
 
@@ -93,6 +103,8 @@ class ShelfBook {
           : DateTime.now(),
       lastChapterTitle: json['lastChapterTitle'] as String?,
       filePath: json['filePath'] as String?,
+      bookUrl: json['bookUrl'] as String?,
+      sourceName: json['sourceName'] as String?,
     );
   }
 }
@@ -225,6 +237,9 @@ class StorageService {
     await prefs.remove('$_prefixProgress$bookId');
   }
 
+  Future<void> addBookToShelf(ShelfBook book) => addToBookshelf(book);
+  Future<void> removeBookFromShelf(String bookId) => removeFromBookshelf(bookId);
+
   /// 更新书架上指定书籍的阅读进度
   Future<void> updateShelfProgress(
     String bookId, {
@@ -271,7 +286,7 @@ class StorageService {
     await file.writeAsString(content, flush: true);
   }
 
-  /// 读取章节缓存正文段落
+  /// 读取章节缓存正文段落（自动过滤旧版本残留的假数据）
   Future<List<String>?> getChapterContent(String bookId, int chapterIndex) async {
     final file = await _getChapterFile(bookId, chapterIndex);
     if (!await file.exists()) return null;
@@ -279,7 +294,50 @@ class StorageService {
     try {
       final content = await file.readAsString();
       if (content.isEmpty) return [];
+      // 自动清除历史测试阶段产生的 mock 离线降级假文本（避免将单元测试的简短正文误杀）
+      if (content.contains('欢迎阅读由 Modern Soft UI 渲染引擎驱动') || content.contains('开启你的探索之旅')) {
+        await file.delete();
+        return null;
+      }
       return content.split(RegExp(r'\r?\n'));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 持久化缓存书籍完整目录
+  Future<void> saveBookToc(String bookId, List<dynamic> chapters) async {
+    final baseDir = await getCacheDirectory();
+    final bookDir = Directory('${baseDir.path}/$bookId');
+    if (!await bookDir.exists()) {
+      await bookDir.create(recursive: true);
+    }
+    final file = File('${bookDir.path}/toc.json');
+    final list = chapters.map((c) {
+      if (c is Map<String, dynamic>) return c;
+      try {
+        return (c as dynamic).toJson();
+      } catch (_) {
+        return {'index': 0, 'title': c.toString(), 'url': ''};
+      }
+    }).toList();
+    await file.writeAsString(jsonEncode(list), flush: true);
+  }
+
+  /// 读取已持久化的书籍完整目录
+  Future<List<Map<String, dynamic>>?> getBookToc(String bookId) async {
+    final baseDir = await getCacheDirectory();
+    final file = File('${baseDir.path}/$bookId/toc.json');
+    if (!await file.exists()) return null;
+    try {
+      final str = await file.readAsString();
+      final decoded = jsonDecode(str) as List<dynamic>;
+      final list = decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      if (list.length < 20 || list.every((c) => (c['url'] ?? '').toString().isEmpty)) {
+        await file.delete();
+        return null;
+      }
+      return list;
     } catch (_) {
       return null;
     }

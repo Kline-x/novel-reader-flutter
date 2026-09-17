@@ -7,7 +7,9 @@ import '../../local_books/presentation/wifi_transfer_dialog.dart';
 import '../../local_books/services/local_book_service.dart';
 import '../../reader/data/storage_service.dart';
 import '../../reader/presentation/reader_screen.dart';
+import '../../reader/services/download_service.dart';
 import '../models/book_item.dart';
+import 'book_detail_page.dart';
 
 /// 书架页面 (shelf_page.dart)
 /// 呈现 Modern Soft UI Bento 看板、拼音智能排序、实时过滤与书籍流/网格
@@ -31,36 +33,68 @@ class _ShelfPageState extends State<ShelfPage> {
       title: '诡秘之主',
       author: '爱潜水的乌贼',
       coverUrl: '',
-      lastChapter: '第 120 章 绯红之月下的聚会',
-      progress: 0.42,
-      charOffset: 220,
+      bookUrl: 'https://www.biqugezwx.com/50/',
+      sourceName: '笔趣阁ZWX',
+      sourceId: 'biqugezwx:笔趣阁ZWX',
+      latestChapter: '第一千四百三十二章 愚者',
+      totalChapters: 1432,
+      currentChapterIndex: 0,
+      charOffset: 0,
+      progress: 0.0,
+      rating: 9.9,
+      status: '全本完结',
+      description: '蒸汽与机械的浪潮中，谁能触及非凡？历史和黑暗的迷雾里，又是谁在耳语？我从诡秘中醒来，睁眼看见这个世界：枪械、大炮、巨舰、飞空艇；占卜、符咒、魔药、塔罗牌……',
     ),
     BookItem(
       id: 'shiri_02',
       title: '十日终焉',
       author: '杀虫队队员',
       coverUrl: '',
-      lastChapter: '第 89 章 最后的生肖游戏',
-      progress: 0.18,
+      bookUrl: 'https://www.biqugezwx.com/745/',
+      sourceName: '笔趣阁ZWX',
+      sourceId: 'biqugezwx:笔趣阁ZWX',
+      latestChapter: '张丽娟（终）',
+      totalChapters: 1386,
+      currentChapterIndex: 0,
       charOffset: 0,
+      progress: 0.0,
+      rating: 9.8,
+      status: '连载中',
+      description: '当齐夏在终焉之地醒来，时间只剩下十天。通过所有的生肖试炼收集‘道’筹，否则全员抹杀。这是一场赌上性命与智慧的极限博弈。',
     ),
     BookItem(
       id: 'daoti_03',
       title: '道诡异仙',
       author: '狐尾的笔',
       coverUrl: '',
-      lastChapter: '第 230 章 迷惘的幻觉',
-      progress: 0.65,
-      charOffset: 450,
+      bookUrl: 'https://www.biqugezwx.com/334/',
+      sourceName: '笔趣阁ZWX',
+      sourceId: 'biqugezwx:笔趣阁ZWX',
+      latestChapter: '第 1056 章 大千录',
+      totalChapters: 1056,
+      currentChapterIndex: 0,
+      charOffset: 0,
+      progress: 0.0,
+      rating: 9.7,
+      status: '全本完结',
+      description: '诡异的天道，异常的仙佛，是真？是假？陷入迷惘的李火旺无法分辨。可让他无法分辨的不仅仅只是这些。还有他自己，他病了，病的很重。',
     ),
     BookItem(
       id: 'jianlai_04',
       title: '剑来',
       author: '烽火戏诸侯',
       coverUrl: '',
-      lastChapter: '第 95 章 少年提剑下山行',
-      progress: 0.12,
+      bookUrl: 'https://www.biqugezwx.com/324/',
+      sourceName: '笔趣阁ZWX',
+      sourceId: 'biqugezwx:笔趣阁ZWX',
+      latestChapter: '第一千一百五十四章 签文',
+      totalChapters: 1156,
+      currentChapterIndex: 0,
       charOffset: 0,
+      progress: 0.0,
+      rating: 9.6,
+      status: '连载中',
+      description: '大千世界，无奇不有。我陈平安，唯有一剑，可搬山，倒海，降妖，镇魔，敕神，摘星，断江，摧城，开天！草鞋少年走出泥瓶巷，向着天道之巅一步步踏实前行。',
     ),
   ];
 
@@ -94,15 +128,35 @@ class _ShelfPageState extends State<ShelfPage> {
           title: s.title,
           author: s.author,
           coverUrl: s.coverUrl ?? '',
-          lastChapter: s.lastChapterTitle ?? '第一章',
+          latestChapter: s.lastChapterTitle ?? '第一章',
           progress: 0.0,
+          currentChapterIndex: s.currentChapterIndex,
           charOffset: s.currentCharOffset,
           sourceId: s.sourceId,
+          sourceName: s.sourceName ?? '笔趣阁CP',
+          bookUrl: s.bookUrl,
           filePath: s.filePath,
         ));
         changed = true;
       }
     }
+
+    // 实时对齐每本书的真实阅读进度与章节索引
+    for (int i = 0; i < _books.length; i++) {
+      final b = _books[i];
+      final prog = await _storageService.getReadingProgress(b.id);
+      if (prog != null) {
+        final total = b.totalChapters > 0 ? b.totalChapters : 100;
+        final p = ((prog.chapterIndex + 1) / total).clamp(0.0, 1.0);
+        _books[i] = b.copyWith(
+          currentChapterIndex: prog.chapterIndex,
+          currentCharOffset: prog.charOffset,
+          progress: p,
+        );
+        changed = true;
+      }
+    }
+
     if (changed && mounted) {
       setState(() {});
     }
@@ -122,18 +176,153 @@ class _ShelfPageState extends State<ShelfPage> {
   }
 
   Future<void> _openReader(BookItem book) async {
+    final prog = await _storageService.getReadingProgress(book.id);
+    final targetCh = prog?.chapterIndex ?? book.currentChapterIndex;
+    final targetOffset = prog?.charOffset ?? book.charOffset;
+
+    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReaderScreen(
           bookId: book.id,
           bookTitle: book.title,
           author: book.author,
-          initialCharOffset: book.charOffset,
+          initialChapterIndex: targetCh,
+          initialCharOffset: targetOffset,
+          bookUrl: book.bookUrl,
+          sourceName: book.sourceName,
+          sourceId: book.sourceId,
           book: book,
         ),
       ),
     );
     _loadBooksFromStorage();
+  }
+
+  Future<void> _openDetail(BookItem book) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BookDetailPage(book: book),
+      ),
+    );
+    _loadBooksFromStorage();
+  }
+
+  void _showBookOptions(BookItem book) {
+    final colors = SoftTheme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: colors.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '《${book.title}》',
+                style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold, color: colors.textPrimary),
+              ),
+              const SizedBox(height: 12.0),
+              ListTile(
+                leading: Icon(Icons.info_outline_rounded, color: colors.accent),
+                title: Text('查看书籍详情', style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openDetail(book);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.menu_book_rounded, color: colors.accent),
+                title: Text('立即开始阅读', style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openReader(book);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.download_for_offline_rounded, color: colors.accent),
+                title: Text('离线下载全本', style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  DownloadService().startDownload(
+                    bookId: book.id,
+                    bookTitle: book.title,
+                    totalChapters: book.totalChapters,
+                    sourceName: book.sourceName,
+                    bookUrl: book.bookUrl,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('已将《${book.title}》加入后台下载队列'), behavior: SnackBarBehavior.floating),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(book.isPinned ? Icons.vertical_align_bottom : Icons.vertical_align_top, color: colors.accent),
+                title: Text(book.isPinned ? '取消置顶' : '置顶此书', style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    final idx = _books.indexWhere((b) => b.id == book.id);
+                    if (idx != -1) {
+                      _books[idx] = book.copyWith(isPinned: !book.isPinned);
+                    }
+                  });
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                title: const Text('从书架移出', style: TextStyle(color: Colors.redAccent)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _storageService.removeBookFromShelf(book.id);
+                  setState(() {
+                    _books.removeWhere((b) => b.id == book.id);
+                  });
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showLocalImportDialog() {
+    final colors = SoftTheme.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+        title: Row(
+          children: [
+            Icon(Icons.file_upload_outlined, color: colors.accent),
+            const SizedBox(width: 8.0),
+            Text('本地图书导入', style: TextStyle(color: colors.textPrimary, fontSize: 17.0)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('支持导入格式：TXT（自动智能正则分章）、EPUB（图文排版）。', style: TextStyle(color: colors.textSecondary, fontSize: 13.0)),
+            const SizedBox(height: 12.0),
+            Text('如需电脑批量传输，亦可点击顶栏【WiFi传书】在同一局域网浏览器内秒速上传。', style: TextStyle(color: colors.textSecondary, fontSize: 12.0)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('知道了', style: TextStyle(color: colors.accent)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -171,6 +360,40 @@ class _ShelfPageState extends State<ShelfPage> {
                       ),
                     ),
                     const Spacer(),
+                    // 本地导入入口按钮
+                    GestureDetector(
+                      key: const ValueKey('shelf_local_import_btn'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _showLocalImportDialog,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 7.0),
+                        decoration: BoxDecoration(
+                          color: colors.card,
+                          borderRadius: BorderRadius.circular(12.0),
+                          boxShadow: SoftDecorations.softShadows(colors, elevation: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.file_upload_outlined,
+                              color: colors.accent,
+                              size: 16.0,
+                            ),
+                            const SizedBox(width: 4.0),
+                            Text(
+                              '本地导入',
+                              style: TextStyle(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.bold,
+                                color: colors.accent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8.0),
                     // WiFi 传书入口按钮
                     GestureDetector(
                       key: const ValueKey('shelf_wifi_transfer_btn'),
@@ -398,7 +621,8 @@ class _ShelfPageState extends State<ShelfPage> {
               padding: const EdgeInsets.only(bottom: 12.0),
               child: SoftCard(
                 colors: colors,
-                onTap: () => _openReader(book),
+                onTap: () => _openDetail(book),
+                onLongPress: () => _showBookOptions(book),
                 padding: const EdgeInsets.all(14.0),
                 child: Row(
                   children: [
@@ -555,7 +779,8 @@ class _ShelfPageState extends State<ShelfPage> {
                 ? book.title.characters.take(2).string
                 : book.title.characters.first;
             return GestureDetector(
-              onTap: () => _openReader(book),
+              onTap: () => _openDetail(book),
+              onLongPress: () => _showBookOptions(book),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

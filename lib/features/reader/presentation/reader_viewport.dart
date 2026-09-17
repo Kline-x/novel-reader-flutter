@@ -33,6 +33,9 @@ class ReaderViewport extends StatefulWidget {
   final VoidCallback? onOpenNotes;
   final VoidCallback? onAddAnnotation;
   final bool isBookmarked;
+  final bool isLoading;
+  final bool hasError;
+  final VoidCallback? onRetry;
 
   const ReaderViewport({
     super.key,
@@ -58,6 +61,9 @@ class ReaderViewport extends StatefulWidget {
     this.onOpenNotes,
     this.onAddAnnotation,
     this.isBookmarked = false,
+    this.isLoading = false,
+    this.hasError = false,
+    this.onRetry,
   });
 
   @override
@@ -132,7 +138,14 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         widget.lineHeight != oldWidget.lineHeight ||
         widget.chapterTitle != oldWidget.chapterTitle ||
         widget.paragraphs != oldWidget.paragraphs ||
-        widget.turnMode != oldWidget.turnMode) {
+        widget.turnMode != oldWidget.turnMode ||
+        widget.initialCharOffset != oldWidget.initialCharOffset) {
+      if (widget.chapterTitle != oldWidget.chapterTitle) {
+        // 章节切换时，若指定 landingOnLastPage (offset >= 999999)，定位到末页；否则首页归零
+        _currentPageIndex = (widget.initialCharOffset >= 999999 || widget.initialCharOffset == -1)
+            ? 999999
+            : 0;
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           final renderBox = context.findRenderObject() as RenderBox?;
@@ -172,23 +185,25 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
     final config = _buildPagingConfig(size);
 
-    // 记录重排前的字符锚点
-    final currentAnchorChar = _pages.isNotEmpty && _currentPageIndex < _pages.length
-        ? _pages[_currentPageIndex].charStart
-        : widget.initialCharOffset;
-
     final newPages = ReaderLayoutEngine.paginate(
       paragraphs: widget.paragraphs,
       title: widget.chapterTitle,
       config: config,
     );
 
-    // 逆向二分查找新页码 (P2-07 痛点彻底根治)
-    final newPageIndex = ReaderLayoutEngine.findPageByCharOffset(newPages, currentAnchorChar);
+    int targetPageIndex = 0;
+    if (_currentPageIndex >= 999999 || widget.initialCharOffset >= 999999 || widget.initialCharOffset == -1) {
+      targetPageIndex = newPages.isEmpty ? 0 : newPages.length - 1;
+    } else {
+      final currentAnchorChar = _pages.isNotEmpty && _currentPageIndex < _pages.length
+          ? _pages[_currentPageIndex].charStart
+          : widget.initialCharOffset;
+      targetPageIndex = ReaderLayoutEngine.findPageByCharOffset(newPages, currentAnchorChar);
+    }
 
     setState(() {
       _pages = newPages;
-      _currentPageIndex = newPageIndex.clamp(0, newPages.isEmpty ? 0 : newPages.length - 1);
+      _currentPageIndex = targetPageIndex.clamp(0, newPages.isEmpty ? 0 : newPages.length - 1);
     });
 
     if (_pageController.hasClients && _pageController.page?.round() != _currentPageIndex) {
@@ -221,6 +236,22 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
     }
   }
 
+  DateTime _lastChapterTurnTime = DateTime.now().subtract(const Duration(seconds: 1));
+
+  void _triggerNextChapterDebounced() {
+    final now = DateTime.now();
+    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) return;
+    _lastChapterTurnTime = now;
+    widget.onNextChapter?.call();
+  }
+
+  void _triggerPreviousChapterDebounced() {
+    final now = DateTime.now();
+    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) return;
+    _lastChapterTurnTime = now;
+    widget.onPreviousChapter?.call();
+  }
+
   void _turnNext() {
     if (_currentPageIndex < _pages.length - 1) {
       if (widget.turnMode == PageTurnMode.slide) {
@@ -233,7 +264,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         _notifyProgress();
       }
     } else {
-      widget.onNextChapter?.call();
+      _triggerNextChapterDebounced();
     }
   }
 
@@ -249,7 +280,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         _notifyProgress();
       }
     } else {
-      widget.onPreviousChapter?.call();
+      _triggerPreviousChapterDebounced();
     }
   }
 
@@ -295,36 +326,150 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
     );
   }
 
+  Widget _buildLoadingView(Size size) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 32.0,
+            height: 32.0,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Color(0xFF5B7FFF),
+            ),
+          ),
+          const SizedBox(height: 16.0),
+          Text(
+            widget.chapterTitle.isNotEmpty ? '正在载入【${widget.chapterTitle}】...' : '正在准备正文...',
+            style: TextStyle(
+              color: widget.theme.textColor.withValues(alpha: 0.7),
+              fontSize: 14.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorView(Size size) {
+    final isDark = widget.theme.isDark;
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 32.0),
+        padding: const EdgeInsets.all(24.0),
+        decoration: BoxDecoration(
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(24.0),
+          border: Border.all(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 44.0, color: widget.theme.subTextColor),
+            const SizedBox(height: 12.0),
+            Text(
+              '正文加载受阻',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                color: widget.theme.textColor,
+              ),
+            ),
+            const SizedBox(height: 6.0),
+            Text(
+              '网络不稳定或当前书源解析异常，请重试或换源',
+              style: TextStyle(
+                fontSize: 12.0,
+                color: widget.theme.subTextColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.onRetry != null)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5B7FFF),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                    ),
+                    onPressed: widget.onRetry,
+                    child: const Text('重试加载'),
+                  ),
+                if (widget.onOpenSourceSwitcher != null) ...[
+                  const SizedBox(width: 12.0),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: widget.theme.textColor,
+                      side: BorderSide(color: widget.theme.textColor.withValues(alpha: 0.2)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                    ),
+                    onPressed: widget.onOpenSourceSwitcher,
+                    child: const Text('立即换源'),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildReaderBody(Size size, PagingConfig config) {
-    if (_pages.isEmpty) {
-      return Center(
-        child: CircularProgressIndicator(color: widget.theme.textColor),
-      );
+    if (widget.hasError) {
+      return _buildErrorView(size);
+    }
+
+    if (widget.isLoading || _pages.isEmpty) {
+      return _buildLoadingView(size);
     }
 
     switch (widget.turnMode) {
       case PageTurnMode.slide:
-        return PageView.builder(
-          controller: _pageController,
-          itemCount: _pages.length,
-          onPageChanged: (index) {
-            setState(() => _currentPageIndex = index);
-            _notifyProgress();
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is OverscrollNotification) {
+              if (notification.overscroll > 5.0 && _currentPageIndex >= _pages.length - 1) {
+                _triggerNextChapterDebounced();
+              } else if (notification.overscroll < -5.0 && _currentPageIndex <= 0) {
+                _triggerPreviousChapterDebounced();
+              }
+            } else if (notification.metrics.pixels > notification.metrics.maxScrollExtent + 20.0 &&
+                _currentPageIndex >= _pages.length - 1) {
+              _triggerNextChapterDebounced();
+            } else if (notification.metrics.pixels < notification.metrics.minScrollExtent - 20.0 &&
+                _currentPageIndex <= 0) {
+              _triggerPreviousChapterDebounced();
+            }
+            return false;
           },
-          itemBuilder: (context, index) {
-            return CustomPaint(
-              size: size,
-              painter: PagePainter(
-                page: _pages[index],
-                totalPageCount: _pages.length,
-                chapterTitle: widget.chapterTitle,
-                config: config,
-                theme: widget.theme,
-                bookTitle: widget.bookTitle,
-                currentTime: _currentTimeString,
-              ),
-            );
-          },
+          child: PageView.builder(
+            controller: _pageController,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _pages.length,
+            onPageChanged: (index) {
+              setState(() => _currentPageIndex = index);
+              _notifyProgress();
+            },
+            itemBuilder: (context, index) {
+              return CustomPaint(
+                size: size,
+                painter: PagePainter(
+                  page: _pages[index],
+                  totalPageCount: _pages.length,
+                  chapterTitle: widget.chapterTitle,
+                  config: config,
+                  theme: widget.theme,
+                  bookTitle: widget.bookTitle,
+                  currentTime: _currentTimeString,
+                ),
+              );
+            },
+          ),
         );
 
       case PageTurnMode.cover:
@@ -340,19 +485,23 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
   /// 覆盖翻页视图 (CoverTurner)
   Widget _buildCoverView(Size size, PagingConfig config) {
-    final currentPage = _pages[_currentPageIndex];
+    final currentPage = _pages.isNotEmpty ? _pages[_currentPageIndex] : null;
     final nextPageIndex = _currentPageIndex + 1;
     final hasNext = nextPageIndex < _pages.length;
+
+    if (currentPage == null) return const SizedBox.shrink();
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
         setState(() {
-          _dragOffset = (_dragOffset + details.delta.dx).clamp(-size.width, 0.0);
+          _dragOffset = (_dragOffset + details.delta.dx).clamp(-size.width, size.width);
         });
       },
       onHorizontalDragEnd: (details) {
-        if (_dragOffset < -size.width * 0.25 && hasNext) {
+        if (_dragOffset < -size.width * 0.2) {
           _turnNext();
+        } else if (_dragOffset > size.width * 0.2) {
+          _turnPrevious();
         }
         setState(() => _dragOffset = 0.0);
       },
@@ -375,7 +524,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
           // 上层覆盖滑出的当前页，带左侧立体阴影
           Transform.translate(
-            offset: Offset(_dragOffset, 0),
+            offset: Offset(_dragOffset.clamp(-size.width, 0.0), 0),
             child: Container(
               decoration: BoxDecoration(
                 boxShadow: [
@@ -412,37 +561,48 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
   /// 垂直连续流式阅读 (ScrollTurner)
   Widget _buildScrollView(Size size, PagingConfig config) {
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: config.hPad, vertical: 40.0),
-      itemCount: widget.paragraphs.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.pixels >= notification.metrics.maxScrollExtent + 25.0) {
+          _triggerNextChapterDebounced();
+        } else if (notification.metrics.pixels <= notification.metrics.minScrollExtent - 25.0) {
+          _triggerPreviousChapterDebounced();
+        }
+        return false;
+      },
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: config.hPad, vertical: 40.0),
+        itemCount: widget.paragraphs.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 24.0),
+              child: Text(
+                widget.chapterTitle,
+                style: TextStyle(
+                  color: widget.theme.textColor,
+                  fontSize: widget.fontSize + 6.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          }
+          final p = widget.paragraphs[index - 1];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 24.0),
+            padding: const EdgeInsets.only(bottom: 16.0),
             child: Text(
-              widget.chapterTitle,
+              '　　$p',
               style: TextStyle(
                 color: widget.theme.textColor,
-                fontSize: widget.fontSize + 6.0,
-                fontWeight: FontWeight.bold,
+                fontSize: widget.fontSize,
+                height: widget.lineHeight / widget.fontSize,
+                letterSpacing: 0.5,
               ),
             ),
           );
-        }
-        final p = widget.paragraphs[index - 1];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: Text(
-            '　　$p',
-            style: TextStyle(
-              color: widget.theme.textColor,
-              fontSize: widget.fontSize,
-              height: widget.lineHeight / widget.fontSize,
-              letterSpacing: 0.5,
-            ),
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 
@@ -697,35 +857,51 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                   children: [
                     IconButton(
                       icon: Icon(Icons.skip_previous_rounded, color: widget.theme.textColor),
-                      onPressed: widget.onPreviousChapter ?? _turnPrevious,
+                      onPressed: widget.onPreviousChapter,
+                      tooltip: '上一章',
                     ),
                     Expanded(
-                      child: Slider(
-                        value: current.toDouble(),
-                        min: 1.0,
-                        max: total.toDouble(),
-                        activeColor: const Color(0xFF5B7FFF),
-                        inactiveColor: widget.theme.subTextColor.withValues(alpha: 0.3),
-                        onChanged: (val) {
-                          final target = val.round() - 1;
-                          if (target != _currentPageIndex) {
-                            if (widget.turnMode == PageTurnMode.slide) {
-                              _pageController.jumpToPage(target);
-                            } else {
-                              setState(() => _currentPageIndex = target);
-                            }
-                          }
-                        },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Slider(
+                            value: current.toDouble(),
+                            min: 1.0,
+                            max: (total > 1 ? total : 1).toDouble(),
+                            activeColor: const Color(0xFF5B7FFF),
+                            inactiveColor: widget.theme.subTextColor.withValues(alpha: 0.3),
+                            onChanged: total > 1
+                                ? (val) {
+                                    final target = val.round() - 1;
+                                    if (target != _currentPageIndex) {
+                                      if (widget.turnMode == PageTurnMode.slide) {
+                                        _pageController.jumpToPage(target);
+                                      } else {
+                                        setState(() => _currentPageIndex = target);
+                                      }
+                                    }
+                                  }
+                                : null,
+                          ),
+                          Text(
+                            '第 $current / $total 页',
+                            style: TextStyle(
+                              fontSize: 11.0,
+                              color: widget.theme.subTextColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     IconButton(
                       icon: Icon(Icons.skip_next_rounded, color: widget.theme.textColor),
-                      onPressed: widget.onNextChapter ?? _turnNext,
+                      onPressed: widget.onNextChapter,
+                      tooltip: '下一章',
                     ),
                   ],
                 ),
                 const SizedBox(height: 8.0),
-                // 四大功能按键：目录、夜间、排版、设置
+                // 核心功能按键：目录、换源、缓存、听书、日间/夜间、排版
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -734,6 +910,12 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                       label: '目录',
                       onTap: widget.onOpenCatalog,
                     ),
+                    if (widget.onOpenTts != null)
+                      _buildActionButton(
+                        icon: Icons.headphones_rounded,
+                        label: '听书',
+                        onTap: widget.onOpenTts!,
+                      ),
                     _buildActionButton(
                       icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                       label: isDark ? '日间' : '夜间',

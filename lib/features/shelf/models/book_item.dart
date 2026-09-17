@@ -18,6 +18,10 @@ class BookItem {
   final bool isPinned;
   final String? sourceId;
   final String? filePath;
+  final String? bookUrl;
+  final double rating;
+  final String status;
+  final String? wordCount;
 
   BookItem({
     required this.id,
@@ -38,6 +42,10 @@ class BookItem {
     this.isPinned = false,
     this.sourceId,
     this.filePath,
+    this.bookUrl,
+    this.rating = 9.6,
+    this.status = '连载中',
+    this.wordCount,
   })  : latestChapter = latestChapter ?? lastChapter ?? '第一章',
         currentCharOffset = charOffset ?? currentCharOffset ?? 0,
         lastReadTime = lastReadTime ?? DateTime.now();
@@ -109,6 +117,12 @@ class BookItem {
     String? sourceName,
     String? description,
     bool? isPinned,
+    String? sourceId,
+    String? filePath,
+    String? bookUrl,
+    double? rating,
+    String? status,
+    String? wordCount,
   }) {
     return BookItem(
       id: id ?? this.id,
@@ -125,6 +139,12 @@ class BookItem {
       sourceName: sourceName ?? this.sourceName,
       description: description ?? this.description,
       isPinned: isPinned ?? this.isPinned,
+      sourceId: sourceId ?? this.sourceId,
+      filePath: filePath ?? this.filePath,
+      bookUrl: bookUrl ?? this.bookUrl,
+      rating: rating ?? this.rating,
+      status: status ?? this.status,
+      wordCount: wordCount ?? this.wordCount,
     );
   }
 }
