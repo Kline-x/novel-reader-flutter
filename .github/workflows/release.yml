@@ -19,6 +19,9 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   # 1. 质量与鸿蒙准入门禁检查
   quality-gate:
@@ -84,6 +87,12 @@ jobs:
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-artifacts/apk/novel-reader-armeabi-v7a.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-artifacts/apk/novel-reader-x86_64.apk
 
+      - name: Upload Release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apks
+          path: release-artifacts/apk/*.apk
+
       - name: Build Android App Bundle (AAB)
         run: |
           flutter build appbundle --release
@@ -107,6 +116,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.event.inputs.version_tag || github.ref_name }}
           name: "藏书阁 (Novel Reader) ${{ github.event.inputs.version_tag || github.ref_name }}"
