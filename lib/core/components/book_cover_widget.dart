@@ -64,8 +64,8 @@ class BookCoverWidget extends StatelessWidget {
         coverUrl != null && coverUrl!.isNotEmpty && coverUrl!.startsWith('http');
 
     return Container(
-      width: width,
-      height: height,
+      width: width.isFinite ? width : null,
+      height: height.isFinite ? height : null,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: showShadow
@@ -92,60 +92,65 @@ class BookCoverWidget extends StatelessWidget {
   }
 
   Widget _buildStylizedCover(String cleanTitle, List<Color> palette) {
-    // 竖排字符（最多展示 5 个字）
-    final verticalChars = cleanTitle.characters.take(5).toList();
-    final isCompact = height < 80.0;
-    final titleFontSize = isCompact ? (width * 0.22).clamp(10.0, 13.0) : (width * 0.17).clamp(13.0, 18.0);
-    final authorFontSize = isCompact ? 8.0 : 9.5;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth.isFinite ? constraints.maxWidth : (width.isFinite ? width : 52.0);
+        final h = constraints.maxHeight.isFinite ? constraints.maxHeight : (height.isFinite ? height : 72.0);
 
-    return Stack(
-      children: [
-        // 1. 底色双色色场渐变
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: palette,
+        // 竖排字符（最多展示 5 个字）
+        final verticalChars = cleanTitle.characters.take(5).toList();
+        final isCompact = h < 80.0;
+        final titleFontSize = isCompact ? (w * 0.22).clamp(10.0, 13.0) : (w * 0.17).clamp(13.0, 18.0);
+        final authorFontSize = isCompact ? 8.0 : 9.5;
+
+        return Stack(
+          children: [
+            // 1. 底色双色色场渐变
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: palette,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
 
-        // 2. 几何母题半透明光晕装饰
-        Positioned(
-          top: -width * 0.3,
-          right: -width * 0.2,
-          child: Container(
-            width: width * 0.9,
-            height: width * 0.9,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.14),
-            ),
-          ),
-        ),
-
-        // 3. 左侧书脊立体高光 (Spine Highlight)
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: (width * 0.08).clamp(3.0, 8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.45),
-                  Colors.white.withValues(alpha: 0.0),
-                ],
+            // 2. 几何母题半透明光晕装饰
+            Positioned(
+              top: -w * 0.3,
+              right: -w * 0.2,
+              child: Container(
+                width: w * 0.9,
+                height: w * 0.9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.14),
+                ),
               ),
             ),
-          ),
-        ),
+
+            // 3. 左侧书脊立体高光 (Spine Highlight)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: (w * 0.08).clamp(3.0, 8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.45),
+                      Colors.white.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
         // 4. 顶部光泽斜切高光 (Sheen)
         Positioned.fill(
@@ -250,6 +255,8 @@ class BookCoverWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+      },
     );
   }
 }
