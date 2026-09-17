@@ -240,14 +240,18 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
   void _triggerNextChapterDebounced() {
     final now = DateTime.now();
-    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) return;
+    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) {
+      return;
+    }
     _lastChapterTurnTime = now;
     widget.onNextChapter?.call();
   }
 
   void _triggerPreviousChapterDebounced() {
     final now = DateTime.now();
-    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) return;
+    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) {
+      return;
+    }
     _lastChapterTurnTime = now;
     widget.onPreviousChapter?.call();
   }
