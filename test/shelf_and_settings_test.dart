@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:novel_reader_flutter/core/components/floating_dock.dart';
 import 'package:novel_reader_flutter/core/components/main_scaffold.dart';
 import 'package:novel_reader_flutter/core/components/soft_button.dart';
 import 'package:novel_reader_flutter/core/components/soft_card.dart';
 import 'package:novel_reader_flutter/core/components/soft_switch.dart';
 import 'package:novel_reader_flutter/core/theme/soft_theme.dart';
+import 'package:novel_reader_flutter/features/reader/data/storage_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    await StorageService().seedDefaultBooks();
+  });
+
   Widget createTestWidget(WidgetTester tester, {Widget? child}) {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;

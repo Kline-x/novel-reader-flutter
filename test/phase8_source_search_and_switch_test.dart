@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:novel_reader_flutter/core/theme/soft_theme.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/reader_screen.dart';
 import 'package:novel_reader_flutter/features/shelf/presentation/discovery_page.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   Widget createDiscoveryTestWidget(WidgetTester tester) {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/reader_page_theme.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/reader_screen.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/reader_viewport.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   group('ReaderViewport 视口与手势小部件验证', () {
     final testParagraphs = [
       '痛！好痛！头好痛！',
