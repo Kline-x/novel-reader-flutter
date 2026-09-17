@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../notes/models/annotation.dart';
 import '../engine/page_models.dart';
 import 'reader_page_theme.dart';
 
 /// 自绘排版视口 Painter (page_painter.dart)
-/// 严格根据 ReaderLayoutEngine 计算的行数与字符边界渲染，零模糊、零切半行
+/// 严格根据 ReaderLayoutEngine 计算的行数与字符边界渲染，零模糊、零切半行，支持真实划线高亮与下划线
 class PagePainter extends CustomPainter {
   final ChapterPage page;
   final int totalPageCount;
@@ -13,6 +14,7 @@ class PagePainter extends CustomPainter {
   final String bookTitle;
   final String currentTime;
   final double batteryLevel; // 0.0 ~ 1.0
+  final List<Annotation> annotations;
 
   PagePainter({
     required this.page,
@@ -23,6 +25,7 @@ class PagePainter extends CustomPainter {
     required this.bookTitle,
     required this.currentTime,
     this.batteryLevel = 0.85,
+    this.annotations = const [],
   });
 
   @override
@@ -88,6 +91,55 @@ class PagePainter extends CustomPainter {
 
     // 逐行绘制
     for (final line in page.lines) {
+      // 绘制划线高亮背景与下划线
+      for (final ann in annotations) {
+        if (ann.charEnd > line.charStart && ann.charStart < line.charEnd) {
+          final relStart = (ann.charStart - line.charStart).clamp(0, line.text.length);
+          final relEnd = (ann.charEnd - line.charStart).clamp(0, line.text.length);
+          if (relEnd > relStart) {
+            final textBefore = line.text.substring(0, relStart);
+            final textTarget = line.text.substring(relStart, relEnd);
+            final beforePainter = TextPainter(
+              text: TextSpan(text: textBefore, style: textStyle),
+              textDirection: TextDirection.ltr,
+            )..layout();
+            final targetPainter = TextPainter(
+              text: TextSpan(text: textTarget, style: textStyle),
+              textDirection: TextDirection.ltr,
+            )..layout();
+
+            final highlightX = config.hPad + beforePainter.width;
+            final highlightW = targetPainter.width;
+            final highlightRect = Rect.fromLTWH(
+              highlightX,
+              currentY + 2.0,
+              highlightW,
+              config.lineHeight - 4.0,
+            );
+
+            // 1) 柔和半透明色块
+            final bgPaint = Paint()
+              ..color = ann.color.withValues(alpha: theme.isDark ? 0.35 : 0.45)
+              ..style = PaintingStyle.fill;
+            canvas.drawRRect(
+              RRect.fromRectAndRadius(highlightRect, const Radius.circular(3.0)),
+              bgPaint,
+            );
+
+            // 2) 优雅下划线
+            final underlinePaint = Paint()
+              ..color = ann.color.withValues(alpha: 0.95)
+              ..strokeWidth = 2.0
+              ..style = PaintingStyle.stroke;
+            canvas.drawLine(
+              Offset(highlightX, currentY + config.lineHeight - 2.0),
+              Offset(highlightX + highlightW, currentY + config.lineHeight - 2.0),
+              underlinePaint,
+            );
+          }
+        }
+      }
+
       final linePainter = TextPainter(
         text: TextSpan(text: line.text, style: textStyle),
         textDirection: TextDirection.ltr,
@@ -141,6 +193,7 @@ class PagePainter extends CustomPainter {
     return oldDelegate.page != page ||
         oldDelegate.theme != theme ||
         oldDelegate.config != config ||
-        oldDelegate.currentTime != currentTime;
+        oldDelegate.currentTime != currentTime ||
+        oldDelegate.annotations != annotations;
   }
 }

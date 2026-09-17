@@ -10,6 +10,7 @@ import '../../sources/models/source_rule.dart';
 import '../../tts/presentation/tts_control_sheet.dart';
 import '../../tts/presentation/tts_mini_player.dart';
 import '../../tts/services/tts_service.dart';
+import '../../notes/models/annotation.dart';
 import '../../notes/models/bookmark.dart';
 import '../../notes/presentation/add_annotation_dialog.dart';
 import '../../notes/presentation/reader_notes_sheet.dart';
@@ -61,6 +62,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   StreamSubscription<DownloadProgress>? _downloadSub;
   final NotesService _notesService = NotesService();
   bool _isCurrentPageBookmarked = false;
+  bool _isInShelf = false;
+  List<Annotation> _annotations = [];
 
   late int _currentChapterIndex;
   late int _currentCharOffset;
@@ -87,6 +90,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _currentSourceName = widget.sourceName ?? widget.book?.sourceName ?? '笔趣阁CP';
     _resolvedBookUrl = widget.bookUrl ?? widget.book?.bookUrl;
 
+    _checkShelfStatus();
+    _loadAnnotations();
+
     _downloadSub = _downloadService.progressStream.listen((p) {
       if (p.bookId == widget.bookId && mounted) {
         _refreshCachedIndices();
@@ -104,6 +110,56 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.dispose();
   }
 
+  Future<void> _checkShelfStatus() async {
+    final inShelf = await _storage.isBookInShelf(widget.bookId, title: widget.bookTitle);
+    if (mounted) {
+      setState(() => _isInShelf = inShelf);
+    }
+  }
+
+  Future<void> _loadAnnotations() async {
+    try {
+      final all = await _notesService.getAnnotations(widget.bookId);
+      final current = all.where((a) => a.chapterIndex == _currentChapterIndex).toList();
+      if (mounted) {
+        setState(() {
+          _annotations = current;
+        });
+      }
+    } catch (e) {
+      debugPrint('加载划线笔记失败: $e');
+    }
+  }
+
+  Future<void> _addToShelf() async {
+    final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
+        ? _chapters[_currentChapterIndex].title
+        : '第${_currentChapterIndex + 1}章';
+    final book = widget.book ??
+        BookItem(
+          id: widget.bookId,
+          title: widget.bookTitle,
+          author: widget.author,
+          coverUrl: '',
+          latestChapter: currentTitle,
+          updatedAt: '刚刚',
+          sourceName: _currentSourceName,
+          bookUrl: _resolvedBookUrl ?? widget.bookUrl ?? '',
+          description: '',
+        );
+    await _storage.addToBookshelf(book);
+    if (mounted) {
+      setState(() => _isInShelf = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('《${widget.bookTitle}》已成功加入书架'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   Future<void> _refreshCachedIndices() async {
     final cached = await _storage.getDownloadedChapterIndices(widget.bookId);
     if (mounted && cached.isNotEmpty) {
@@ -114,11 +170,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _initChaptersAndContent() async {
-    // 1. 优先读取持久化的阅读进度
-    final savedProgress = await _storage.getReadingProgress(widget.bookId);
-    if (savedProgress != null) {
-      _currentChapterIndex = savedProgress.chapterIndex;
-      _currentCharOffset = savedProgress.charOffset;
+    // 1. 优先使用外部显式指定的章节与偏移（例如从目录跳转或笔记定位）
+    if (widget.initialChapterIndex > 0 || widget.initialCharOffset > 0) {
+      _currentChapterIndex = widget.initialChapterIndex;
+      _currentCharOffset = widget.initialCharOffset;
+    } else {
+      final savedProgress = await _storage.getReadingProgress(widget.bookId);
+      if (savedProgress != null) {
+        _currentChapterIndex = savedProgress.chapterIndex;
+        _currentCharOffset = savedProgress.charOffset;
+      }
     }
 
     final isLocal = widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
@@ -271,7 +332,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
-  Future<void> _loadChapterContent(int chapterIndex, {bool landOnLastPage = false}) async {
+  Future<void> _loadChapterContent(int chapterIndex, {bool landOnLastPage = false, int? initialCharOffset}) async {
     if (_chapters.isEmpty) return;
     final validIndex = chapterIndex.clamp(0, _chapters.length - 1);
 
@@ -280,7 +341,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _isLoading = true;
         _hasError = false;
         _currentChapterIndex = validIndex;
-        if (landOnLastPage) {
+        if (initialCharOffset != null) {
+          _currentCharOffset = initialCharOffset;
+        } else if (landOnLastPage) {
           _currentCharOffset = 999999;
         } else {
           _currentCharOffset = 0;
@@ -304,6 +367,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           chapterIndex: validIndex,
           charOffset: _currentCharOffset,
         );
+        await _loadAnnotations();
         return;
       }
     }
@@ -323,6 +387,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         chapterIndex: validIndex,
         charOffset: _currentCharOffset,
       );
+      await _loadAnnotations();
       return;
     }
 
@@ -348,6 +413,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             chapterIndex: validIndex,
             charOffset: _currentCharOffset,
           );
+          await _loadAnnotations();
           return;
         }
       } catch (e) {
@@ -369,6 +435,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       chapterIndex: validIndex,
       charOffset: _currentCharOffset,
     );
+    await _loadAnnotations();
   }
 
   static List<String> _getParagraphsForBookAndChapter(String bookTitle, int chapterIndex) {
@@ -826,8 +893,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       bookId: widget.bookId,
       bookTitle: widget.bookTitle,
       onNavigate: (chIdx, offset) {
-        _loadChapterContent(chIdx);
-        setState(() => _currentCharOffset = offset);
+        _loadChapterContent(chIdx, initialCharOffset: offset);
       },
     );
   }
@@ -854,6 +920,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     if (result != null) {
       await _notesService.saveAnnotation(result);
+      await _loadAnnotations();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -902,6 +969,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
               lineHeight: _lineHeight,
               isLoading: _isLoading,
               hasError: _hasError,
+              annotations: _annotations,
+              isInShelf: _isInShelf,
+              onAddToShelf: _addToShelf,
               onRetry: () => _loadChapterContent(_currentChapterIndex),
               onBack: () {
                 SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
@@ -46,7 +47,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
   Future<void> _checkShelfStatus() async {
     final shelf = await _storageService.getBookshelf();
-    final inShelf = shelf.any((b) => b.bookId == _book.id || b.title == _book.title);
+    final cleanT = _book.cleanTitle.toLowerCase();
+    final inShelf = shelf.any((b) {
+      final bClean = b.title.replaceAll(RegExp(r'[《》\s]'), '').toLowerCase();
+      return b.bookId == _book.id || bClean == cleanT;
+    });
     if (mounted) {
       setState(() => _isInShelf = inShelf);
     }
@@ -62,21 +67,23 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     }
   }
 
-  Future<void> _loadToc() async {
+  Future<void> _loadToc({bool forceRefresh = false}) async {
     setState(() => _isLoadingToc = true);
 
-    // 1. 优先读取沙盒缓存目录
-    final cachedToc = await _storageService.getBookToc(_book.id);
-    if (cachedToc != null &&
-        cachedToc.length >= 20 &&
-        cachedToc.any((c) => (c['url'] as String? ?? '').isNotEmpty)) {
-      if (mounted) {
-        setState(() {
-          _chapters = cachedToc.map((m) => ChapterItem.fromJson(m)).toList();
-          _isLoadingToc = false;
-        });
+    // 1. 若非强制刷新，优先读取沙盒缓存目录
+    if (!forceRefresh) {
+      final cachedToc = await _storageService.getBookToc(_book.id);
+      if (cachedToc != null &&
+          cachedToc.length >= 20 &&
+          cachedToc.any((c) => (c['url'] as String? ?? '').isNotEmpty)) {
+        if (mounted) {
+          setState(() {
+            _chapters = cachedToc.map((m) => ChapterItem.fromJson(m)).toList();
+            _isLoadingToc = false;
+          });
+        }
+        return;
       }
-      return;
     }
 
     // 2. 在线拉取完整真实目录
@@ -142,7 +149,7 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
   Future<void> _toggleShelf() async {
     if (_isInShelf) {
       // 从书架移除
-      await _storageService.removeBookFromShelf(_book.id);
+      await _storageService.removeBookFromShelf(_book.id, title: _book.title);
       ref.read(shelfProvider.notifier).removeBook(_book.id);
       if (mounted) {
         setState(() => _isInShelf = false);
@@ -165,7 +172,7 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
         sourceName: _book.sourceName,
         bookUrl: _book.bookUrl,
         lastReadTime: DateTime.now(),
-        lastChapterTitle: _book.latestChapter,
+        lastChapterTitle: _chapters.isNotEmpty ? _chapters.last.title : _book.latestChapter,
       );
       await _storageService.addBookToShelf(shelfBook);
       ref.read(shelfProvider.notifier).addBook(_book);
@@ -310,9 +317,10 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                       onTap: () async {
                         Navigator.of(context).pop();
                         setState(() {
-                          _book = _book.copyWith(sourceName: s.name, sourceId: s.id);
+                          _book = _book.copyWith(sourceName: s.name, sourceId: s.id, bookUrl: '');
                         });
-                        await _loadToc();
+                        await _storageService.deleteBookToc(_book.id);
+                        await _loadToc(forceRefresh: true);
                       },
                     );
                   },
@@ -329,10 +337,6 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
   Widget build(BuildContext context) {
     final colors = SoftTheme.of(context);
     final isDark = colors.isDark;
-
-    final seal = _book.title.startsWith('十') && _book.title.length > 1
-        ? _book.title.characters.take(2).string
-        : _book.title.characters.first;
 
     final displayChapters = _isReversed ? _chapters.reversed.toList() : _chapters;
     final totalChaptersCount = _chapters.isNotEmpty ? _chapters.length : _book.totalChapters;
@@ -434,56 +438,14 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 3D 立体大封面 (Squircle + 书脊双层软阴影)
-                            Container(
-                              width: 100.0,
-                              height: 138.0,
-                              decoration: BoxDecoration(
-                                color: colors.surface,
-                                borderRadius: BorderRadius.circular(16.0),
-                                border: Border.all(
-                                  color: colors.accent.withValues(alpha: 0.4),
-                                  width: 2.0,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
-                                    offset: const Offset(4, 8),
-                                    blurRadius: 16,
-                                  ),
-                                  BoxShadow(
-                                    color: colors.accent.withValues(alpha: 0.2),
-                                    offset: const Offset(0, 4),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    seal,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: seal.length > 1 ? 26.0 : 34.0,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: seal.length > 1 ? 2.0 : 0.0,
-                                      color: colors.accent,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4.0),
-                                  Text(
-                                    '藏书阁藏本',
-                                    style: TextStyle(
-                                      fontSize: 9.0,
-                                      color: colors.textSecondary.withValues(alpha: 0.8),
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            // 3D 立体大封面 (BookCoverWidget)
+                            BookCoverWidget(
+                              title: _book.title,
+                              author: _book.author,
+                              coverUrl: _book.coverUrl,
+                              width: 104.0,
+                              height: 146.0,
+                              paletteIndex: BookCoverWidget.hashTitleToPalette(_book.title),
                             ),
 
                             const SizedBox(width: 18.0),

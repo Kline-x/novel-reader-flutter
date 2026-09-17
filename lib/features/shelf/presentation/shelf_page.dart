@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../../core/utils/platform_adaptive_helper.dart';
@@ -27,76 +28,8 @@ class _ShelfPageState extends State<ShelfPage> {
   bool _isGridView = false;
   String _searchKeyword = '';
 
-  final List<BookItem> _books = [
-    BookItem(
-      id: 'guimi_01',
-      title: '诡秘之主',
-      author: '爱潜水的乌贼',
-      coverUrl: '',
-      bookUrl: 'https://www.biqugezwx.com/50/',
-      sourceName: '笔趣阁ZWX',
-      sourceId: 'biqugezwx:笔趣阁ZWX',
-      latestChapter: '第一千四百三十二章 愚者',
-      totalChapters: 1432,
-      currentChapterIndex: 0,
-      charOffset: 0,
-      progress: 0.0,
-      rating: 9.9,
-      status: '全本完结',
-      description: '蒸汽与机械的浪潮中，谁能触及非凡？历史和黑暗的迷雾里，又是谁在耳语？我从诡秘中醒来，睁眼看见这个世界：枪械、大炮、巨舰、飞空艇；占卜、符咒、魔药、塔罗牌……',
-    ),
-    BookItem(
-      id: 'shiri_02',
-      title: '十日终焉',
-      author: '杀虫队队员',
-      coverUrl: '',
-      bookUrl: 'https://www.biqugezwx.com/745/',
-      sourceName: '笔趣阁ZWX',
-      sourceId: 'biqugezwx:笔趣阁ZWX',
-      latestChapter: '张丽娟（终）',
-      totalChapters: 1386,
-      currentChapterIndex: 0,
-      charOffset: 0,
-      progress: 0.0,
-      rating: 9.8,
-      status: '连载中',
-      description: '当齐夏在终焉之地醒来，时间只剩下十天。通过所有的生肖试炼收集‘道’筹，否则全员抹杀。这是一场赌上性命与智慧的极限博弈。',
-    ),
-    BookItem(
-      id: 'daoti_03',
-      title: '道诡异仙',
-      author: '狐尾的笔',
-      coverUrl: '',
-      bookUrl: 'https://www.biqugezwx.com/334/',
-      sourceName: '笔趣阁ZWX',
-      sourceId: 'biqugezwx:笔趣阁ZWX',
-      latestChapter: '第 1056 章 大千录',
-      totalChapters: 1056,
-      currentChapterIndex: 0,
-      charOffset: 0,
-      progress: 0.0,
-      rating: 9.7,
-      status: '全本完结',
-      description: '诡异的天道，异常的仙佛，是真？是假？陷入迷惘的李火旺无法分辨。可让他无法分辨的不仅仅只是这些。还有他自己，他病了，病的很重。',
-    ),
-    BookItem(
-      id: 'jianlai_04',
-      title: '剑来',
-      author: '烽火戏诸侯',
-      coverUrl: '',
-      bookUrl: 'https://www.biqugezwx.com/324/',
-      sourceName: '笔趣阁ZWX',
-      sourceId: 'biqugezwx:笔趣阁ZWX',
-      latestChapter: '第一千一百五十四章 签文',
-      totalChapters: 1156,
-      currentChapterIndex: 0,
-      charOffset: 0,
-      progress: 0.0,
-      rating: 9.6,
-      status: '连载中',
-      description: '大千世界，无奇不有。我陈平安，唯有一剑，可搬山，倒海，降妖，镇魔，敕神，摘星，断江，摧城，开天！草鞋少年走出泥瓶巷，向着天道之巅一步步踏实前行。',
-    ),
-  ];
+  final List<BookItem> _books = [];
+  StreamSubscription<void>? _shelfSub;
 
   final StorageService _storageService = StorageService();
   Map<String, int> _cachedCountMap = {};
@@ -106,6 +39,9 @@ class _ShelfPageState extends State<ShelfPage> {
   void initState() {
     super.initState();
     _loadBooksFromStorage();
+    _shelfSub = StorageService.shelfUpdateStream.listen((_) {
+      _loadBooksFromStorage();
+    });
     _localBookSub = LocalBookService().bookImportedStream.listen((_) {
       _loadBooksFromStorage();
     });
@@ -113,6 +49,7 @@ class _ShelfPageState extends State<ShelfPage> {
 
   @override
   void dispose() {
+    _shelfSub?.cancel();
     _localBookSub?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -120,25 +57,36 @@ class _ShelfPageState extends State<ShelfPage> {
 
   Future<void> _loadBooksFromStorage() async {
     final saved = await _storageService.getBookshelf();
-    bool changed = false;
+    final List<BookItem> loaded = [];
     for (final s in saved) {
-      if (!_books.any((b) => b.id == s.bookId)) {
-        _books.insert(0, BookItem(
-          id: s.bookId,
-          title: s.title,
-          author: s.author,
-          coverUrl: s.coverUrl ?? '',
-          latestChapter: s.lastChapterTitle ?? '第一章',
-          progress: 0.0,
-          currentChapterIndex: s.currentChapterIndex,
-          charOffset: s.currentCharOffset,
-          sourceId: s.sourceId,
-          sourceName: s.sourceName ?? '笔趣阁CP',
-          bookUrl: s.bookUrl,
-          filePath: s.filePath,
-        ));
-        changed = true;
-      }
+      final prog = await _storageService.getReadingProgress(s.bookId);
+      final chIdx = prog?.chapterIndex ?? s.currentChapterIndex;
+      final chOffset = prog?.charOffset ?? s.currentCharOffset;
+      final total = s.totalChapters > 0 ? s.totalChapters : 100;
+      final p = ((chIdx + 1) / total).clamp(0.0, 1.0);
+
+      loaded.add(BookItem(
+        id: s.bookId,
+        title: s.title,
+        author: s.author,
+        coverUrl: s.coverUrl ?? '',
+        latestChapter: s.lastChapterTitle ?? '第一章',
+        progress: p,
+        totalChapters: s.totalChapters,
+        currentChapterIndex: chIdx,
+        charOffset: chOffset,
+        sourceId: s.sourceId,
+        sourceName: s.sourceName ?? '笔趣阁ZWX',
+        bookUrl: s.bookUrl,
+        filePath: s.filePath,
+      ));
+    }
+
+    if (mounted) {
+      setState(() {
+        _books.clear();
+        _books.addAll(loaded);
+      });
     }
 
     // 实时对齐每本书的真实阅读进度与章节索引
@@ -606,7 +554,21 @@ class _ShelfPageState extends State<ShelfPage> {
     );
   }
 
-  /// 列表视图
+  Future<void> _removeBook(BookItem book) async {
+    await _storageService.removeFromBookshelf(book.id);
+    await _loadBooksFromStorage();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已从书架移出《${book.title}》'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
+  /// 列表视图（支持右滑/左滑出现删除按钮与真全彩渐变封面）
   Widget _buildListView(List<BookItem> books, SoftColors colors) {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 110.0),
@@ -614,143 +576,211 @@ class _ShelfPageState extends State<ShelfPage> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final book = books[index];
-            final seal = book.title.startsWith('十') && book.title.length > 1
-                ? book.title.characters.take(2).string
-                : book.title.characters.first;
             return Padding(
               padding: const EdgeInsets.only(bottom: 12.0),
-              child: SoftCard(
-                colors: colors,
-                onTap: () => _openDetail(book),
-                onLongPress: () => _showBookOptions(book),
-                padding: const EdgeInsets.all(14.0),
-                child: Row(
-                  children: [
-                    // 封面占位 Squircle (双字古典印章风)
-                    Container(
-                      width: 52.0,
-                      height: 72.0,
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(10.0),
-                        border: Border.all(
-                          color: colors.accent.withValues(alpha: 0.35),
-                          width: 1.5,
+              child: Dismissible(
+                key: ValueKey('shelf_dismiss_${book.id}_$index'),
+                direction: DismissDirection.horizontal,
+                background: Container(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.only(left: 20.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
+                      SizedBox(width: 4.0),
+                      Text('删除', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                ),
+                secondaryBackground: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
+                      SizedBox(width: 4.0),
+                      Text('删除', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                ),
+                confirmDismiss: (direction) async {
+                  return await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: colors.card,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
+                      title: Text('移出书架', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold)),
+                      content: Text('确定要将《${book.title}》从书架中移除吗？', style: TextStyle(color: colors.textSecondary)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text('取消', style: TextStyle(color: colors.textSecondary)),
                         ),
-                        boxShadow: SoftDecorations.softShadows(colors, elevation: 0.6),
-                      ),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Text(
-                        seal,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: seal.length > 1 ? 14.0 : 18.0,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: seal.length > 1 ? 1.0 : 0.0,
-                          color: colors.accent,
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                          ),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('删除'),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 14.0),
-                    // 书籍元信息
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                book.title,
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                  fontWeight: FontWeight.w700,
-                                  color: colors.textPrimary,
-                                ),
-                              ),
-                              if (book.isLocal) ...[
-                                const SizedBox(width: 8.0),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: colors.accent.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(4.0),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
-                                        size: 10.0,
-                                        color: colors.accent,
-                                      ),
-                                      const SizedBox(width: 2.0),
-                                      Text(
-                                        book.isEpub ? '本地EPUB' : '本地TXT',
-                                        style: TextStyle(fontSize: 9.0, color: colors.accent, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ] else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
-                                const SizedBox(width: 8.0),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(4.0),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.download_done_rounded, size: 10.0, color: Colors.green),
-                                      const SizedBox(width: 2.0),
-                                      Text(
-                                        '${_cachedCountMap[book.id]}章离线',
-                                        style: const TextStyle(fontSize: 9.0, color: Colors.green, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
+                  );
+                },
+                onDismissed: (_) => _removeBook(book),
+                child: SoftCard(
+                  colors: colors,
+                  onTap: () => _openReader(book),
+                  onLongPress: () => _showBookOptions(book),
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      // 高保真渐变自绘/网络封面组件
+                      BookCoverWidget(
+                        title: book.title,
+                        author: book.author,
+                        coverUrl: book.coverUrl,
+                        width: 52.0,
+                        height: 72.0,
+                        borderRadius: 10.0,
+                      ),
+                      const SizedBox(width: 14.0),
+                      // 书籍元信息
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    book.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.w700,
+                                      color: colors.textPrimary,
+                                    ),
                                   ),
                                 ),
+                                if (book.isLocal) ...[
+                                  const SizedBox(width: 6.0),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: colors.accent.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(4.0),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
+                                          size: 10.0,
+                                          color: colors.accent,
+                                        ),
+                                        const SizedBox(width: 2.0),
+                                        Text(
+                                          book.isEpub ? '本地EPUB' : '本地TXT',
+                                          style: TextStyle(fontSize: 9.0, color: colors.accent, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ] else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
+                                  const SizedBox(width: 6.0),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(4.0),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.download_done_rounded, size: 10.0, color: Colors.green),
+                                        const SizedBox(width: 2.0),
+                                        Text(
+                                          '${_cachedCountMap[book.id]}章离线',
+                                          style: const TextStyle(fontSize: 9.0, color: Colors.green, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 4.0),
+                            ),
+                            const SizedBox(height: 4.0),
+                            Text(
+                              book.author,
+                              style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                            ),
+                            const SizedBox(height: 6.0),
+                            Text(
+                              book.lastChapter,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                            ),
+                            const SizedBox(height: 8.0),
+                            // 进度条
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3.0),
+                              child: LinearProgressIndicator(
+                                value: book.progress,
+                                minHeight: 4.0,
+                                backgroundColor: colors.surface,
+                                valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10.0),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
                           Text(
-                            book.author,
-                            style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                            '${(book.progress * 100).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.bold,
+                              color: colors.accent,
+                            ),
                           ),
-                          const SizedBox(height: 6.0),
-                          Text(
-                            book.lastChapter,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
-                          ),
-                          const SizedBox(height: 8.0),
-                          // 进度条
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(3.0),
-                            child: LinearProgressIndicator(
-                              value: book.progress,
-                              minHeight: 4.0,
-                              backgroundColor: colors.surface,
-                              valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                          const SizedBox(height: 12.0),
+                          GestureDetector(
+                            onTap: () => _openDetail(book),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                              decoration: BoxDecoration(
+                                color: colors.surface,
+                                borderRadius: BorderRadius.circular(8.0),
+                                border: Border.all(color: colors.border),
+                              ),
+                              child: Text(
+                                '详情',
+                                style: TextStyle(fontSize: 11.0, color: colors.textSecondary, fontWeight: FontWeight.w600),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8.0),
-                    Text(
-                      '${(book.progress * 100).toInt()}%',
-                      style: TextStyle(
-                        fontSize: 12.0,
-                        fontWeight: FontWeight.bold,
-                        color: colors.accent,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -785,30 +815,13 @@ class _ShelfPageState extends State<ShelfPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: SoftCard(
-                      colors: colors,
-                      padding: EdgeInsets.zero,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(14.0),
-                          border: Border.all(
-                            color: colors.accent.withValues(alpha: 0.35),
-                            width: 1.5,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          seal,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: seal.length > 1 ? 16.0 : 20.0,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
-                            color: colors.accent,
-                          ),
-                        ),
-                      ),
+                    child: BookCoverWidget(
+                      title: book.title,
+                      author: book.author,
+                      coverUrl: book.coverUrl,
+                      width: double.infinity,
+                      height: double.infinity,
+                      borderRadius: 14.0,
                     ),
                   ),
                   const SizedBox(height: 6.0),

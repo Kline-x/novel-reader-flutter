@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
+import '../../reader/presentation/reader_screen.dart';
 import '../../sources/models/book_search_result.dart';
 import '../../sources/services/multi_source_service.dart';
 import '../models/book_item.dart';
@@ -23,7 +25,11 @@ class DiscoveryPage extends ConsumerStatefulWidget {
 class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   final TextEditingController _searchController = TextEditingController();
   final MultiSourceService _sourceService = MultiSourceService();
+  final StorageService _storageService = StorageService();
   StreamSubscription<List<BookSearchResult>>? _searchSub;
+  StreamSubscription<void>? _shelfSub;
+  final Set<String> _shelfBookIds = {};
+  final Set<String> _shelfBookTitles = {};
 
   int _selectedCategoryIndex = 0;
   bool _isSearching = false;
@@ -32,41 +38,219 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
   final List<String> _categories = ['全部', '玄幻奇幻', '仙侠修真', '科幻未来', '都市异能', '悬疑惊悚'];
 
-  final List<Map<String, String>> _hotBooks = [
+  final List<Map<String, String>> _allHotBooks = [
+    // 玄幻奇幻
     {
+      'id': 'guimi_01',
       'title': '诡秘之主',
       'author': '爱潜水的乌贼',
-      'category': '玄幻',
-      'desc': '蒸汽与机械的浪潮中，谁能触及非凡？历史和黑暗的迷雾里，又是谁在耳语？',
+      'category': '玄幻奇幻',
+      'tag': '西方玄幻 · 蒸汽朋克',
+      'bookUrl': 'https://www.biqugezwx.com/50/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '蒸汽与机械的浪潮中，谁能触及非凡？历史和黑暗的迷雾里，又是谁在耳语？我从诡秘中醒来，睁眼看见这个世界：魔药、占卜、诅咒、倒吊人、封印物……',
     },
     {
-      'title': '十日终焉',
-      'author': '杀虫队队员',
-      'category': '悬疑',
-      'desc': '我叫齐夏，当你看到这行字的时候，我已经死了十次。',
+      'id': 'suming_02',
+      'title': '宿命之环',
+      'author': '爱潜水的乌贼',
+      'category': '玄幻奇幻',
+      'tag': '异世大陆 · 密教仪式',
+      'bookUrl': 'https://www.biqugezwx.com/1243/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '诡秘世界第二部。科尔杜村的迷雾与祭典，宿命之环下的红月与命运羁绊，猎人与宿命的交锋。',
     },
     {
+      'id': 'doupocangqiong_03',
+      'title': '斗破苍穹',
+      'author': '天蚕土豆',
+      'category': '玄幻奇幻',
+      'tag': '东方玄幻 · 异火争霸',
+      'bookUrl': 'https://www.biqugezwx.com/98/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '这里是属于斗气的世界，没有花俏艳丽的魔法，有的，仅仅是繁衍到巅峰的斗气！三十年河东，三十年河西，莫欺少年穷！',
+    },
+    {
+      'id': 'wanmeishijie_04',
+      'title': '完美世界',
+      'author': '辰东',
+      'category': '玄幻奇幻',
+      'tag': '远古洪荒 · 独断万古',
+      'bookUrl': 'https://www.biqugezwx.com/102/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '一粒尘可填海，一根草斩尽日月星辰，弹指间天翻地覆。群雄并起，万族林立，诸圣争霸，问苍茫大地，谁主沉浮？！',
+    },
+    // 仙侠修真
+    {
+      'id': 'daoti_03',
       'title': '道诡异仙',
       'author': '狐尾的笔',
-      'category': '仙侠',
-      'desc': '诡异的天道，异常的仙佛，这里到底是真实还是我的精神病幻觉？',
+      'category': '仙侠修真',
+      'tag': '克苏鲁修仙 · 真假难辨',
+      'bookUrl': 'https://www.biqugezwx.com/334/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '诡异的天道，异常的仙佛，这里到底是真实还是我的精神病幻觉？李火旺在现代病房与大齐世界之间痛苦挣扎求生。',
     },
     {
+      'id': 'jianlai_04',
       'title': '剑来',
       'author': '烽火戏诸侯',
-      'category': '仙侠',
+      'category': '仙侠修真',
+      'tag': '古典仙侠 · 剑道浩然',
+      'bookUrl': 'https://www.biqugezwx.com/324/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '大千世界，无奇不有。我陈平安，唯有一剑，可搬山，倒海，降妖，镇魔，敕神，摘星，断江，摧城，开天！',
     },
     {
+      'id': 'fanren_07',
+      'title': '凡人修仙传',
+      'author': '忘语',
+      'category': '仙侠修真',
+      'tag': '凡人流 · 仙道艰难',
+      'bookUrl': 'https://www.biqugezwx.com/45/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '一个普通山村少年，偶然下进入到当地江湖小门派，资质平庸的他，如何一步步在弱肉强食的修仙界长生登仙。',
+    },
+    {
+      'id': 'yinian_08',
+      'title': '一念永恒',
+      'author': '耳根',
+      'category': '仙侠修真',
+      'tag': '诙谐幽默 · 仙侠奇缘',
+      'bookUrl': 'https://www.biqugezwx.com/156/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '一念成沧海，一念化桑田。一念斩千魔，一念诛万仙。唯我念……永恒！生性怕死的白小纯在灵溪宗的修仙传奇。',
+    },
+    // 科幻未来
+    {
+      'id': 'shenkong_05',
       'title': '深空彼岸',
       'author': '辰东',
-      'category': '科幻',
-      'desc': '浩瀚的宇宙中，一片岁月的星海，神话在旧土重新复苏。',
+      'category': '科幻未来',
+      'tag': '星际深空 · 旧土新生',
+      'bookUrl': 'https://www.biqugezwx.com/620/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '浩瀚的宇宙中，一片岁月的星海，神话在旧土重新复苏。王煊行走在新术与旧术的交汇尽头，探索深空彼岸的终极奥秘。',
+    },
+    {
+      'id': 'santi_09',
+      'title': '三体',
+      'author': '刘慈欣',
+      'category': '科幻未来',
+      'tag': '硬科幻 · 黑暗森林',
+      'bookUrl': 'https://www.biqugezwx.com/89/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '文化大革命如火如荼进行之际，军方探寻外星文明的绝秘计划发射了第一道电波。四光年外的三体舰队，正在驶向太阳系。',
+    },
+    {
+      'id': 'tunshi_10',
+      'title': '吞噬星空',
+      'author': '我吃西红柿',
+      'category': '科幻未来',
+      'tag': '未来末世 · 宇宙进化',
+      'bookUrl': 'https://www.biqugezwx.com/201/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '星空深处，无数强者傲立。地球少年罗峰走出江南基地市，闯入广袤无垠的浩瀚宇宙，成就浑源领主。',
+    },
+    // 都市异能
+    {
+      'id': 'dafeng_11',
+      'title': '大奉打更人',
+      'author': '卖报小郎君',
+      'category': '都市异能',
+      'tag': '侦探悬疑 · 儒武争锋',
+      'bookUrl': 'https://www.biqugezwx.com/412/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '这个世界，有儒；有道；有佛；有妖；有术士。警校毕业的许七安幽幽醒来，发现自己身处牢狱之中，三日后流放边陲……',
+    },
+    {
+      'id': 'kuicheng_12',
+      'title': '亏成首富从游戏开始',
+      'author': '青衫取醉',
+      'category': '都市异能',
+      'tag': '系统返现 · 商业爆笑',
+      'bookUrl': 'https://www.biqugezwx.com/530/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '裴谦获得了财富转换系统，只要亏钱就能按比例转化成个人财产。为了亏钱，他绞尽脑汁做冷门游戏，结果全成爆款！',
+    },
+    // 悬疑惊悚
+    {
+      'id': 'shiri_02',
+      'title': '十日终焉',
+      'author': '杀虫队队员',
+      'category': '悬疑惊悚',
+      'tag': '高智商博弈 · 生肖死局',
+      'bookUrl': 'https://www.biqugezwx.com/745/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '我叫齐夏，当你看到这行字的时候，我已经死了十次。高智商生肖致命死亡游戏，谎言与推演的终极博弈。',
+    },
+    {
+      'id': 'maoxianwu_13',
+      'title': '我有一座冒险屋',
+      'author': '我会修空调',
+      'category': '悬疑惊悚',
+      'tag': '惊悚探秘 · 鬼屋经营',
+      'bookUrl': 'https://www.biqugezwx.com/318/',
+      'sourceName': '笔趣阁ZWX',
+      'sourceId': 'biqugezwx:笔趣阁ZWX',
+      'desc': '陈歌继承了父母留下的冒险屋，在整理库房时意外发现了一部可以发布恐怖任务的黑色手机。推开一扇扇恐怖禁忌之门……',
     },
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadShelfBookIds();
+    _shelfSub = _storageService.shelfUpdateStream.listen((_) {
+      if (mounted) _loadShelfBookIds();
+    });
+  }
+
+  Future<void> _loadShelfBookIds() async {
+    final shelf = await _storageService.getBookshelf();
+    if (mounted) {
+      setState(() {
+        _shelfBookIds.clear();
+        _shelfBookTitles.clear();
+        for (final b in shelf) {
+          _shelfBookIds.add(b.bookId);
+          _shelfBookTitles.add(b.title.replaceAll(RegExp(r'[《》\s]'), ''));
+        }
+      });
+    }
+  }
+
+  bool _isBookInShelf(String bookId, String title) {
+    if (_shelfBookIds.contains(bookId)) return true;
+    final cleanTitle = title.replaceAll(RegExp(r'[《》\s]'), '');
+    return _shelfBookTitles.contains(cleanTitle);
+  }
+
+  List<Map<String, String>> get _displayedHotBooks {
+    if (_selectedCategoryIndex == 0) {
+      return _allHotBooks;
+    }
+    final targetCategory = _categories[_selectedCategoryIndex];
+    return _allHotBooks.where((b) => b['category'] == targetCategory).toList();
+  }
+
+  @override
   void dispose() {
+    _shelfSub?.cancel();
     _searchSub?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -181,30 +365,20 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   void _openBookFromHot(Map<String, String> book) {
     final title = book['title']!;
     final author = book['author']!;
-    String url = '';
-    String sName = '笔趣阁CP';
-    String sId = 'biqugecompany:笔趣阁CP';
-    if (title.contains('诡秘之主')) {
-      url = 'https://www.biquge.company/book/9053.html';
-    } else if (title.contains('十日终焉')) {
-      url = 'https://www.biquge.company/book/21843.html';
-    } else if (title.contains('道诡异仙')) {
-      url = 'https://www.biqugezwx.com/334/';
-      sName = '笔趣阁ZWX';
-      sId = 'biqugezwx:笔趣阁ZWX';
-    } else if (title.contains('剑来')) {
-      url = 'https://www.biquge.company/book/12497.html';
-    }
+    final id = book['id'] ?? 'hot_$title';
+    final url = book['bookUrl'] ?? '';
+    final sName = book['sourceName'] ?? '笔趣阁ZWX';
+    final sId = book['sourceId'] ?? 'biqugezwx:笔趣阁ZWX';
 
     final bookItem = BookItem(
-      id: 'hot_$title',
+      id: id,
       title: title,
       author: author,
       bookUrl: url,
       sourceName: sName,
       sourceId: sId,
-      category: book['tag'] ?? '热门精选',
-      description: '起点中文网千万级读者力荐神作，全网优质在线书源实时同步更新。',
+      category: book['category'] ?? '热门精选',
+      description: book['desc'] ?? '起点中文网千万级读者力荐神作，全网优质在线书源实时同步更新。',
     );
 
     Navigator.of(context).push(
@@ -254,7 +428,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
     ref.read(shelfProvider.notifier).addBook(book);
 
-    StorageService().addBookToShelf(ShelfBook(
+    _storageService.addBookToShelf(ShelfBook(
       bookId: result.id,
       title: result.title,
       author: result.author,
@@ -264,6 +438,11 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       lastReadTime: DateTime.now(),
       lastChapterTitle: result.latestChapter,
     ));
+
+    setState(() {
+      _shelfBookIds.add(result.id);
+      _shelfBookTitles.add(result.title.replaceAll(RegExp(r'[《》\s]'), ''));
+    });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -437,18 +616,12 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 44.0,
-                                    height: 58.0,
-                                    decoration: BoxDecoration(
-                                      color: colors.surface,
-                                      borderRadius: BorderRadius.circular(8.0),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      item.title.replaceAll(RegExp(r'[《》\s]'), '').characters.take(2).toString(),
-                                      style: TextStyle(fontWeight: FontWeight.bold, color: colors.accent),
-                                    ),
+                                  BookCoverWidget(
+                                    title: item.title,
+                                    author: item.author,
+                                    width: 48.0,
+                                    height: 66.0,
+                                    paletteIndex: BookCoverWidget.hashTitleToPalette(item.title),
                                   ),
                                   const SizedBox(width: 12.0),
                                   Expanded(
@@ -510,18 +683,44 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  SoftButton(
-                                    colors: colors,
-                                    onPressed: () => _addBookToShelf(item),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.bookmark_add_outlined, size: 14.0, color: colors.textPrimary),
-                                        const SizedBox(width: 4.0),
-                                        Text('加入书架', style: TextStyle(fontSize: 12.0, color: colors.textPrimary)),
-                                      ],
-                                    ),
+                                  Builder(
+                                    builder: (context) {
+                                      final inShelf = _isBookInShelf(item.id, item.title);
+                                      return SoftButton(
+                                        colors: colors,
+                                        onPressed: inShelf
+                                            ? () {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('《${item.title}》已在书架中'),
+                                                    behavior: SnackBarBehavior.floating,
+                                                    duration: const Duration(seconds: 1),
+                                                  ),
+                                                );
+                                              }
+                                            : () => _addBookToShelf(item),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              inShelf ? Icons.check_circle_rounded : Icons.bookmark_add_outlined,
+                                              size: 14.0,
+                                              color: inShelf ? colors.accent : colors.textPrimary,
+                                            ),
+                                            const SizedBox(width: 4.0),
+                                            Text(
+                                              inShelf ? '已在书架' : '加入书架',
+                                              style: TextStyle(
+                                                fontSize: 12.0,
+                                                color: inShelf ? colors.accent : colors.textPrimary,
+                                                fontWeight: inShelf ? FontWeight.bold : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                   const SizedBox(width: 8.0),
                                   SoftButton(
@@ -618,7 +817,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final book = _hotBooks[index];
+                      final book = _displayedHotBooks[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12.0),
                         child: SoftCard(
@@ -628,23 +827,14 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 50.0,
-                                height: 68.0,
-                                decoration: BoxDecoration(
-                                  color: colors.surface,
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  book['title']!.characters.take(2).toString(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: colors.accent,
-                                  ),
-                                ),
+                              BookCoverWidget(
+                                title: book['title']!,
+                                author: book['author']!,
+                                width: 56.0,
+                                height: 76.0,
+                                paletteIndex: BookCoverWidget.hashTitleToPalette(book['title']!),
                               ),
-                              const SizedBox(width: 12.0),
+                              const SizedBox(width: 14.0),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,7 +895,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                         ),
                       );
                     },
-                    childCount: _hotBooks.length,
+                    childCount: _displayedHotBooks.length,
                   ),
                 ),
               ),

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../../notes/models/annotation.dart';
 import '../engine/page_models.dart';
 import '../engine/reader_layout_engine.dart';
 import 'page_painter.dart';
@@ -32,6 +33,9 @@ class ReaderViewport extends StatefulWidget {
   final VoidCallback? onToggleBookmark;
   final VoidCallback? onOpenNotes;
   final VoidCallback? onAddAnnotation;
+  final VoidCallback? onAddToShelf;
+  final bool isInShelf;
+  final List<Annotation> annotations;
   final bool isBookmarked;
   final bool isLoading;
   final bool hasError;
@@ -60,6 +64,9 @@ class ReaderViewport extends StatefulWidget {
     this.onToggleBookmark,
     this.onOpenNotes,
     this.onAddAnnotation,
+    this.onAddToShelf,
+    this.isInShelf = false,
+    this.annotations = const [],
     this.isBookmarked = false,
     this.isLoading = false,
     this.hasError = false,
@@ -74,6 +81,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
   static const MethodChannel _volumeChannel = MethodChannel('com.kline.novelreader/volume_key');
 
   late PageController _pageController;
+  late AnimationController _turnAnimController;
+  int _animDirection = 1; // 1: 下一页, -1: 上一页
   List<ChapterPage> _pages = [];
   int _currentPageIndex = 0;
   bool _showMenu = false;
@@ -95,6 +104,11 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       }
     });
 
+    _turnAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+
     _pageController = PageController(initialPage: _currentPageIndex);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _volumeChannel.setMethodCallHandler(_handleVolumeCall);
@@ -105,6 +119,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
     _volumeChannel.setMethodCallHandler(null);
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _clockTimer?.cancel();
+    _turnAnimController.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -257,6 +272,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
   }
 
   void _turnNext() {
+    if (_turnAnimController.isAnimating) return;
     if (_currentPageIndex < _pages.length - 1) {
       if (widget.turnMode == PageTurnMode.slide) {
         _pageController.nextPage(
@@ -264,8 +280,16 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
           curve: Curves.easeOutCubic,
         );
       } else {
-        setState(() => _currentPageIndex++);
-        _notifyProgress();
+        _animDirection = 1;
+        _turnAnimController.forward(from: 0.0).then((_) {
+          if (!mounted) return;
+          setState(() {
+            _currentPageIndex++;
+            _dragOffset = 0.0;
+          });
+          _turnAnimController.reset();
+          _notifyProgress();
+        });
       }
     } else {
       _triggerNextChapterDebounced();
@@ -273,6 +297,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
   }
 
   void _turnPrevious() {
+    if (_turnAnimController.isAnimating) return;
     if (_currentPageIndex > 0) {
       if (widget.turnMode == PageTurnMode.slide) {
         _pageController.previousPage(
@@ -280,8 +305,16 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
           curve: Curves.easeOutCubic,
         );
       } else {
-        setState(() => _currentPageIndex--);
-        _notifyProgress();
+        _animDirection = -1;
+        _turnAnimController.forward(from: 0.0).then((_) {
+          if (!mounted) return;
+          setState(() {
+            _currentPageIndex--;
+            _dragOffset = 0.0;
+          });
+          _turnAnimController.reset();
+          _notifyProgress();
+        });
       }
     } else {
       _triggerPreviousChapterDebounced();
@@ -470,6 +503,7 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                   theme: widget.theme,
                   bookTitle: widget.bookTitle,
                   currentTime: _currentTimeString,
+                  annotations: widget.annotations,
                 ),
               );
             },
@@ -489,78 +523,287 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
   /// 覆盖翻页视图 (CoverTurner)
   Widget _buildCoverView(Size size, PagingConfig config) {
-    final currentPage = _pages.isNotEmpty ? _pages[_currentPageIndex] : null;
+    if (_pages.isEmpty) return const SizedBox.shrink();
+    final currentPage = _pages[_currentPageIndex];
     final nextPageIndex = _currentPageIndex + 1;
+    final prevPageIndex = _currentPageIndex - 1;
     final hasNext = nextPageIndex < _pages.length;
-
-    if (currentPage == null) return const SizedBox.shrink();
+    final hasPrev = prevPageIndex >= 0;
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
+        if (_turnAnimController.isAnimating) return;
         setState(() {
           _dragOffset = (_dragOffset + details.delta.dx).clamp(-size.width, size.width);
         });
       },
       onHorizontalDragEnd: (details) {
-        if (_dragOffset < -size.width * 0.2) {
+        if (_turnAnimController.isAnimating) return;
+        if (_dragOffset < -size.width * 0.15) {
           _turnNext();
-        } else if (_dragOffset > size.width * 0.2) {
+        } else if (_dragOffset > size.width * 0.15) {
           _turnPrevious();
+        } else {
+          setState(() => _dragOffset = 0.0);
         }
-        setState(() => _dragOffset = 0.0);
       },
-      child: Stack(
-        children: [
-          // 下层静止页面（若向后翻，为下一页）
-          if (hasNext)
-            CustomPaint(
-              size: size,
-              painter: PagePainter(
-                page: _pages[nextPageIndex],
-                totalPageCount: _pages.length,
-                chapterTitle: widget.chapterTitle,
-                config: config,
-                theme: widget.theme,
-                bookTitle: widget.bookTitle,
-                currentTime: _currentTimeString,
-              ),
-            ),
+      child: AnimatedBuilder(
+        animation: _turnAnimController,
+        builder: (context, _) {
+          final animVal = _turnAnimController.value;
+          double offset = _dragOffset;
+          if (_turnAnimController.isAnimating) {
+            if (_animDirection == 1) {
+              offset = -animVal * size.width;
+            } else {
+              offset = (-1.0 + animVal) * size.width;
+            }
+          }
 
-          // 上层覆盖滑出的当前页，带左侧立体阴影
-          Transform.translate(
-            offset: Offset(_dragOffset.clamp(-size.width, 0.0), 0),
-            child: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    offset: const Offset(-5, 0),
-                    blurRadius: 10,
+          final isPrev = _animDirection == -1 && (_turnAnimController.isAnimating || _dragOffset > 0);
+
+          if (isPrev) {
+            return Stack(
+              children: [
+                CustomPaint(
+                  size: size,
+                  painter: PagePainter(
+                    page: currentPage,
+                    totalPageCount: _pages.length,
+                    chapterTitle: widget.chapterTitle,
+                    config: config,
+                    theme: widget.theme,
+                    bookTitle: widget.bookTitle,
+                    currentTime: _currentTimeString,
+                    annotations: widget.annotations,
                   ),
-                ],
-              ),
-              child: CustomPaint(
-                size: size,
-                painter: PagePainter(
-                  page: currentPage,
-                  totalPageCount: _pages.length,
-                  chapterTitle: widget.chapterTitle,
-                  config: config,
-                  theme: widget.theme,
-                  bookTitle: widget.bookTitle,
-                  currentTime: _currentTimeString,
+                ),
+                if (hasPrev)
+                  Transform.translate(
+                    offset: Offset(offset, 0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            offset: const Offset(4, 0),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: CustomPaint(
+                        size: size,
+                        painter: PagePainter(
+                          page: _pages[prevPageIndex],
+                          totalPageCount: _pages.length,
+                          chapterTitle: widget.chapterTitle,
+                          config: config,
+                          theme: widget.theme,
+                          bookTitle: widget.bookTitle,
+                          currentTime: _currentTimeString,
+                          annotations: widget.annotations,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }
+
+          return Stack(
+            children: [
+              if (hasNext)
+                CustomPaint(
+                  size: size,
+                  painter: PagePainter(
+                    page: _pages[nextPageIndex],
+                    totalPageCount: _pages.length,
+                    chapterTitle: widget.chapterTitle,
+                    config: config,
+                    theme: widget.theme,
+                    bookTitle: widget.bookTitle,
+                    currentTime: _currentTimeString,
+                    annotations: widget.annotations,
+                  ),
+                ),
+              Transform.translate(
+                offset: Offset(offset.clamp(-size.width, 0.0), 0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        offset: const Offset(-5, 0),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: CustomPaint(
+                    size: size,
+                    painter: PagePainter(
+                      page: currentPage,
+                      totalPageCount: _pages.length,
+                      chapterTitle: widget.chapterTitle,
+                      config: config,
+                      theme: widget.theme,
+                      bookTitle: widget.bookTitle,
+                      currentTime: _currentTimeString,
+                      annotations: widget.annotations,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
   /// 3D 仿真仿真卷曲翻页 (CurlTurner)
   Widget _buildCurlView(Size size, PagingConfig config) {
-    return _buildCoverView(size, config);
+    if (_pages.isEmpty) return const SizedBox.shrink();
+    final currentPage = _pages[_currentPageIndex];
+    final nextPageIndex = _currentPageIndex + 1;
+    final prevPageIndex = _currentPageIndex - 1;
+    final hasNext = nextPageIndex < _pages.length;
+    final hasPrev = prevPageIndex >= 0;
+
+    return GestureDetector(
+      onHorizontalDragUpdate: (details) {
+        if (_turnAnimController.isAnimating) return;
+        setState(() {
+          _dragOffset = (_dragOffset + details.delta.dx).clamp(-size.width, size.width);
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        if (_turnAnimController.isAnimating) return;
+        if (_dragOffset < -size.width * 0.15) {
+          _turnNext();
+        } else if (_dragOffset > size.width * 0.15) {
+          _turnPrevious();
+        } else {
+          setState(() => _dragOffset = 0.0);
+        }
+      },
+      child: AnimatedBuilder(
+        animation: _turnAnimController,
+        builder: (context, _) {
+          double progress = 0.0;
+          if (_turnAnimController.isAnimating) {
+            progress = _turnAnimController.value;
+          } else if (_dragOffset != 0.0) {
+            progress = (_dragOffset.abs() / size.width).clamp(0.0, 1.0);
+          }
+
+          final isPrev = _animDirection == -1 && (_turnAnimController.isAnimating || _dragOffset > 0);
+
+          if (isPrev) {
+            final angle = (1.0 - progress) * (3.14159 / 2.0);
+            return Stack(
+              children: [
+                CustomPaint(
+                  size: size,
+                  painter: PagePainter(
+                    page: currentPage,
+                    totalPageCount: _pages.length,
+                    chapterTitle: widget.chapterTitle,
+                    config: config,
+                    theme: widget.theme,
+                    bookTitle: widget.bookTitle,
+                    currentTime: _currentTimeString,
+                    annotations: widget.annotations,
+                  ),
+                ),
+                if (hasPrev)
+                  Transform(
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateY(-angle),
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: (0.3 * (1.0 - progress)).clamp(0.0, 0.3)),
+                            offset: const Offset(4, 0),
+                            blurRadius: 12,
+                          ),
+                        ],
+                      ),
+                      child: CustomPaint(
+                        size: size,
+                        painter: PagePainter(
+                          page: _pages[prevPageIndex],
+                          totalPageCount: _pages.length,
+                          chapterTitle: widget.chapterTitle,
+                          config: config,
+                          theme: widget.theme,
+                          bookTitle: widget.bookTitle,
+                          currentTime: _currentTimeString,
+                          annotations: widget.annotations,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }
+
+          final angle = progress * (3.14159 / 2.0);
+          return Stack(
+            children: [
+              if (hasNext)
+                CustomPaint(
+                  size: size,
+                  painter: PagePainter(
+                    page: _pages[nextPageIndex],
+                    totalPageCount: _pages.length,
+                    chapterTitle: widget.chapterTitle,
+                    config: config,
+                    theme: widget.theme,
+                    bookTitle: widget.bookTitle,
+                    currentTime: _currentTimeString,
+                    annotations: widget.annotations,
+                  ),
+                ),
+              Transform(
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY(-angle),
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  foregroundDecoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Colors.black.withValues(alpha: (0.12 * progress).clamp(0.0, 0.2)),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: (0.22 * progress).clamp(0.0, 0.28)),
+                      ],
+                    ),
+                  ),
+                  child: CustomPaint(
+                    size: size,
+                    painter: PagePainter(
+                      page: currentPage,
+                      totalPageCount: _pages.length,
+                      chapterTitle: widget.chapterTitle,
+                      config: config,
+                      theme: widget.theme,
+                      bookTitle: widget.bookTitle,
+                      currentTime: _currentTimeString,
+                      annotations: widget.annotations,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   /// 垂直连续流式阅读 (ScrollTurner)
@@ -664,152 +907,162 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                 ),
                 const SizedBox(width: 4.0),
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    reverse: true,
+                    reverse: false,
                     physics: const BouncingScrollPhysics(),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 离线缓存按钮
-                if (widget.onOpenDownload != null) ...[
-                  GestureDetector(
-                    onTap: widget.onOpenDownload,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                      decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.download_rounded, size: 16, color: widget.theme.textColor),
-                          const SizedBox(width: 4.0),
-                          Text(
-                            '离线',
-                            style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
+                        // 加书架 / 已入架
+                        if (widget.onAddToShelf != null) ...[
+                          GestureDetector(
+                            key: const ValueKey('reader_top_shelf_btn'),
+                            onTap: widget.isInShelf ? null : widget.onAddToShelf,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
+                              decoration: BoxDecoration(
+                                color: widget.isInShelf
+                                    ? (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05))
+                                    : const Color(0xFF07C160).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    widget.isInShelf ? Icons.check_circle_outline : Icons.bookmark_add_outlined,
+                                    size: 15,
+                                    color: widget.isInShelf ? const Color(0xFF07C160) : widget.theme.textColor,
+                                  ),
+                                  const SizedBox(width: 3.0),
+                                  Text(
+                                    widget.isInShelf ? '已入架' : '加书架',
+                                    style: TextStyle(
+                                      color: widget.isInShelf ? const Color(0xFF07C160) : widget.theme.textColor,
+                                      fontSize: 11.0,
+                                      fontWeight: widget.isInShelf ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
+                          const SizedBox(width: 6.0),
                         ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8.0),
-                ],
-                // 换源按钮
-                if (widget.onOpenSourceSwitcher != null) ...[
-                  GestureDetector(
-                    onTap: widget.onOpenSourceSwitcher,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                    decoration: BoxDecoration(
-                      color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.swap_horiz, size: 16, color: widget.theme.textColor),
-                        const SizedBox(width: 4.0),
-                        Text(
-                          '换源',
-                          style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-              ],
-                // 书签按钮
-                if (widget.onToggleBookmark != null) ...[
-                  const SizedBox(width: 8.0),
-                  GestureDetector(
-                    key: const ValueKey('reader_top_bookmark_btn'),
-                    onTap: widget.onToggleBookmark,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                      decoration: BoxDecoration(
-                        color: widget.isBookmarked
-                            ? const Color(0xFFE5A93C).withValues(alpha: 0.18)
-                            : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-                            size: 16,
-                            color: widget.isBookmarked ? const Color(0xFFE5A93C) : widget.theme.textColor,
+                        // 换源按钮
+                        if (widget.onOpenSourceSwitcher != null) ...[
+                          GestureDetector(
+                            key: const ValueKey('reader_top_source_btn'),
+                            onTap: widget.onOpenSourceSwitcher,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
+                              decoration: BoxDecoration(
+                                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.swap_horiz_rounded, size: 16, color: widget.theme.textColor),
+                                  const SizedBox(width: 3.0),
+                                  Text(
+                                    '换源',
+                                    style: TextStyle(color: widget.theme.textColor, fontSize: 11.0),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 4.0),
-                          Text(
-                            '书签',
-                            style: TextStyle(
-                              color: widget.isBookmarked ? const Color(0xFFE5A93C) : widget.theme.textColor,
-                              fontSize: 12.0,
-                              fontWeight: widget.isBookmarked ? FontWeight.bold : FontWeight.normal,
+                          const SizedBox(width: 6.0),
+                        ],
+                        // 笔记与划线按钮
+                        if (widget.onOpenNotes != null) ...[
+                          GestureDetector(
+                            key: const ValueKey('reader_top_notes_btn'),
+                            onTap: widget.onOpenNotes,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
+                              decoration: BoxDecoration(
+                                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.rate_review_outlined, size: 15, color: widget.theme.textColor),
+                                  const SizedBox(width: 3.0),
+                                  Text(
+                                    '笔记',
+                                    style: TextStyle(color: widget.theme.textColor, fontSize: 11.0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6.0),
+                        ],
+                        // 书签按钮
+                        if (widget.onToggleBookmark != null) ...[
+                          GestureDetector(
+                            key: const ValueKey('reader_top_bookmark_btn'),
+                            onTap: widget.onToggleBookmark,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
+                              decoration: BoxDecoration(
+                                color: widget.isBookmarked
+                                    ? const Color(0xFFE5A93C).withValues(alpha: 0.18)
+                                    : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    widget.isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                                    size: 15,
+                                    color: widget.isBookmarked ? const Color(0xFFE5A93C) : widget.theme.textColor,
+                                  ),
+                                  const SizedBox(width: 3.0),
+                                  Text(
+                                    '书签',
+                                    style: TextStyle(
+                                      color: widget.isBookmarked ? const Color(0xFFE5A93C) : widget.theme.textColor,
+                                      fontSize: 11.0,
+                                      fontWeight: widget.isBookmarked ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6.0),
+                        ],
+                        // 离线缓存按钮
+                        if (widget.onOpenDownload != null) ...[
+                          GestureDetector(
+                            onTap: widget.onOpenDownload,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 5.0),
+                              decoration: BoxDecoration(
+                                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.download_rounded, size: 15, color: widget.theme.textColor),
+                                  const SizedBox(width: 3.0),
+                                  Text(
+                                    '离线',
+                                    style: TextStyle(color: widget.theme.textColor, fontSize: 11.0),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ),
-                ],
-                // 笔记与划线按钮
-                if (widget.onOpenNotes != null) ...[
-                  const SizedBox(width: 8.0),
-                  GestureDetector(
-                    key: const ValueKey('reader_top_notes_btn'),
-                    onTap: widget.onOpenNotes,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                      decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.rate_review_outlined, size: 16, color: widget.theme.textColor),
-                          const SizedBox(width: 4.0),
-                          Text(
-                            '笔记',
-                            style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                // 听书按钮
-                if (widget.onOpenTts != null) ...[
-                  const SizedBox(width: 8.0),
-                  GestureDetector(
-                    key: const ValueKey('reader_top_tts_btn'),
-                    onTap: widget.onOpenTts,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                      decoration: BoxDecoration(
-                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12.0),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.headphones_rounded, size: 16, color: widget.theme.textColor),
-                          const SizedBox(width: 4.0),
-                          Text(
-                            '听书',
-                            style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
                       ],
                     ),
                   ),
@@ -914,6 +1167,12 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                       label: '目录',
                       onTap: widget.onOpenCatalog,
                     ),
+                    if (widget.onOpenSourceSwitcher != null)
+                      _buildActionButton(
+                        icon: Icons.swap_horiz_rounded,
+                        label: '换源',
+                        onTap: widget.onOpenSourceSwitcher!,
+                      ),
                     if (widget.onOpenTts != null)
                       _buildActionButton(
                         icon: Icons.headphones_rounded,
@@ -930,11 +1189,6 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                     _buildActionButton(
                       icon: Icons.text_fields_rounded,
                       label: '排版',
-                      onTap: widget.onOpenTypography,
-                    ),
-                    _buildActionButton(
-                      icon: Icons.settings_rounded,
-                      label: '设置',
                       onTap: widget.onOpenTypography,
                     ),
                   ],

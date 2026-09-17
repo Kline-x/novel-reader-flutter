@@ -30,48 +30,46 @@ class ReaderThemeOption {
 
   static const ReaderThemeOption paper = ReaderThemeOption(
     id: 'paper',
-    name: '复古羊皮',
-    background: Color(0xFFF6F1E7),
-    textColor: Color(0xFF2C2416),
-    subTextColor: Color(0xFF8C8070),
+    name: '纸白',
+    background: Color(0xFFFFFDF7),
+    textColor: Color(0xFF23262B),
+    subTextColor: Color(0xFF6E7480),
     isDark: false,
+  );
+
+  static const ReaderThemeOption cream = ReaderThemeOption(
+    id: 'cream',
+    name: '米黄',
+    background: Color(0xFFF6EFDF),
+    textColor: Color(0xFF3B3225),
+    subTextColor: Color(0xFF8A7F6D),
+    isDark: false,
+  );
+
+  static const ReaderThemeOption ink = ReaderThemeOption(
+    id: 'ink',
+    name: '深墨',
+    background: Color(0xFF1C1E26),
+    textColor: Color(0xFFC9CCD8),
+    subTextColor: Color(0xFF8A8FA0),
+    isDark: true,
+  );
+
+  static const ReaderThemeOption night = ReaderThemeOption(
+    id: 'night',
+    name: '极夜',
+    background: Color(0xFF0B0C10),
+    textColor: Color(0xFFB8BCC9),
+    subTextColor: Color(0xFF7C8190),
+    isDark: true,
   );
 
   static const ReaderThemeOption defaultTheme = paper;
 
   static const List<ReaderThemeOption> presets = [
     paper,
-    ReaderThemeOption(
-      id: 'white',
-      name: '柔和白昼',
-      background: Color(0xFFF9F9FA),
-      textColor: Color(0xFF1D1E20),
-      subTextColor: Color(0xFF86888D),
-      isDark: false,
-    ),
-    ReaderThemeOption(
-      id: 'green',
-      name: '淡雅护眼',
-      background: Color(0xFFEBF1E8),
-      textColor: Color(0xFF223123),
-      subTextColor: Color(0xFF7A8B7B),
-      isDark: false,
-    ),
-    ReaderThemeOption(
-      id: 'gray',
-      name: '深空雅灰',
-      background: Color(0xFF242628),
-      textColor: Color(0xFFD6D7D9),
-      subTextColor: Color(0xFF7D8086),
-      isDark: true,
-    ),
-    ReaderThemeOption(
-      id: 'oled',
-      name: '纯黑极夜',
-      background: Color(0xFF000000),
-      textColor: Color(0xFFA6A8AB),
-      subTextColor: Color(0xFF5A5C61),
-      isDark: true,
-    ),
+    cream,
+    ink,
+    night,
   ];
 }

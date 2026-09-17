@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -120,6 +121,9 @@ class StorageService {
   static const String _keyShelfList = 'novel_reader_bookshelf_list';
   static const String _prefixProgress = 'novel_reader_progress_';
 
+  static final StreamController<void> _shelfUpdateController = StreamController<void>.broadcast();
+  static Stream<void> get shelfUpdateStream => _shelfUpdateController.stream;
+
   StorageService({
     SharedPreferences? prefs,
     String? customCacheDir,
@@ -196,7 +200,56 @@ class StorageService {
   Future<List<ShelfBook>> getBookshelf() async {
     final prefs = await _getPrefs();
     final rawList = prefs.getStringList(_keyShelfList);
-    if (rawList == null) return [];
+    if (rawList == null || rawList.isEmpty) {
+      final defaultBooks = [
+        ShelfBook(
+          bookId: 'guimi_01',
+          title: '诡秘之主',
+          author: '爱潜水的乌贼',
+          bookUrl: 'https://www.biqugezwx.com/50/',
+          sourceName: '笔趣阁ZWX',
+          sourceId: 'biqugezwx:笔趣阁ZWX',
+          lastChapterTitle: '第一千四百三十二章 愚者',
+          totalChapters: 1432,
+          lastReadTime: DateTime.now(),
+        ),
+        ShelfBook(
+          bookId: 'shiri_02',
+          title: '十日终焉',
+          author: '杀虫队队员',
+          bookUrl: 'https://www.biqugezwx.com/745/',
+          sourceName: '笔趣阁ZWX',
+          sourceId: 'biqugezwx:笔趣阁ZWX',
+          lastChapterTitle: '张丽娟（终）',
+          totalChapters: 1386,
+          lastReadTime: DateTime.now(),
+        ),
+        ShelfBook(
+          bookId: 'daoti_03',
+          title: '道诡异仙',
+          author: '狐尾的笔',
+          bookUrl: 'https://www.biqugezwx.com/334/',
+          sourceName: '笔趣阁ZWX',
+          sourceId: 'biqugezwx:笔趣阁ZWX',
+          lastChapterTitle: '第 1056 章 大千录',
+          totalChapters: 1056,
+          lastReadTime: DateTime.now(),
+        ),
+        ShelfBook(
+          bookId: 'jianlai_04',
+          title: '剑来',
+          author: '烽火戏诸侯',
+          bookUrl: 'https://www.biqugezwx.com/324/',
+          sourceName: '笔趣阁ZWX',
+          sourceId: 'biqugezwx:笔趣阁ZWX',
+          lastChapterTitle: '第一千一百五十四章 签文',
+          totalChapters: 1156,
+          lastReadTime: DateTime.now(),
+        ),
+      ];
+      await saveBookshelf(defaultBooks);
+      return defaultBooks;
+    }
 
     final books = <ShelfBook>[];
     for (final itemStr in rawList) {
@@ -213,12 +266,13 @@ class StorageService {
     final prefs = await _getPrefs();
     final stringList = books.map((b) => jsonEncode(b.toJson())).toList();
     await prefs.setStringList(_keyShelfList, stringList);
+    _shelfUpdateController.add(null);
   }
 
   /// 添加书籍至书架（若已存在则更新元数据）
   Future<void> addToBookshelf(ShelfBook book) async {
     final list = await getBookshelf();
-    final idx = list.indexWhere((b) => b.bookId == book.bookId);
+    final idx = list.indexWhere((b) => b.bookId == book.bookId || b.title == book.title);
     if (idx >= 0) {
       list[idx] = book;
     } else {
@@ -228,9 +282,17 @@ class StorageService {
   }
 
   /// 从书架移除书籍
-  Future<void> removeFromBookshelf(String bookId) async {
+  Future<void> removeFromBookshelf(String bookId, {String? title}) async {
     final list = await getBookshelf();
-    list.removeWhere((b) => b.bookId == bookId);
+    final cleanT = title?.replaceAll(RegExp(r'[《》\s]'), '');
+    list.removeWhere((b) {
+      if (b.bookId == bookId) return true;
+      if (cleanT != null && cleanT.isNotEmpty) {
+        final bT = b.title.replaceAll(RegExp(r'[《》\s]'), '');
+        return bT == cleanT;
+      }
+      return false;
+    });
     await saveBookshelf(list);
 
     final prefs = await _getPrefs();
@@ -238,7 +300,23 @@ class StorageService {
   }
 
   Future<void> addBookToShelf(ShelfBook book) => addToBookshelf(book);
-  Future<void> removeBookFromShelf(String bookId) => removeFromBookshelf(bookId);
+  Future<void> removeBookFromShelf(String bookId, {String? title}) => removeFromBookshelf(bookId, title: title);
+
+  /// 检查书籍是否已在书架中
+  Future<bool> isBookInShelf(String bookId, {String? title}) async {
+    final list = await getBookshelf();
+    final cleanT = title?.replaceAll(RegExp(r'[《》\s]'), '');
+    return list.any((b) {
+      if (b.bookId == bookId) return true;
+      if (cleanT != null && cleanT.isNotEmpty) {
+        final bTitle = b.title.replaceAll(RegExp(r'[《》\s]'), '');
+        if (bTitle == cleanT || bTitle.contains(cleanT) || cleanT.contains(bTitle)) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
 
   /// 更新书架上指定书籍的阅读进度
   Future<void> updateShelfProgress(
