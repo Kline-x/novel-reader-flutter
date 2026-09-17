@@ -6,7 +6,6 @@ import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
-import '../../reader/presentation/reader_screen.dart';
 import '../../sources/models/book_search_result.dart';
 import '../../sources/services/multi_source_service.dart';
 import '../models/book_item.dart';
@@ -215,7 +214,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   void initState() {
     super.initState();
     _loadShelfBookIds();
-    _shelfSub = _storageService.shelfUpdateStream.listen((_) {
+    _shelfSub = StorageService.shelfUpdateStream.listen((_) {
       if (mounted) _loadShelfBookIds();
     });
   }

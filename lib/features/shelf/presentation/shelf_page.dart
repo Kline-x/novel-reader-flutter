@@ -90,6 +90,7 @@ class _ShelfPageState extends State<ShelfPage> {
     }
 
     // 实时对齐每本书的真实阅读进度与章节索引
+    bool changed = false;
     for (int i = 0; i < _books.length; i++) {
       final b = _books[i];
       final prog = await _storageService.getReadingProgress(b.id);
@@ -805,9 +806,6 @@ class _ShelfPageState extends State<ShelfPage> {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final book = books[index];
-            final seal = book.title.startsWith('十') && book.title.length > 1
-                ? book.title.characters.take(2).string
-                : book.title.characters.first;
             return GestureDetector(
               onTap: () => _openDetail(book),
               onLongPress: () => _showBookOptions(book),

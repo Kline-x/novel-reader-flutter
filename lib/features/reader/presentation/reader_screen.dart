@@ -135,19 +135,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final currentTitle = _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
         ? _chapters[_currentChapterIndex].title
         : '第${_currentChapterIndex + 1}章';
-    final book = widget.book ??
-        BookItem(
-          id: widget.bookId,
-          title: widget.bookTitle,
-          author: widget.author,
-          coverUrl: '',
-          latestChapter: currentTitle,
-          updatedAt: '刚刚',
-          sourceName: _currentSourceName,
-          bookUrl: _resolvedBookUrl ?? widget.bookUrl ?? '',
-          description: '',
-        );
-    await _storage.addToBookshelf(book);
+    final shelfBook = ShelfBook(
+      bookId: widget.bookId,
+      title: widget.bookTitle,
+      author: widget.author,
+      coverUrl: widget.book?.coverUrl ?? '',
+      lastChapterTitle: currentTitle,
+      sourceName: _currentSourceName,
+      bookUrl: _resolvedBookUrl ?? widget.bookUrl ?? '',
+      lastReadTime: DateTime.now(),
+    );
+    await _storage.addToBookshelf(shelfBook);
     if (mounted) {
       setState(() => _isInShelf = true);
       ScaffoldMessenger.of(context).showSnackBar(

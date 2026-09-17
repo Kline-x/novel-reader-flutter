@@ -421,6 +421,17 @@ class StorageService {
     }
   }
 
+  /// 清除某本书的持久化目录缓存（用于换源时强制重新抓取新源目录）
+  Future<void> deleteBookToc(String bookId) async {
+    final baseDir = await getCacheDirectory();
+    final file = File('${baseDir.path}/$bookId/toc.json');
+    if (await file.exists()) {
+      try {
+        await file.delete();
+      } catch (_) {}
+    }
+  }
+
   /// 检查章节是否已缓存到本地
   Future<bool> hasChapterCache(String bookId, int chapterIndex) async {
     final file = await _getChapterFile(bookId, chapterIndex);
