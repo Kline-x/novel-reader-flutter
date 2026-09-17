@@ -79,19 +79,27 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Row(
                 children: [
-                  const Text(
-                    '目录',
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '共 ${widget.chapters.length} 章',
-                    style: TextStyle(
-                      fontSize: 13.0,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+                  RichText(
+                    text: TextSpan(
+                      text: '目录',
+                      style: TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.titleLarge?.color,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: ' (${widget.chapters.length})',
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.normal,
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8.0),
+                  const Spacer(),
                   if (widget.onOpenNotes != null) ...[
                     TextButton.icon(
                       key: const ValueKey('catalog_drawer_notes_btn'),
@@ -99,13 +107,15 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                         Navigator.of(context).pop();
                         widget.onOpenNotes!();
                       },
-                      icon: const Icon(Icons.rate_review_rounded, size: 16),
-                      label: const Text('笔记'),
+                      icon: const Icon(Icons.rate_review_rounded, size: 14),
+                      label: const Text('笔记', style: TextStyle(fontSize: 12)),
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
-                    const SizedBox(width: 4.0),
+                    const SizedBox(width: 2.0),
                   ],
                   if (widget.onOpenDownload != null) ...[
                     TextButton.icon(
@@ -113,21 +123,25 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                         Navigator.of(context).pop();
                         widget.onOpenDownload!();
                       },
-                      icon: const Icon(Icons.download_rounded, size: 16),
-                      label: const Text('缓存'),
+                      icon: const Icon(Icons.download_rounded, size: 14),
+                      label: const Text('缓存', style: TextStyle(fontSize: 12)),
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
-                    const SizedBox(width: 4.0),
+                    const SizedBox(width: 2.0),
                   ],
                   // 正倒序切换按钮
                   TextButton.icon(
                     onPressed: () => setState(() => _isAscending = !_isAscending),
-                    icon: Icon(_isAscending ? Icons.arrow_downward : Icons.arrow_upward, size: 16),
-                    label: Text(_isAscending ? '倒序' : '正序'),
+                    icon: Icon(_isAscending ? Icons.arrow_downward : Icons.arrow_upward, size: 14),
+                    label: Text(_isAscending ? '倒序' : '正序', style: const TextStyle(fontSize: 12)),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
                 ],

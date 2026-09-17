@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lpinyin/lpinyin.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/swipe_reveal_card.dart';
@@ -84,6 +85,7 @@ class _ShelfPageState extends State<ShelfPage> {
         sourceName: s.sourceName ?? '笔趣阁ZWX',
         bookUrl: s.bookUrl,
         filePath: s.filePath,
+        isPinned: s.isPinned,
       ));
     }
 
@@ -172,15 +174,15 @@ class _ShelfPageState extends State<ShelfPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: colors.card,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        return Material(
+          color: colors.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Text(
                 '《${book.title}》',
                 style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold, color: colors.textPrimary),
@@ -222,14 +224,10 @@ class _ShelfPageState extends State<ShelfPage> {
               ListTile(
                 leading: Icon(book.isPinned ? Icons.vertical_align_bottom : Icons.vertical_align_top, color: colors.accent),
                 title: Text(book.isPinned ? '取消置顶' : '置顶此书', style: TextStyle(color: colors.textPrimary)),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  setState(() {
-                    final idx = _books.indexWhere((b) => b.id == book.id);
-                    if (idx != -1) {
-                      _books[idx] = book.copyWith(isPinned: !book.isPinned);
-                    }
-                  });
+                  await _storageService.toggleBookPinned(book.id);
+                  await _loadBooksFromStorage();
                 },
               ),
               ListTile(
@@ -245,8 +243,9 @@ class _ShelfPageState extends State<ShelfPage> {
               ),
             ],
           ),
-        );
-      },
+        ),
+      );
+    },
     );
   }
 
@@ -287,13 +286,31 @@ class _ShelfPageState extends State<ShelfPage> {
   Widget build(BuildContext context) {
     final colors = SoftTheme.of(context);
 
-    // 过滤与拼音排序
+    // 过滤与拼音排序（支持书名、作者、全拼及首字母智能检索，置顶书籍优先）
+    final kw = _searchKeyword.toLowerCase();
     var filteredBooks = _books.where((b) {
-      if (_searchKeyword.isEmpty) return true;
-      return b.title.contains(_searchKeyword) || b.author.contains(_searchKeyword);
+      if (kw.isEmpty) return true;
+      if (b.title.toLowerCase().contains(kw) || b.author.toLowerCase().contains(kw)) {
+        return true;
+      }
+      if (b.pinyin.toLowerCase().contains(kw)) {
+        return true;
+      }
+      try {
+        final initials = PinyinHelper.getShortPinyin(b.cleanTitle).toLowerCase();
+        if (initials.contains(kw)) {
+          return true;
+        }
+      } catch (_) {}
+      return false;
     }).toList();
 
-    filteredBooks.sort((a, b) => a.pinyin.compareTo(b.pinyin));
+    filteredBooks.sort((a, b) {
+      if (a.isPinned != b.isPinned) {
+        return a.isPinned ? -1 : 1;
+      }
+      return a.pinyin.compareTo(b.pinyin);
+    });
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -649,6 +666,28 @@ class _ShelfPageState extends State<ShelfPage> {
                           children: [
                             Row(
                               children: [
+                                if (book.isPinned) ...[
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 6.0),
+                                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4.0),
+                                      border: Border.all(color: Colors.amber.withValues(alpha: 0.5), width: 0.5),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.push_pin_rounded, size: 10.0, color: Colors.amber),
+                                        const SizedBox(width: 2.0),
+                                        Text(
+                                          '置顶',
+                                          style: TextStyle(fontSize: 9.0, color: Colors.amber.shade900, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                                 Expanded(
                                   child: Text(
                                     book.title,
@@ -797,13 +836,30 @@ class _ShelfPageState extends State<ShelfPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: BookCoverWidget(
-                      title: book.title,
-                      author: book.author,
-                      coverUrl: book.coverUrl,
-                      width: double.infinity,
-                      height: double.infinity,
-                      borderRadius: 14.0,
+                    child: Stack(
+                      children: [
+                        BookCoverWidget(
+                          title: book.title,
+                          author: book.author,
+                          coverUrl: book.coverUrl,
+                          width: double.infinity,
+                          height: double.infinity,
+                          borderRadius: 14.0,
+                        ),
+                        if (book.isPinned)
+                          Positioned(
+                            top: 6.0,
+                            right: 6.0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4.0),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.65),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.push_pin_rounded, size: 12.0, color: Colors.amber),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 6.0),
@@ -848,28 +904,61 @@ class _ShelfPageState extends State<ShelfPage> {
 
   /// 空状态占位
   Widget _buildEmptyState(SoftColors colors) {
+    final isSearching = _searchKeyword.isNotEmpty;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60.0, horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(vertical: 50.0, horizontal: 20.0),
       child: Center(
         child: Column(
           children: [
-            const Text('📖', style: TextStyle(fontSize: 48.0)),
+            Text(isSearching ? '🔍' : '📖', style: const TextStyle(fontSize: 48.0)),
             const SizedBox(height: 12.0),
             Text(
               '书架空空如也',
-              style: TextStyle(fontSize: 16.0, color: colors.textSecondary),
+              style: TextStyle(fontSize: 16.0, color: colors.textPrimary, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16.0),
-            ElevatedButton(
-              key: const ValueKey('btn_go_discovery'),
-              onPressed: widget.onNavigateToDiscovery,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
-              ),
-              child: const Text('去海量书库挑选好书'),
+            const SizedBox(height: 6.0),
+            Text(
+              isSearching ? '未在书架中找到 "$_searchKeyword"，可清空或去全网搜索' : '快去挑选几本心仪的好书充实书架吧',
+              style: TextStyle(fontSize: 13.0, color: colors.textSecondary),
+            ),
+            const SizedBox(height: 18.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isSearching) ...[
+                  OutlinedButton(
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchKeyword = '');
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.textPrimary,
+                      side: BorderSide(color: colors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
+                    ),
+                    child: const Text('清空检索'),
+                  ),
+                  const SizedBox(width: 12.0),
+                ],
+                ElevatedButton(
+                  key: const ValueKey('btn_go_discovery'),
+                  onPressed: () {
+                    if (isSearching) {
+                      _searchController.clear();
+                      setState(() => _searchKeyword = '');
+                    }
+                    widget.onNavigateToDiscovery();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.accent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 10.0),
+                  ),
+                  child: Text(isSearching ? '去全网搜索' : '去海量书库挑选好书'),
+                ),
+              ],
             ),
           ],
         ),

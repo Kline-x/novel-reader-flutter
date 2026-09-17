@@ -70,6 +70,17 @@ void main() {
       expect(updatedBook1.currentChapterIndex, 12);
       expect(updatedBook1.currentCharOffset, 80);
 
+      // 验证书籍置顶持久化与切换
+      expect(updatedBook1.isPinned, isFalse);
+      final pinnedResult = await storage.toggleBookPinned('book_1');
+      expect(pinnedResult, isTrue);
+      shelf = await storage.getBookshelf();
+      expect(shelf.firstWhere((b) => b.bookId == 'book_1').isPinned, isTrue);
+
+      await storage.toggleBookPinned('book_1');
+      shelf = await storage.getBookshelf();
+      expect(shelf.firstWhere((b) => b.bookId == 'book_1').isPinned, isFalse);
+
       // 从书架移除
       await storage.removeFromBookshelf('book_1');
       shelf = await storage.getBookshelf();

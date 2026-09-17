@@ -123,6 +123,18 @@ void main() {
       expect(find.text('十日终焉'), findsOneWidget);
       expect(find.text('剑来'), findsOneWidget);
 
+      // 2.1 测试拼音检索 "guimi"
+      await tester.enterText(find.byKey(const ValueKey('shelf_search_input')), 'guimi');
+      await tester.pumpAndSettle();
+      expect(find.text('诡秘之主'), findsOneWidget);
+      expect(find.text('剑来'), findsNothing);
+
+      // 2.2 测试拼音首字母缩写检索 "srzy"
+      await tester.enterText(find.byKey(const ValueKey('shelf_search_input')), 'srzy');
+      await tester.pumpAndSettle();
+      expect(find.text('十日终焉'), findsOneWidget);
+      expect(find.text('诡秘之主'), findsNothing);
+
       // 3. 搜索不存在的内容触发空状态
       await tester.enterText(find.byKey(const ValueKey('shelf_search_input')), '未收录的冷门小说XYZ');
       await tester.pumpAndSettle();
@@ -135,6 +147,31 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('探索好书'), findsOneWidget);
+    });
+
+    testWidgets('书架长按书籍置顶与排序置顶优先验证', (tester) async {
+      await tester.pumpWidget(createTestWidget(tester));
+      await tester.pumpAndSettle();
+
+      // 长按最后排名的 "十日终焉"
+      await tester.longPress(find.text('十日终焉'));
+      await tester.pumpAndSettle();
+
+      // 验证底部弹窗中出现 "置顶此书"
+      expect(find.text('置顶此书'), findsOneWidget);
+      await tester.tap(find.text('置顶此书'));
+      await tester.pumpAndSettle();
+
+      // 验证十日终焉出现 "置顶" 标签
+      expect(find.text('置顶'), findsOneWidget);
+
+      // 验证置顶后 "十日终焉" 跃升至首位（Y坐标小于道诡异仙与诡秘之主）
+      final shiY = tester.getTopLeft(find.text('十日终焉')).dy;
+      final daoY = tester.getTopLeft(find.text('道诡异仙')).dy;
+      final guiY = tester.getTopLeft(find.text('诡秘之主')).dy;
+
+      expect(shiY < daoY, isTrue, reason: '置顶后 十日终焉 应排在 道诡异仙 前');
+      expect(shiY < guiY, isTrue, reason: '置顶后 十日终焉 应排在 诡秘之主 前');
     });
 
     testWidgets('列表与网格模式切换验证', (tester) async {

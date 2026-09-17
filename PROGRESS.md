@@ -24,6 +24,7 @@
 | **阶段 13** | iOS 与纯血鸿蒙（HarmonyOS NEXT）双端落地与真机适配 | ✅ **已完成** | 是 | 纯血鸿蒙 OpenHarmony-TPC 架构、iOS 权限与部署规范、多端自适应引擎、65/65测试全绿、3项真机证据链归档 |
 | **阶段 14** | 生产极客瘦身、代码混淆签名与 GitHub Releases 全自动发版 | ✅ **已完成** | 是 | R8混淆瘦身 (arm64 22MB 瘦身85.2%)、多架构拆包、GitHub Releases 流水线、Redmi K60真机Release验证、70/70测试全绿 |
 | **阶段 15** | 1:1 对齐原型书籍详情页、100% 真实可用书源、沉浸阅读真实翻页与交互补全 | ✅ **已完成** | 是 | `book_detail_page.dart`、笔趣阁ZWX千章真实正文、跨章翻页、长按管理、70/70测试全绿、13项真机证据链 |
+| **阶段 16** | 真实苛刻用户视角 5 轮深度真机实测打磨与全景缺陷排查归档 | 🟡 **已全面排查归档，确立下次首要修复任务** | 是 | 26+8 项核心问题全景报告归档至 `docs/deep_inspection_report.md`，确立下次优先攻坚清单 |
 
 ---
 
@@ -508,8 +509,55 @@
 - **真机验收标准与存证**：
   - 真实物理机 Redmi K60 8 项完整证据链齐全，飞行模式断网秒开，书架/目录/阅读器状态闭环，准予验收合入。
 
+---
 
+### 阶段 16：真实苛刻用户视角 5 轮深度真机实测打磨与核心问题排查归档
+- **目标设备**：iQOO Neo11 (`10CFAH1DUX000CK`，Android 16，1440 × 3168 2K 挖孔高刷屏)
+- **当前状态**：🟡 **已全面排查归档，代码库保持原状，已确立下次统一修改的首要修复任务**
+- **当前负责人**：Antigravity
+- **核心工作与交付文件**：
+  - 严格遵照用户铁律：“先全部记录下来一个文件，给我过目，我说改再统一改”。
+  - 站在真实苛刻使用者的角度，在真机上进行了 5 轮全新维度的深挖实操验收（排版与配色、听书TTS、目录书签与笔记、本地传书与网格视图、设置中心与WebDAV云同步）。
+  - 结合用户专项指出的两大痛点（阅读页顶部全屏割裂不对齐、黑色主题下组件未跟随变黑且字看不见），对全工程 58 个源码文件进行了地毯式查漏补缺，累计定位 26 项系统性缺陷 + 8 项专项隐患。
+  - 全量实测证据与精准代码级定位已完整归档在项目报告文件：
+    👉 [docs/deep_inspection_report.md](file:///e:/code/AI/vibCoding/novel-reader-flutter/docs/deep_inspection_report.md)
 
+---
 
+### 🚨 【下次启动统一修改时的首要修复任务清单 (P0 核心攻坚)】
+> **已在进度中明确锁定**：下次统一开启代码修改时，必须**无条件首要解决以下两大高优先级（P0）痛点**，验证通过后方可推进其他功能性缺陷：
 
+#### 🎯 首要攻坚一：阅读页顶部全屏对齐与沉浸状态栏重构 (P0)
+1. **彻底废除 `SystemUiMode.immersiveSticky`**：
+   - 文件：`lib/features/reader/presentation/reader_screen.dart` (L89, L132, L923)
+   - 方案：改用全应用统一的 `SystemUiMode.edgeToEdge` 透明沉浸状态栏，消除进出阅读器时屏幕剧烈晃动跳跃与退出砸落问题。
+2. **基准线与外层页面严格对齐**：
+   - 文件：`lib/features/reader/presentation/reader_viewport.dart` (L183-187, L886)
+   - 方案：基于真实 `SafeArea.top` 计算页眉与正文安全留白，避免正文首行紧贴居中挖孔摄像头；规范顶部呼出菜单的 padding，杜绝全屏贴顶并与系统状态栏重叠。
+3. **状态栏图标亮暗色自适应动态联动**：
+   - 文件：`lib/main.dart` & `reader_screen.dart`
+   - 方案：阅读器切换浅色/深色主题时，动态更新 `SystemUiOverlayStyle` 的 `statusBarIconBrightness`，杜绝黑色主题下系统原生状态栏图标隐形。
 
+#### 🎯 首要攻坚二：深色/黑色模式全链路穿透与黑底黑字隐形彻底清零 (P0)
+1. **排版抽屉 6 处黑底黑字隐形根治**：
+   - 文件：`lib/features/reader/presentation/typography_drawer.dart` (L71, L101-105, L114, L128, L223, L252)
+   - 方案：为“字号/行距/翻页”标题文本、字号数值、A-/A+ 调节图标、未选中行距 Chip 显式声明 `textColor` 与 `subTextColor`（白字与白70），彻底根除黑色背景下的黑字隐形灾难。
+2. **目录抽屉深色自适应适配**：
+   - 文件：`lib/features/reader/presentation/catalog_drawer.dart` (L73, L225)
+   - 方案：接入阅读器当前主题，背景自适应水墨暗黑；同时对章节列表中未选中的标题显式声明前景色，杜绝背景变黑后章节名全部隐形。
+3. **二级弹窗与抽屉全链路接入深色主题，消灭夜间刺眼眩光**：
+   - 文件：`lib/features/notes/presentation/reader_notes_sheet.dart`（书签与笔记抽屉）
+   - 文件：`lib/features/notes/presentation/add_annotation_dialog.dart`（划线批注弹窗）
+   - 文件：`lib/features/reader/presentation/download_sheet.dart`（离线下载抽屉）
+   - 文件：`lib/features/tts/presentation/tts_mini_player.dart` & `tts_control_sheet.dart`（听书悬浮条与控制面板）
+   - 方案：全部注入当前阅读主题，夜间自动渲染为高质感深色微透卡片，杜绝刺眼大白底。
+4. **主界面退出 SnackBar 白底白字隐形修复**：
+   - 文件：`lib/core/components/main_scaffold.dart` (L38-46)
+   - 方案：显式声明文本颜色，消除浅色白底下白字的隐形缺陷。
+
+---
+
+### 📋 后续顺次推进清单 (P1-P3)
+- **P1 (听书与视口)**：TTS 启动精准映射当前视口首行；TTS Mini 条避让滑块与底栏；触控热区增大至 48dp。
+- **P2 (书签笔记与目录)**：顶栏书签胶囊水平溢出截断修复；笔记导出改为就地行内反馈；目录搜索关键词高亮。
+- **P3 (书架与设置)**：书架本地导入接入真实 `file_picker`；WiFi 传书复制就地反馈；网格微标去歧义；书籍长按移出二次确认与撤销；设置页假 SnackBar 清除；真实离线缓存统计与物理清理；WebDAV 空配置拦截；音量键翻页与常亮本地持久化与内核感知。
