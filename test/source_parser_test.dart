@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_reader_flutter/features/sources/models/chapter_item.dart';
 import 'package:novel_reader_flutter/features/sources/models/source_rule.dart';
 import 'package:novel_reader_flutter/features/sources/services/builtin_sources.dart';
 import 'package:novel_reader_flutter/features/sources/services/source_parser.dart';

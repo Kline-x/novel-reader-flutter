@@ -1008,14 +1008,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
               isInShelf: _isInShelf,
               onAddToShelf: _addToShelf,
               onRetry: () => _loadChapterContent(_currentChapterIndex),
-              onBack: () async {
-                await _storage.saveReadingProgress(
+              onBack: () {
+                _storage.saveReadingProgress(
                   widget.bookId,
                   chapterIndex: _currentChapterIndex,
                   charOffset: _currentCharOffset,
                 );
                 SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-                if (mounted) Navigator.of(context).maybePop();
+                Navigator.of(context).maybePop();
               },
               onOpenCatalog: _openCatalogDrawer,
               onOpenTypography: _openTypographyDrawer,
