@@ -87,3 +87,6 @@ migrate_working_dir/
 *.incomplete
 downloaded_apks/
 *.apk
+
+# Release pipeline build artifacts (APK/AAB/Web bundle)
+/release-artifacts/

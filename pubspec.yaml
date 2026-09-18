@@ -1,7 +1,7 @@
 name: novel_reader_flutter
 description: "A professional novel reader with Modern Soft UI and deterministic CJK typography engine."
 publish_to: "none"
-version: 1.0.2+4003
+version: 1.0.6+4004
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
