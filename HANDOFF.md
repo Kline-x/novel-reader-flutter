@@ -76,10 +76,16 @@
       2. **动态规则服务与高可用云端热更新体系 (PinyinRuleService)**：数据实体采用不可变设计，支持国内高速代理镜像、jsDelivr CDN 与 GitHub raw 多节点轮询热更，增量合并并保留用户启停偏好，根目录 `pinyin_rules.json` 独立维护支持免发版云端热更；
       3. **用户端 Modern Soft UI 规则管理抽屉 (PinyinRulesSheet) 与设置中心联动**：设置中心新增「智能拼音自愈与净化」入口，半屏抽屉展示规则统计、一键云端同步、自定义规则添加与启停开关、剪贴板 JSON 一键批量导入导出，规则变动毫秒级即时注入排版引擎生效；
       4. **21.4MB 极客瘦身安装包归档**：执行 `--split-per-abi` 构建独立分包，体积从 61.8MB 锐减至 **21.4 MB**（瘦身超 65%），更新覆盖至根目录 [`novel-reader-release.apk`](novel-reader-release.apk)。
+    - **阶段 19（版本检测服务 text/plain 强转根除、代理防双重嵌套、网络防缓存穿透与真机零缺陷 E2E 交付）**：
+      1. **根除 Dio 响应体反序列化类型转换异常（彻底解决“旧版本误报已是最新”核心痛点）**：GitHub raw 与国内加速代理 `ghproxy.net` 返回 `Content-Type: text/plain`，Dio 默认交付 String，原代码 `_dio.get<Map<String, dynamic>>` 产生类型转换崩溃导致 3 个节点全部被误判超时并降级返回本地版本号。现已全面重构为 dynamic 接收并智能适配 Map 与 String（自动 `jsonDecode`），云端 3 大节点全部毫秒级成功响应；
+      2. **修复加速下载链接代理重复嵌套死链隐患**：`buildAcceleratedDownloadUrls` 前置剥离已有代理前缀，防止生成双重代理死链并完成去重；
+      3. **探测超时与防缓存穿透优化**：优化超时为 3500ms / 4500ms，自动追加 `_t` 毫秒时间戳与防缓存头；
+      4. **全量自动化门禁与真机 E2E 零缺陷验证**：`flutter analyze` 0 issues，`flutter test` 全量 196/196 测试通过，Redmi K60 真机无损保留 108 分钟阅读时长及 4 本书，全套 10 项新增真机存证归档至 `docs/evidence/`。
 2. **全量自动化验证存证**：
    - `flutter analyze`：**0 issues found!**（0 error, 0 warning）
-   - `flutter test`：**161/161 个测试用例 100% 全部通过**（全绿无跳过）。
+   - `flutter test`：**196/196 个测试用例 100% 全部通过**（全绿无跳过）。
 3. **下一步演进建议**：
    - 当前基线已达成零缺陷交付闭环门禁；
-   - 本地已生成全新 21.4MB 极客瘦身版正式安装包 `novel-reader-release.apk`；
+   - 远程版本检测服务与国内高可用镜像代理体系运行平稳；
    - 手机连入电脑开启 USB 调试即可一秒完成 ADB 直装，或将根目录下 APK 传输至手机直接无损覆盖安装。
+

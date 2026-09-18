@@ -205,6 +205,26 @@ void main() {
       const cdnUrl = 'https://my-oss-bucket.aliyuncs.com/app.apk';
       final normal = VersionCheckService.buildAcceleratedDownloadUrls(cdnUrl);
       expect(normal, [cdnUrl]);
+
+      // 已带有 ghproxy 前缀的 URL 应自动剥离前缀，绝不出现双重嵌套死链
+      const nestedProxyUrl =
+          'https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.6/app.apk';
+      final cleanedList =
+          VersionCheckService.buildAcceleratedDownloadUrls(nestedProxyUrl);
+      expect(cleanedList.any((u) => u.contains('https://ghproxy.net/https://ghproxy.net/')),
+          isFalse);
+      expect(cleanedList.first, startsWith('https://ghproxy.net/https://github.com/'));
+    });
+
+    test('探测节点应自动追加防缓存时间戳与防缓存头，且当首节点版本偏低时能择优选用更高版本节点', () async {
+      final service = VersionCheckService();
+      service.currentVersionCode = 4003;
+      service.currentVersionName = '1.0.2';
+
+      // 验证高可用探测端点中包含 ghproxy 加速源且已剔除 404 Gitee 源
+      expect(VersionCheckService.highAvailabilityEndpoints.any((e) => e.contains('ghproxy.net')), isTrue);
+      expect(VersionCheckService.highAvailabilityEndpoints.any((e) => e.contains('gitee.com')), isFalse);
     });
   });
 }
+

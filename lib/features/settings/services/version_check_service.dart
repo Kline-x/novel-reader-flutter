@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -277,11 +278,11 @@ class VersionCheckService {
 
   /// 国内多级高可用探测源列表（按优先级排列）
   static const List<String> highAvailabilityEndpoints = [
-    // 1. 国内高可用高速 CDN 镜像节点 (jsDelivr 加速)
+    // 1. 国内代理镜像直链（ghproxy 高速代理加速 GitHub raw，无 CDN 滞后问题）
+    'https://ghproxy.net/https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/version_manifest.json',
+    // 2. 国内高可用高速 CDN 镜像节点 (jsDelivr 加速，自动拼接防缓存时间戳)
     'https://cdn.jsdelivr.net/gh/Kline-x/novel-reader-flutter@main/version_manifest.json',
-    // 2. Gitee 国内代码托管平台镜像源
-    'https://gitee.com/Kline-x/novel-reader-flutter/raw/main/version_manifest.json',
-    // 3. GitHub 原源直链
+    // 3. GitHub 原源直链（海外/兜底）
     'https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/version_manifest.json',
   ];
 
@@ -297,19 +298,28 @@ class VersionCheckService {
     if (originalUrl == null || originalUrl.trim().isEmpty) {
       return [];
     }
-    final url = originalUrl.trim();
-    final result = <String>[];
-
-    // 若目标链接为 GitHub 资源链接，自动优先注入国内高性能代理镜像
-    if (url.contains('github.com') || url.contains('githubusercontent.com')) {
-      for (final mirror in gitHubProxyMirrors) {
-        result.add('$mirror$url');
+    var cleanUrl = originalUrl.trim();
+    // 若链接本身已经拼接了某个镜像代理前缀，先剥离得到纯净的目标链接，防止双重代理嵌套死链
+    for (final mirror in gitHubProxyMirrors) {
+      if (cleanUrl.startsWith(mirror)) {
+        cleanUrl = cleanUrl.substring(mirror.length);
+        break;
       }
     }
 
-    // 将原始链接排入候选队列（作为备用或海外网络兜底）
-    result.add(url);
-    return result;
+    final result = <String>[];
+
+    // 若目标链接为 GitHub 资源链接，自动优先注入国内高性能代理镜像
+    if (cleanUrl.contains('github.com') ||
+        cleanUrl.contains('githubusercontent.com')) {
+      for (final mirror in gitHubProxyMirrors) {
+        result.add('$mirror$cleanUrl');
+      }
+    }
+
+    // 将纯净目标链接排入候选队列（作为备用或海外网络兜底）
+    result.add(cleanUrl);
+    return result.toSet().toList();
   }
 
   /// 预置的默认 Mock 最新稳定版本信息 (1.0.1+2002, 跨平台完整配置)
@@ -376,29 +386,86 @@ class VersionCheckService {
     return null;
   }
 
-  /// 国内多级镜像源快速探测策略
+  /// 国内多级镜像源快速探测策略（防 CDN 强缓存穿透与多节点版本择优）
   Future<AppVersionInfo> _probeHighAvailabilityManifest(
       {String? customEndpoint}) async {
     final endpoints = customEndpoint != null
         ? [customEndpoint, ...highAvailabilityEndpoints]
         : highAvailabilityEndpoints;
 
+    AppVersionInfo? candidateInfo;
+    int candidateCode = -1;
+
     // 逐级快速探测
     for (final url in endpoints) {
       try {
-        final response = await _dio.get<Map<String, dynamic>>(
-          url,
+        final stopwatch = Stopwatch()..start();
+        // 自动拼接毫秒时间戳防缓存穿透
+        final uri = Uri.parse(url);
+        final queryParams = Map<String, String>.from(uri.queryParameters);
+        queryParams['_t'] = DateTime.now().millisecondsSinceEpoch.toString();
+        final requestUrl = uri.replace(queryParameters: queryParams).toString();
+
+        final response = await _dio.get<dynamic>(
+          requestUrl,
           options: Options(
-            sendTimeout: const Duration(milliseconds: 1500),
-            receiveTimeout: const Duration(milliseconds: 2000),
+            sendTimeout: const Duration(milliseconds: 3500),
+            receiveTimeout: const Duration(milliseconds: 4500),
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+            },
           ),
         );
+        stopwatch.stop();
+
         if (response.statusCode == 200 && response.data != null) {
-          return AppVersionInfo.fromJson(response.data!);
+          Map<String, dynamic>? manifestMap;
+          final rawData = response.data;
+          if (rawData is Map<String, dynamic>) {
+            manifestMap = rawData;
+          } else if (rawData is Map) {
+            manifestMap = Map<String, dynamic>.from(rawData);
+          } else if (rawData is String) {
+            final trimmed = rawData.trim();
+            if (trimmed.isNotEmpty) {
+              final decoded = jsonDecode(trimmed);
+              if (decoded is Map<String, dynamic>) {
+                manifestMap = decoded;
+              } else if (decoded is Map) {
+                manifestMap = Map<String, dynamic>.from(decoded);
+              }
+            }
+          }
+
+          if (manifestMap != null) {
+            final info = AppVersionInfo.fromJson(manifestMap);
+            final effectiveCode = info.effectiveVersionCodeFor(deviceAbis);
+            debugPrint(
+                '[VersionCheckService] 节点 $url 响应成功 (耗时: ${stopwatch.elapsedMilliseconds}ms, 探测到版本: ${info.versionName}+$effectiveCode)');
+
+            // 若探测到的版本大于当前已安装版本，确认为真实最新版本，直接采信返回！
+            if (effectiveCode > currentVersionCode) {
+              return info;
+            }
+
+            // 若探测到的版本 <= 当前版本，可能该节点存在 CDN 滞后，记录为候选并继续探测后续节点
+            if (effectiveCode > candidateCode) {
+              candidateCode = effectiveCode;
+              candidateInfo = info;
+            }
+          } else {
+            debugPrint('[VersionCheckService] 节点 $url 响应数据格式无法解析: ${response.data.runtimeType}');
+          }
         }
       } catch (e) {
         debugPrint('[VersionCheckService] 节点 $url 探测未响应，尝试下一高可用节点: $e');
       }
+    }
+
+    // 若所有节点中至少有成功响应者（即使未高于当前已装版本），返回探测到的最高版本
+    if (candidateInfo != null) {
+      return candidateInfo;
     }
 
     // 所有外网节点均不可达时，绝不能拿内置的 Mock 版本冒充"线上最新版"——

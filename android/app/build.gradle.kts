@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.reader(Charsets.UTF_8).use { reader ->
+        localProperties.load(reader)
+    }
+}
+
+val flutterVersionCode = localProperties.getProperty("flutter.versionCode")?.toIntOrNull() ?: flutter.versionCode
+val flutterVersionName = localProperties.getProperty("flutter.versionName") ?: flutter.versionName
 
 android {
     namespace = "com.kline.novelreader.novel_reader_flutter"
@@ -25,8 +38,8 @@ android {
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
         // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
         // flag during build.
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = flutterVersionCode
+        versionName = flutterVersionName
     }
 
     buildTypes {
