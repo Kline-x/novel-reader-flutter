@@ -613,8 +613,7 @@ class StorageService {
       final decoded = jsonDecode(str) as List<dynamic>;
       final list =
           decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-      if (list.length < 20 ||
-          list.every((c) => (c['url'] ?? '').toString().isEmpty)) {
+      if (isDirtyToc(list)) {
         await file.delete();
         return null;
       }
@@ -622,6 +621,39 @@ class StorageService {
     } catch (_) {
       return null;
     }
+  }
+
+  /// 历史遗留的 12 章假目录固定章节名（ChapterHelper 兜底数据）
+  static const Set<String> _knownFakeChapterNames = {
+    '绯红', '情况', '梅丽莎', '占卜家', '二十二条神之途径', '小丑',
+    '空屋', '极道生肖', '回响之地', '生死筹码', '破壁者',
+    '李火旺', '丹阳子', '幻觉与现实', '游老爷', '红中老祖',
+    '泥瓶巷的草鞋少年', '惊蛰迎春', '撼山拳意',
+    '伯爵的儿子', '白痴', '文不成武不就',
+  };
+
+  /// 判定一份目录缓存是否为「脏数据」需要丢弃
+  ///
+  /// 此前用 `list.length < 20` 做判据，误伤了所有章节数本来就少的短篇/单章合集——
+  /// 它们写进缓存后每次读取必被删除，永远吃不到缓存，断网时还会退化成假目录。
+  /// 现改为只识别真正的脏数据特征：全部条目无 URL，或命中历史 12 章假目录。
+  static bool isDirtyToc(List<Map<String, dynamic>> list) {
+    if (list.isEmpty) return true;
+
+    final allUrlsEmpty =
+        list.every((c) => (c['url'] ?? '').toString().trim().isEmpty);
+    if (allUrlsEmpty) return true;
+
+    // 历史假目录特征：恰好 12 章且标题命中已知的兜底章节名
+    if (list.length == 12) {
+      final hitFake = list.where((c) {
+        final title = (c['title'] ?? '').toString();
+        return _knownFakeChapterNames.any((fake) => title.contains(fake));
+      }).length;
+      if (hitFake >= 6) return true;
+    }
+
+    return false;
   }
 
   /// 清除某本书的持久化目录缓存（用于换源时强制重新抓取新源目录）

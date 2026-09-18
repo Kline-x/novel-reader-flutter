@@ -16,8 +16,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  group('DockedBottomBar 沉浸贴底毛玻璃底栏测试', () {
-    testWidgets('DockedBottomBar 58px 核心高度、贴底与毛玻璃滤镜属性验证', (tester) async {
+  group('DockedBottomBar 无界沉浸贴底导航栏测试', () {
+    testWidgets('DockedBottomBar 渐隐无分割线、贴底与高度属性验证', (tester) async {
       int selectedTab = 0;
 
       await tester.pumpWidget(
@@ -56,19 +56,33 @@ void main() {
       );
       expect(positionedFinder, findsOneWidget);
 
-      // 2. 验证毛玻璃 BackdropFilter 存在
-      final filterFinder = find.descendant(
+      // 2. 【零分割线】不得存在任何顶部 BorderSide —— 那条横线正是要消灭的目标；
+      //    同时不再使用 BackdropFilter，避免模糊区硬边在内容上留下可见接缝。
+      final borderedContainers = find.descendant(
         of: barFinder,
-        matching: find.byType(BackdropFilter),
+        matching: find.byWidgetPredicate((w) {
+          if (w is! Container) return false;
+          final deco = w.decoration;
+          return deco is BoxDecoration && deco.border != null;
+        }),
       );
-      expect(filterFinder, findsOneWidget);
+      expect(borderedContainers, findsNothing);
+      expect(
+        find.descendant(of: barFinder, matching: find.byType(BackdropFilter)),
+        findsNothing,
+      );
 
-      // 3. 验证总高度为 56.0 + 34.0 = 90.0
-      final backdropFinder = find.descendant(
+      // 3. 验证整体高度为 渐隐带 28.0 + 内容 58.0 + 安全区 34.0 = 120.0
+      final gradientFinder = find.descendant(
         of: barFinder,
-        matching: find.byType(BackdropFilter),
+        matching: find.byWidgetPredicate((w) {
+          if (w is! Container) return false;
+          final deco = w.decoration;
+          return deco is BoxDecoration && deco.gradient is LinearGradient;
+        }),
       );
-      expect(tester.getSize(backdropFinder).height, 90.0);
+      expect(gradientFinder, findsOneWidget);
+      expect(tester.getSize(gradientFinder).height, 120.0);
 
       // 4. 验证 3 个 Tab 项存在且可正常点击切换
       expect(find.byKey(const ValueKey('tab_shelf')), findsOneWidget);

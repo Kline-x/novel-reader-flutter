@@ -179,6 +179,10 @@ class PinyinRuleService extends ChangeNotifier {
   final List<PinyinRule> _remoteRules = [];
   final List<PinyinRule> _customRules = [];
   bool _initialized = false;
+
+  /// 是否已从本地磁盘（SharedPreferences）完成一次真实加载。
+  /// 与 [_initialized] 区分：后者只表示"内存里已有可用规则表"（可能只是内置兜底）。
+  bool _loadedFromDisk = false;
   int _currentVersion = 1;
 
   bool get isInitialized => _initialized;
@@ -231,7 +235,7 @@ class PinyinRuleService extends ChangeNotifier {
 
   /// 初始化加载本地缓存规则与用户自定义规则
   Future<void> init() async {
-    if (_initialized) return;
+    if (_loadedFromDisk) return;
 
     final prefs = await SharedPreferences.getInstance();
     _currentVersion = prefs.getInt(_keyVersion) ?? 1;
@@ -272,16 +276,20 @@ class PinyinRuleService extends ChangeNotifier {
     }
 
     _initialized = true;
+    _loadedFromDisk = true;
     _syncToHarmonizer();
     notifyListeners();
   }
 
   void _syncToHarmonizer() {
     PinyinHarmonizer.setDynamicRules(exactRulesMap);
+    PinyinHarmonizer.invalidateCache();
   }
 
   void _initFromDefaults() {
     _remoteRules.clear();
+    // 置位，避免 allRules 每次被访问都重建整张默认表（此前一段正文即触发一次）
+    _initialized = true;
     for (int i = 0; i < _defaultBuiltinRules.length; i++) {
       final entry = _defaultBuiltinRules[i];
       _remoteRules.add(
@@ -329,6 +337,11 @@ class PinyinRuleService extends ChangeNotifier {
           final isRegex = item['isRegex'] as bool? ?? false;
 
           if (pattern.isEmpty || replacement.isEmpty) continue;
+          // 云端下发的规则同样可能非法，编译不过直接丢弃，避免污染本地规则表
+          if (!isRuleUsable(pattern, isRegex: isRegex)) {
+            debugPrint('[PinyinRuleService] 跳过云端非法规则: $pattern');
+            continue;
+          }
 
           newRules.add(
             PinyinRule(
@@ -361,15 +374,30 @@ class PinyinRuleService extends ChangeNotifier {
     return false;
   }
 
+  /// 校验一条规则是否可安全使用（正则规则必须能成功编译）
+  static bool isRuleUsable(String pattern, {bool isRegex = false}) {
+    if (pattern.trim().isEmpty) return false;
+    if (!isRegex) return true;
+    try {
+      RegExp(pattern);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// 添加自定义规则
-  Future<void> addCustomRule(
+  ///
+  /// 返回 true 表示已成功写入；返回 false 表示规则非法（如正则语法错误）已被拒绝。
+  Future<bool> addCustomRule(
     String pattern,
     String replacement, {
     bool isRegex = false,
   }) async {
     final cleanPattern = pattern.trim();
     final cleanReplacement = replacement.trim();
-    if (cleanPattern.isEmpty || cleanReplacement.isEmpty) return;
+    if (cleanPattern.isEmpty || cleanReplacement.isEmpty) return false;
+    if (!isRuleUsable(cleanPattern, isRegex: isRegex)) return false;
 
     // 检查是否已有相同 pattern 的自定义规则
     final existingIdx = _customRules.indexWhere(
@@ -398,6 +426,7 @@ class PinyinRuleService extends ChangeNotifier {
     await _persistCustomRules();
     _syncToHarmonizer();
     notifyListeners();
+    return true;
   }
 
   /// 删除自定义规则

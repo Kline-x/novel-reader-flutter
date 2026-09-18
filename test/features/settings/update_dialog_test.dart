@@ -72,4 +72,32 @@ void main() {
 
     expect(find.text('发现新版本'), findsNothing);
   });
+
+  testWidgets('Clicking top-right close icon dismisses dialog immediately',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => UpdateDialog.show(context, testVersion),
+              child: const Text('Show Dialog'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Show Dialog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('发现新版本'), findsOneWidget);
+    expect(find.byKey(const ValueKey('btn_close_update_dialog')), findsOneWidget);
+
+    // 点击右上角关闭按钮
+    await tester.tap(find.byKey(const ValueKey('btn_close_update_dialog')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('发现新版本'), findsNothing);
+  });
 }

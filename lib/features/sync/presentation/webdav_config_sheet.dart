@@ -101,6 +101,7 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
     }
 
     await _saveConfig();
+    if (!mounted) return;
     setState(() {
       _isTesting = true;
       _testResult = null;
@@ -131,6 +132,7 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
     }
 
     await _saveConfig();
+    if (!mounted) return;
     setState(() {
       _isSyncing = true;
       _testResult = null; // 重置上一轮的测试错误状态，杜绝红绿冲突

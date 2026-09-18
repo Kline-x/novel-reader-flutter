@@ -435,6 +435,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           charOffset: _currentCharOffset,
         );
         await _loadAnnotations();
+        await _checkBookmarkStatus();
         return;
       }
     }
@@ -456,6 +457,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         charOffset: _currentCharOffset,
       );
       await _loadAnnotations();
+      await _checkBookmarkStatus();
       return;
     }
 
@@ -488,6 +490,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             charOffset: _currentCharOffset,
           );
           await _loadAnnotations();
+          await _checkBookmarkStatus();
           return;
         }
       } catch (e) {
@@ -514,6 +517,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         charOffset: _currentCharOffset,
       );
       await _loadAnnotations();
+      await _checkBookmarkStatus();
       return;
     }
 
@@ -539,6 +543,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       charOffset: _currentCharOffset,
     );
     await _loadAnnotations();
+    await _checkBookmarkStatus();
   }
 
   Future<void> _loadSettings() async {
@@ -585,15 +590,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _persistSettings();
   }
 
-  void _nextChapter() {
+  Future<void> _nextChapter() async {
     if (_currentChapterIndex < _chapters.length - 1) {
-      _loadChapterContent(_currentChapterIndex + 1, landOnLastPage: false);
+      await _loadChapterContent(_currentChapterIndex + 1,
+          landOnLastPage: false);
     }
   }
 
-  void _previousChapter() {
+  Future<void> _previousChapter() async {
     if (_currentChapterIndex > 0) {
-      _loadChapterContent(_currentChapterIndex - 1, landOnLastPage: true);
+      await _loadChapterContent(_currentChapterIndex - 1,
+          landOnLastPage: true);
     }
   }
 
@@ -860,11 +867,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
                                   .fetchToc(chosenSource, match.bookUrl)
                                   .timeout(const Duration(seconds: 7));
                               if (newToc.isNotEmpty) {
+                                if (!mounted) return;
                                 setState(() {
                                   _currentSourceName = chosenSource.name;
                                   _chapters = newToc;
                                   _resolvedBookUrl = match.bookUrl;
                                 });
+                                // 关键修复：旧书源写下的 chapters/{bookId}/*.txt 必须一并清掉，
+                                // 否则换源后 _loadChapterContent 会优先命中旧缓存，
+                                // 正文纹丝不动，换源形同虚设。
+                                await _storage.clearBookCache(widget.bookId);
                                 await _storage.saveBookToc(
                                     widget.bookId, newToc);
                                 if (_currentChapterIndex >= _chapters.length) {
@@ -1014,25 +1026,35 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     if (_isCurrentPageBookmarked) {
       final bookmarks = await _notesService.getBookmarks(widget.bookId);
-      if (bookmarks.isNotEmpty) {
-        final match = bookmarks.firstWhere(
-          (b) =>
-              b.chapterIndex == _currentChapterIndex &&
-              (b.charOffset - _currentCharOffset).abs() < 100,
-          orElse: () => bookmarks.first,
-        );
-        await _notesService.removeBookmark(match.id);
+      // 关键修复：此前 orElse 回退到 bookmarks.first（按创建时间倒序 = 全书最新的书签），
+      // 一旦状态与实际位置不同步，就会静默删掉一条完全无关的书签。
+      Bookmark? match;
+      for (final b in bookmarks) {
+        if (b.chapterIndex == _currentChapterIndex &&
+            (b.charOffset - _currentCharOffset).abs() < 100) {
+          match = b;
+          break;
+        }
       }
+
+      if (match == null) {
+        // 当前位置本就没有书签，纠正状态而非误删他人
+        if (mounted) {
+          setState(() => _isCurrentPageBookmarked = false);
+        }
+        return;
+      }
+
+      await _notesService.removeBookmark(match.id);
+      if (!mounted) return;
       setState(() => _isCurrentPageBookmarked = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('已移除书签'),
-            duration: Duration(milliseconds: 1000),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('已移除书签'),
+          duration: Duration(milliseconds: 1000),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } else {
       final snippet = _currentParagraphs.isNotEmpty
           ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
@@ -1049,6 +1071,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         createdAt: DateTime.now(),
       );
       await _notesService.saveBookmark(bm);
+      if (!mounted) return;
       setState(() => _isCurrentPageBookmarked = true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

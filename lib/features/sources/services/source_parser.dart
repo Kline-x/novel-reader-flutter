@@ -245,66 +245,94 @@ class SourceParser {
     });
   }
 
-  /// 清洗段落、智能语义断行、过滤广告噪音并输出标准段落列表
-  static List<String> cleanAndFilterParagraphs(String rawContent) {
-    // 1. 扩充涵盖 46+ 种主流网文广告、防盗标记与站点牛皮癣黑名单正则
-    final noisePatterns = [
-      RegExp(r'请记住本书首发域名.*', caseSensitive: false),
-      RegExp(r'天才一秒记住.*', caseSensitive: false),
-      RegExp(r'最新网址[：:].*', caseSensitive: false),
-      RegExp(r'.*(?:最新网址发布页|最新发布页|最新域名发布页).*', caseSensitive: false),
-      RegExp(r'.*(?:手机站全新改版升级地址|手机版访问).*', caseSensitive: false),
-      RegExp(r'\(本章完\)', caseSensitive: false),
-      RegExp(r'（本章完）', caseSensitive: false),
-      RegExp(r'点击下一页继续阅读.*', caseSensitive: false),
-      RegExp(r'本章未完.*点击下一页.*', caseSensitive: false),
-      RegExp(r'亲[，,]点击进去.*', caseSensitive: false),
-      RegExp(r'如果您中途有事离开.*', caseSensitive: false),
-      RegExp(r'加入书签.*方便阅读.*', caseSensitive: false),
-      RegExp(r'请务必保存书签.*', caseSensitive: false),
-      RegExp(r'章节错误.*点此举报.*', caseSensitive: false),
-      RegExp(r'.*(?:投推荐票|投月票|求月票|求推荐票|求花花|求打赏|求收藏|求全订).*',
-          caseSensitive: false),
-      RegExp(r'https?://[^\s]+', caseSensitive: false),
-      RegExp(r'www\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\.\-]+', caseSensitive: false),
-      RegExp(r'笔趣阁.*版权所有.*', caseSensitive: false),
-      RegExp(
-          r'.*(?:[0-9a-zA-Z]{3,}\.com|[0-9a-zA-Z]{3,}\.net|[0-9a-zA-Z]{3,}\.org|[0-9a-zA-Z]{3,}\.cc|[0-9a-zA-Z]{3,}\.me).*',
-          caseSensitive: false),
-      RegExp(r'.*免费提供.*(?:全文阅读|在线阅读).*', caseSensitive: false),
-      RegExp(r'.*(?:全文字更新|更新速度最快|最新章节更新).*', caseSensitive: false),
-      RegExp(r'.*(?:无广告|无弹窗|极速阅读).*', caseSensitive: false),
-      RegExp(r'.*收藏本书.*随时阅读.*', caseSensitive: false),
-      RegExp(r'.*本站所有小说为转载作品.*', caseSensitive: false),
-      RegExp(r'.*(?:上一页|返回目录|下一页).*', caseSensitive: false),
-      RegExp(r'.*(?:思兔阅读|鬼吹灯书屋|笔趣阁|顶点小说|飘天文学|天天看).*', caseSensitive: false),
-      RegExp(r'.*(?:app下载|客户端下载|下载APP|安装APP).*', caseSensitive: false),
-      RegExp(r'.*[\u4e00-\u9fa5a-zA-Z0-9]{2,10}书城.*', caseSensitive: false),
-      RegExp(r'.*(?:永久域名|防走丢|回家地址|最新防走失).*', caseSensitive: false),
-      RegExp(r'.*(?:官方交流群|qq群|QQ交流群|书友群|读者群|粉丝群)[：:\s0-9]+.*',
-          caseSensitive: false),
-      RegExp(r'.*(?:微信公众号|关注微信|关注公号|公众号)[：:\s\w]+.*', caseSensitive: false),
-      RegExp(r'.*(?:看完整版|精彩小说尽在|看全本小说|全本小说网).*', caseSensitive: false),
-      RegExp(r'.*(?:百度搜索|搜狗搜索|夸克搜索|谷歌搜索|360搜索).*', caseSensitive: false),
-      RegExp(r'.*(?:飞卢小说|起点中文网|纵横中文网|17k小说|晋江文学城|塔读文学).*',
-          caseSensitive: false),
-      RegExp(r'.*(?:充值VIP|VIP章节|本章为付费章节|充值送).*', caseSensitive: false),
-      RegExp(r'.*(?:防盗版|防盗章节|防盗提示).*', caseSensitive: false),
-      RegExp(r'.*(?:手机用户请浏览|手机端请访问).*', caseSensitive: false),
-      RegExp(r'.*(?:本章字数|更新时间|字数统计)[：:\s].*', caseSensitive: false),
-      RegExp(r'.*(?:正在手打中|请稍等片刻|内容更新后|请重新刷新).*', caseSensitive: false),
-      RegExp(r'.*(?:新书求支持|新书上架|新书冲榜|求首订).*', caseSensitive: false),
-      RegExp(r'^\s*ps[：:].*', caseSensitive: false),
-      RegExp(r'^\s*PS[：:].*', caseSensitive: false),
-      RegExp(r'.*(?:欢迎收藏|感谢大家支持|求大家支持).*', caseSensitive: false),
-      RegExp(r'.*(?:欢迎访问|欢迎光临|收藏本站).*', caseSensitive: false),
-      RegExp(r'.*(?:阅读本书最新章节|阅读全文).*', caseSensitive: false),
-      RegExp(r'.*(?:请牢记|谨记网址|记住网址).*', caseSensitive: false),
-    ];
+  /// 【强特征】命中即判定整行为广告，直接丢弃。
+  /// 只收录"正常小说正文绝无可能出现"的站点牛皮癣句式。
+  static final List<RegExp> _hardNoisePatterns = [
+    RegExp(r'(?:最新网址发布页|最新发布页|最新域名发布页)', caseSensitive: false),
+    RegExp(r'(?:手机站全新改版升级地址|手机版访问|手机用户请浏览|手机端请访问)',
+        caseSensitive: false),
+    RegExp(r'亲[，,]点击进去', caseSensitive: false),
+    RegExp(r'如果您中途有事离开', caseSensitive: false),
+    RegExp(r'加入书签.*方便阅读', caseSensitive: false),
+    RegExp(r'请务必保存书签', caseSensitive: false),
+    RegExp(r'章节错误.*点此举报', caseSensitive: false),
+    RegExp(r'(?:投推荐票|投月票|求月票|求推荐票|求花花|求打赏|求收藏|求全订|求首订)',
+        caseSensitive: false),
+    RegExp(r'版权所有.*(?:笔趣阁|小说网|文学网)', caseSensitive: false),
+    RegExp(r'免费提供.*(?:全文阅读|在线阅读)', caseSensitive: false),
+    RegExp(r'(?:全文字更新|更新速度最快|最新章节更新)', caseSensitive: false),
+    RegExp(r'收藏本书.*随时阅读', caseSensitive: false),
+    RegExp(r'本站所有小说为转载作品', caseSensitive: false),
+    RegExp(r'(?:app下载|客户端下载|下载APP|安装APP)', caseSensitive: false),
+    RegExp(r'(?:永久域名|防走丢|回家地址|最新防走失)', caseSensitive: false),
+    RegExp(r'(?:官方交流群|qq群|QQ交流群|书友群|读者群|粉丝群)[：:\s0-9]', caseSensitive: false),
+    RegExp(r'(?:微信公众号|关注微信|关注公号|公众号)[：:\s\w]', caseSensitive: false),
+    RegExp(r'(?:看完整版|精彩小说尽在|看全本小说|全本小说网)', caseSensitive: false),
+    RegExp(r'(?:百度搜索|搜狗搜索|夸克搜索|谷歌搜索|360搜索)', caseSensitive: false),
+    RegExp(r'(?:充值VIP|VIP章节|本章为付费章节|充值送)', caseSensitive: false),
+    RegExp(r'(?:防盗版|防盗章节|防盗提示)', caseSensitive: false),
+    RegExp(r'(?:正在手打中|请稍等片刻|内容更新后|请重新刷新)', caseSensitive: false),
+    RegExp(r'(?:新书求支持|新书上架|新书冲榜)', caseSensitive: false),
+    RegExp(r'(?:欢迎收藏|感谢大家支持|求大家支持)', caseSensitive: false),
+    RegExp(r'(?:欢迎访问|欢迎光临|收藏本站)', caseSensitive: false),
+    RegExp(r'(?:阅读本书最新章节|阅读全文)', caseSensitive: false),
+    RegExp(r'(?:请牢记|谨记网址|记住网址)', caseSensitive: false),
+    RegExp(r'(?:无广告|无弹窗|极速阅读).{0,12}(?:阅读|小说|网|站)', caseSensitive: false),
+  ];
 
-    // 2. 预处理段首标记：支持以全角空格（　　）或连续多空格切分自然段落，并去除残留 HTML 容器标签
+  /// 【弱特征】这些词在正常小说正文里完全可能自然出现（如"笔趣阁""书城""下一页"），
+  /// 单独命中绝不足以判定为广告，必须同时具备广告语境（见 [_hasAdContext]）才丢弃。
+  /// 修复：此前这些词使用 `.*(?:词).*` 整行贪婪正则，导致任何含该词的正文段落被整段删除。
+  static final List<RegExp> _softNoisePatterns = [
+    RegExp(r'(?:思兔阅读|鬼吹灯书屋|笔趣阁|顶点小说|飘天文学|天天看)', caseSensitive: false),
+    RegExp(r'[一-龥a-zA-Z0-9]{2,10}书城', caseSensitive: false),
+    RegExp(r'(?:飞卢小说|起点中文网|纵横中文网|17k小说|晋江文学城|塔读文学)',
+        caseSensitive: false),
+    RegExp(r'(?:上一页|返回目录|下一页)', caseSensitive: false),
+    RegExp(r'(?:本章字数|更新时间|字数统计)[：:\s]', caseSensitive: false),
+  ];
+
+  /// 【尾部截断】这些广告总是附着在正文行尾，从命中处截断到行尾即可，
+  /// 前面的有效正文必须完整保留。
+  static final List<RegExp> _tailStripPatterns = [
+    RegExp(r'请记住本书首发域名.*$', caseSensitive: false),
+    RegExp(r'天才一秒记住.*$', caseSensitive: false),
+    RegExp(r'最新网址[：:].*$', caseSensitive: false),
+    RegExp(r'本章未完.*$', caseSensitive: false),
+    RegExp(r'点击下一页继续阅读.*$', caseSensitive: false),
+    RegExp(r'[（(]\s*本章完\s*[)）].*$', caseSensitive: false),
+  ];
+
+  /// 【片段剥离】只移除命中的片段本身，保留同一行其余正文。
+  static final List<RegExp> _inlineNoisePatterns = [
+    RegExp(r'[（(]\s*本章完\s*[)）]', caseSensitive: false),
+    RegExp(r'https?://[^\s]+', caseSensitive: false),
+    RegExp(r'www\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\.\-]+', caseSensitive: false),
+    RegExp(r'[0-9a-zA-Z]{3,}\.(?:com|net|org|cc|me|xyz|top)(?:/[^\s]*)?',
+        caseSensitive: false),
+    RegExp(r'^\s*ps[：:].*$', caseSensitive: false),
+  ];
+
+  /// 广告语境佐证：命中弱特征的行还必须满足其一才判定为广告
+  /// —— 含域名/网址线索、含分发导流词，或本身就是一条极短的孤立短句。
+  static bool _hasAdContext(String line) {
+    if (line.length <= 25) return true;
+    return RegExp(
+      r'(?:网址|发布页|手机站|客户端|下载|收藏本|请记住|免费阅读|全文阅读|更新最快|最快更新|domain|\.com|\.net|\.cc|www\.)',
+      caseSensitive: false,
+    ).hasMatch(line);
+  }
+
+  /// 清洗段落、智能语义断行、过滤广告噪音并输出标准段落列表
+  ///
+  /// 三级过滤策略（修复整段正文被误删的缺陷）：
+  /// 1. 片段剥离：只挖掉广告片段，保留同行正文；
+  /// 2. 强特征整行丢弃：正文绝无可能出现的句式；
+  /// 3. 弱特征 + 广告语境双重确认后才丢弃。
+  static List<String> cleanAndFilterParagraphs(String rawContent) {
+    // 1. 预处理段首标记：支持以全角空格（　　）或连续多空格切分自然段落，并去除残留 HTML 容器标签
     var text = rawContent
-        .replaceAll(RegExp(r'(?:(?:\u3000|[ \t]){2,}|\s{4,})'), '\n')
+        .replaceAll(RegExp(r'(?:(?:　|[ \t]){2,}|\s{4,})'), '\n')
         .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
         .replaceAll(
             RegExp(r'</?(?:div|p|span|section|article)[^>]*>',
@@ -319,21 +347,35 @@ class SourceParser {
       line = line.replaceAll(RegExp(r'[^\S\n]+'), ' ').trim();
       if (line.isEmpty) continue;
 
-      // 判定是否命中广告黑名单
-      bool isNoise = false;
-      for (final pattern in noisePatterns) {
+      final originalLength = line.length;
+
+      // 1a) 尾部截断：广告挂在正文行尾，截掉尾巴保住前面的正文
+      for (final pattern in _tailStripPatterns) {
         if (pattern.hasMatch(line)) {
-          final stripped = line.replaceAll(pattern, '').trim();
-          if (stripped.length < 6) {
-            isNoise = true;
-            break;
-          } else {
-            line = stripped;
-          }
+          line = line.replaceAll(pattern, '').trim();
         }
       }
+      if (line.isEmpty) continue;
 
-      if (isNoise || line.isEmpty) continue;
+      // 1b) 片段剥离：只挖掉广告片段，正文原样保留
+      for (final pattern in _inlineNoisePatterns) {
+        if (pattern.hasMatch(line)) {
+          line = line.replaceAll(pattern, ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+        }
+      }
+      // 剥离后所剩无几，说明整行本来就是广告
+      if (line.length < 6 && originalLength - line.length > 0) continue;
+      if (line.isEmpty) continue;
+
+      // 2) 强特征：命中即整行丢弃
+      if (_hardNoisePatterns.any((p) => p.hasMatch(line))) continue;
+
+      // 3) 弱特征：必须同时具备广告语境才丢弃，杜绝误删正常正文
+      if (_softNoisePatterns.any((p) => p.hasMatch(line)) &&
+          _hasAdContext(line)) {
+        continue;
+      }
+
       filteredLines.add(line);
     }
 

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'pinyin_rule_service.dart';
 
 /// 智能拼音转汉字还原自愈引擎 (pinyin_harmonizer.dart)
@@ -13,6 +15,13 @@ class PinyinHarmonizer {
   static void setDynamicRules(Map<String, String> rules) {
     _dynamicMap.clear();
     _dynamicMap.addAll(rules);
+    invalidateCache();
+  }
+
+  /// 主动让规则表与预编译正则缓存失效（规则增删改、云端热更后调用）
+  static void invalidateCache() {
+    _cachedRulesMap = null;
+    _cachedCompiledRules = null;
   }
 
   /// 获取当前全部动态规则快照
@@ -129,12 +138,51 @@ class PinyinHarmonizer {
     'jia',
   };
 
+  static Map<String, String>? _cachedRulesMap;
+  static List<_CompiledExactRule>? _cachedCompiledRules;
+
   /// 获取当前所有生效的精确字典映射（内置字典 + PinyinRuleService + 动态注入）
+  ///
+  /// 缓存策略：此前该 getter 每处理一个段落都会重建整张表，
+  /// 一章 60 段即产生数千次 Map 构造与正则编译，全部压在 UI 线程上。
+  /// 现改为常驻缓存，仅在 [invalidateCache] 被调用（规则真正变更）时重建。
   static Map<String, String> get _activeRulesMap {
+    final cached = _cachedRulesMap;
+    if (cached != null) return cached;
+
     final map = Map<String, String>.from(_multiSyllableMap);
     map.addAll(PinyinRuleService().exactRulesMap);
     map.addAll(_dynamicMap);
+    _cachedRulesMap = map;
     return map;
+  }
+
+  /// 预编译的精确规则正则（带词边界），非法 pattern 在编译期就被剔除
+  static List<_CompiledExactRule> get _compiledExactRules {
+    final cached = _cachedCompiledRules;
+    if (cached != null) return cached;
+
+    final compiled = <_CompiledExactRule>[];
+    for (final entry in _activeRulesMap.entries) {
+      final pattern = entry.key;
+      if (pattern.isEmpty) continue;
+      try {
+        // 关键修复：pattern 可能来自用户自定义规则或云端热更，必须转义后再拼进正则，
+        // 否则一条含 '(' / '[' / '+' 的规则会抛 FormatException 并中断全书正文渲染。
+        final escaped = RegExp.escape(pattern);
+        compiled.add(
+          _CompiledExactRule(
+            regex: RegExp('(?<![a-zA-Z])$escaped(?![a-zA-Z])',
+                caseSensitive: false),
+            replacement: entry.value,
+          ),
+        );
+      } catch (e) {
+        debugPrint('[PinyinHarmonizer] 跳过非法规则 "$pattern": $e');
+      }
+    }
+    _cachedCompiledRules = compiled;
+    return compiled;
   }
 
   /// 2. 语境单字/单音节混排正则映射表
@@ -391,16 +439,14 @@ class PinyinHarmonizer {
     });
 
     // 阶段四：处理无歧义的多音节拼音词（全词边界匹配或前后紧邻中文/标点）
-    // 动态规则优先匹配
-    for (final entry in activeMap.entries) {
-      final pinyin = entry.key;
-      final hanzi = entry.value;
-
-      // 严格词边界或前后紧邻汉字标点，绝不误伤形如 "teaching" 或 "level" 的长单词
-      final regex =
-          RegExp('(?<![a-zA-Z])$pinyin(?![a-zA-Z])', caseSensitive: false);
-      if (regex.hasMatch(result)) {
-        result = result.replaceAll(regex, hanzi);
+    // 使用预编译且已转义的正则，单条规则异常不影响整篇正文
+    for (final rule in _compiledExactRules) {
+      try {
+        if (rule.regex.hasMatch(result)) {
+          result = result.replaceAll(rule.regex, rule.replacement);
+        }
+      } catch (e) {
+        debugPrint('[PinyinHarmonizer] 规则执行异常已跳过: $e');
       }
     }
 
@@ -427,6 +473,14 @@ class PinyinHarmonizer {
     if (paragraphs.isEmpty) return paragraphs;
     return paragraphs.map(restorePinyin).toList();
   }
+}
+
+/// 预编译的精确拼音规则（pattern 已转义）
+class _CompiledExactRule {
+  final RegExp regex;
+  final String replacement;
+
+  const _CompiledExactRule({required this.regex, required this.replacement});
 }
 
 /// 语境拼音规则实体

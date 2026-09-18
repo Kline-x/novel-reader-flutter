@@ -95,6 +95,16 @@ class _ReaderViewportState extends State<ReaderViewport>
 
   // 覆盖/仿真翻页手势动效参数
   double _dragOffset = 0.0;
+
+  // 滚动流式阅读模式的进度上报（此前该模式完全不上报进度，退出后回到章首）
+  final ScrollController _scrollController = ScrollController();
+  DateTime _lastScrollReport = DateTime.fromMillisecondsSinceEpoch(0);
+
+  // 真实电量（null = 当前平台取不到，此时页脚不渲染电量，杜绝写死的 85% 假数据）
+  static const MethodChannel _deviceChannel =
+      MethodChannel('com.kline.novelreader/app_update');
+  double? _batteryLevel;
+  Timer? _batteryTimer;
   final StorageService _storageService = StorageService();
   bool _volumeKeyPagingEnabled = true;
 
@@ -117,9 +127,28 @@ class _ReaderViewportState extends State<ReaderViewport>
       duration: const Duration(milliseconds: 280),
     );
 
+    _refreshBatteryLevel();
+    _batteryTimer = Timer.periodic(
+        const Duration(minutes: 1), (_) => _refreshBatteryLevel());
+
     _pageController = PageController(initialPage: _currentPageIndex);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _volumeChannel.setMethodCallHandler(_handleVolumeCall);
+  }
+
+  /// 读取宿主平台真实电量；取不到就保持 null，页脚不显示电量
+  Future<void> _refreshBatteryLevel() async {
+    try {
+      final level = await _deviceChannel.invokeMethod<int>('getBatteryLevel');
+      if (!mounted) return;
+      final normalized =
+          (level == null || level < 0 || level > 100) ? null : level / 100.0;
+      if (normalized != _batteryLevel) {
+        setState(() => _batteryLevel = normalized);
+      }
+    } catch (_) {
+      // 非 Android 平台或通道未实现：静默保持 null
+    }
   }
 
   Future<void> _loadReaderPreferences() async {
@@ -138,8 +167,10 @@ class _ReaderViewportState extends State<ReaderViewport>
     _volumeChannel.setMethodCallHandler(null);
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _clockTimer?.cancel();
+    _batteryTimer?.cancel();
     _turnAnimController.dispose();
     _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -263,12 +294,31 @@ class _ReaderViewportState extends State<ReaderViewport>
       _pageController.jumpToPage(_currentPageIndex);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted &&
-          _pageController.hasClients &&
+      if (!mounted) return;
+      if (_pageController.hasClients &&
           _pageController.page?.round() != _currentPageIndex) {
         _pageController.jumpToPage(_currentPageIndex);
       }
+      _restoreScrollAnchor(anchor);
     });
+  }
+
+  /// 滚动流式模式下按 charOffset 还原滚动位置
+  void _restoreScrollAnchor(int anchor) {
+    if (widget.turnMode != PageTurnMode.scroll) return;
+    if (!_scrollController.hasClients) return;
+    if (anchor <= 0) return;
+
+    final total = _totalCharsOfChapter;
+    if (total <= 0) return;
+
+    final extent = _scrollController.position.maxScrollExtent;
+    if (extent <= 0) return;
+
+    final fraction = anchor >= 999999
+        ? 1.0
+        : (anchor / total).clamp(0.0, 1.0);
+    _scrollController.jumpTo(extent * fraction);
   }
 
   void _handleTap(TapUpDetails details, Size size) {
@@ -567,6 +617,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                   theme: widget.theme,
                   bookTitle: widget.bookTitle,
                   currentTime: _currentTimeString,
+                  batteryLevel: _batteryLevel,
                   annotations: widget.annotations,
                 ),
               );
@@ -641,6 +692,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -667,6 +719,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                           theme: widget.theme,
                           bookTitle: widget.bookTitle,
                           currentTime: _currentTimeString,
+                          batteryLevel: _batteryLevel,
                           annotations: widget.annotations,
                         ),
                       ),
@@ -689,6 +742,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -714,6 +768,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                       theme: widget.theme,
                       bookTitle: widget.bookTitle,
                       currentTime: _currentTimeString,
+                      batteryLevel: _batteryLevel,
                       annotations: widget.annotations,
                     ),
                   ),
@@ -780,6 +835,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -811,6 +867,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                           theme: widget.theme,
                           bookTitle: widget.bookTitle,
                           currentTime: _currentTimeString,
+                          batteryLevel: _batteryLevel,
                           annotations: widget.annotations,
                         ),
                       ),
@@ -834,6 +891,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -866,6 +924,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                       theme: widget.theme,
                       bookTitle: widget.bookTitle,
                       currentTime: _currentTimeString,
+                      batteryLevel: _batteryLevel,
                       annotations: widget.annotations,
                     ),
                   ),
@@ -878,6 +937,40 @@ class _ReaderViewportState extends State<ReaderViewport>
     );
   }
 
+  /// 章节正文的总字符数，与排版引擎的 charOffset 坐标系一致
+  /// （每段经 normalizeParagraph 后会附加 2 个全角空格缩进）
+  int get _totalCharsOfChapter {
+    var total = 0;
+    for (final p in widget.paragraphs) {
+      final trimmed = p.trim();
+      if (trimmed.isEmpty) continue;
+      total += trimmed.startsWith('　　')
+          ? trimmed.length
+          : trimmed.length + 2;
+    }
+    return total;
+  }
+
+  /// 滚动模式下按滚动比例换算 charOffset 并节流上报，保证退出后能回到原位
+  void _reportScrollProgress(ScrollMetrics metrics) {
+    final now = DateTime.now();
+    if (now.difference(_lastScrollReport) < const Duration(milliseconds: 400)) {
+      return;
+    }
+    _lastScrollReport = now;
+
+    final total = _totalCharsOfChapter;
+    if (total <= 0) return;
+
+    final extent = metrics.maxScrollExtent;
+    final fraction =
+        extent <= 0 ? 0.0 : (metrics.pixels / extent).clamp(0.0, 1.0);
+    final offset = (total * fraction).round().clamp(0, total);
+
+    _activeCharOffset = offset;
+    widget.onProgressChanged?.call(offset);
+  }
+
   /// 垂直连续流式阅读 (ScrollTurner)
   Widget _buildScrollView(Size size, PagingConfig config) {
     return NotificationListener<ScrollNotification>(
@@ -888,10 +981,14 @@ class _ReaderViewportState extends State<ReaderViewport>
         } else if (notification.metrics.pixels <=
             notification.metrics.minScrollExtent - 25.0) {
           _triggerPreviousChapterDebounced();
+        } else if (notification is ScrollUpdateNotification ||
+            notification is ScrollEndNotification) {
+          _reportScrollProgress(notification.metrics);
         }
         return false;
       },
       child: ListView.builder(
+        controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.symmetric(horizontal: config.hPad, vertical: 40.0),
         itemCount: widget.paragraphs.length + 1,
@@ -1259,6 +1356,9 @@ class _ReaderViewportState extends State<ReaderViewport>
                                       } else {
                                         setState(
                                             () => _currentPageIndex = target);
+                                        // 非 slide 模式不会触发 onPageChanged，
+                                        // 需手动上报进度，否则拖动滑块后进度不落盘
+                                        _notifyProgress();
                                       }
                                     }
                                   }

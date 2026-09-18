@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -180,9 +181,42 @@ class VersionCheckService {
   @visibleForTesting
   set customDio(Dio dio) => _customDio = dio;
 
-  /// 当前客户端内置版本号（支持测试动态重置）
-  int currentVersionCode = 1;
-  String currentVersionName = '1.0.0';
+  /// 当前客户端版本号。
+  ///
+  /// 默认值与 pubspec.yaml 对齐，但**必须**在启动时调用 [loadInstalledVersion]
+  /// 从平台读取真实的 versionCode 覆盖它——写死的常量一旦与实际安装包脱节，
+  /// 就会出现"已经是最新版却一直提示升级、装完又被系统判定为降级"的问题。
+  int currentVersionCode = 2002;
+  String currentVersionName = '1.0.1';
+
+  bool _installedVersionLoaded = false;
+
+  /// 从宿主平台读取真实已安装版本号（Android 经 MethodChannel 取 PackageInfo）。
+  /// 读取失败时保留内置默认值，不影响其余功能。
+  Future<void> loadInstalledVersion({bool force = false}) async {
+    if (_installedVersionLoaded && !force) return;
+    _installedVersionLoaded = true;
+    if (kIsWeb) return;
+    try {
+      // 加超时兜底：平台通道未实现或宿主无响应时不得拖住整条检查更新链路
+      final info = await _platformChannel
+          .invokeMapMethod<String, dynamic>('getPackageInfo')
+          .timeout(const Duration(seconds: 2));
+      if (info == null) return;
+      final code = info['versionCode'];
+      final name = info['versionName'];
+      if (code is int && code > 0) {
+        currentVersionCode = code;
+      }
+      if (name is String && name.isNotEmpty) {
+        currentVersionName = name;
+      }
+      debugPrint(
+          '[VersionCheckService] 已读取真实安装版本: $currentVersionName+$currentVersionCode');
+    } catch (e) {
+      debugPrint('[VersionCheckService] 读取安装版本失败，沿用内置默认值: $e');
+    }
+  }
 
   /// 鸿蒙 HarmonyOS NEXT 环境感知标识（可通过宿主注入或环境参数覆盖）
   static bool isHarmonyOS = false;
@@ -228,9 +262,9 @@ class VersionCheckService {
     return result;
   }
 
-  /// 预置的默认 Mock 最新稳定版本信息 (1.0.1+2, 跨平台完整配置)
+  /// 预置的默认 Mock 最新稳定版本信息 (1.0.1+2002, 跨平台完整配置)
   static const AppVersionInfo defaultMockVersion = AppVersionInfo(
-    versionCode: 2,
+    versionCode: 2002,
     versionName: '1.0.1',
     publishDate: '2026-09-18',
     releaseNotes:
@@ -269,6 +303,9 @@ class VersionCheckService {
     bool forceMock = false,
     int? currentCode,
   }) async {
+    if (currentCode == null) {
+      await loadInstalledVersion();
+    }
     final baseCode = currentCode ?? currentVersionCode;
     AppVersionInfo latestInfo;
 
@@ -311,9 +348,16 @@ class VersionCheckService {
       }
     }
 
-    // 所有外网节点未连通时，秒级降级至内置高可用稳定版配置
-    debugPrint('[VersionCheckService] 外网节点探测结束，启用默认内置高可用 Mock 稳定版');
-    return defaultMockVersion;
+    // 所有外网节点均不可达时，绝不能拿内置的 Mock 版本冒充"线上最新版"——
+    // 那会让离线用户看到一个并不存在的新版本，点进去又下载失败。
+    // 这里返回与当前安装版本等同的信息，等价于"暂无更新"。
+    debugPrint('[VersionCheckService] 外网节点均不可达，本次视为暂无更新');
+    return AppVersionInfo(
+      versionCode: currentVersionCode,
+      versionName: currentVersionName,
+      releaseNotes: '',
+      publishDate: '',
+    );
   }
 
   /// 跨平台执行更新升级路由
@@ -325,6 +369,7 @@ class VersionCheckService {
   Future<void> executePlatformUpdate(
     AppVersionInfo info, {
     required void Function(double progress) onProgress,
+    CancelToken? cancelToken,
   }) async {
     final platformInfo = info.currentPlatformInfo;
 
@@ -353,7 +398,11 @@ class VersionCheckService {
 
     // 3. Android 平台（或非 iOS 的移动端）：走应用内流式下载 APK + FileProvider 覆盖安装
     if (!kIsWeb && Platform.isAndroid) {
-      await downloadAndInstallApk(info, onProgress: onProgress);
+      await downloadAndInstallApk(
+        info,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
       return;
     }
 
@@ -367,9 +416,11 @@ class VersionCheckService {
   ///
   /// - [info]: 待更新的版本信息
   /// - [onProgress]: 下载进度回调 (0.0 ~ 1.0)
+  /// - [cancelToken]: 可选的取消令牌
   Future<void> downloadAndInstallApk(
     AppVersionInfo info, {
     required void Function(double progress) onProgress,
+    CancelToken? cancelToken,
   }) async {
     final tempDir = await getTemporaryDirectory();
     final fileName =
@@ -385,10 +436,14 @@ class VersionCheckService {
     }.toList();
 
     for (final url in candidates) {
+      if (cancelToken?.isCancelled == true) {
+        return;
+      }
       try {
         final response = await _dio.download(
           url,
           saveFile.path,
+          cancelToken: cancelToken,
           onReceiveProgress: (received, total) {
             if (total > 0) {
               final progress = (received / total).clamp(0.0, 1.0);
@@ -396,26 +451,41 @@ class VersionCheckService {
             }
           },
         );
-        if (response.statusCode == 200) {
-          downloadSuccess = true;
-          break;
+        if (response.statusCode != 200) {
+          continue;
         }
+
+        // 完整性校验：代理镜像可能被投毒，也可能把 HTML 错误页当 200 返回。
+        // 校验不通过一律删除并换下一个候选节点，绝不把来历不明的包交给安装器。
+        final reason = await _verifyApk(saveFile, platformInfo);
+        if (reason != null) {
+          debugPrint('[VersionCheckService] 节点 $url 校验失败($reason)，尝试备用节点');
+          if (await saveFile.exists()) {
+            await saveFile.delete();
+          }
+          continue;
+        }
+
+        downloadSuccess = true;
+        break;
       } catch (e) {
+        if (cancelToken?.isCancelled == true) {
+          debugPrint('[VersionCheckService] 用户取消了下载: $e');
+          return;
+        }
         debugPrint('[VersionCheckService] 节点 $url 下载失败，尝试备用节点: $e');
       }
     }
 
-    // 如果所有远程下载不可用（如无外网环境/纯离线回归测试），通过沙盒文件写入与平滑进度仿真兜底
+    if (cancelToken?.isCancelled == true) {
+      return;
+    }
+
     if (!downloadSuccess) {
-      if (!await saveFile.exists()) {
-        await saveFile.create(recursive: true);
-        await saveFile.writeAsString(
-            'PK_MOCK_APK_FOR_UPDATE_VERIFICATION_${info.versionCode}');
-      }
-      for (int i = 1; i <= 10; i++) {
-        await Future.delayed(const Duration(milliseconds: 50));
-        onProgress(i / 10.0);
-      }
+      // 此前这里会伪造一个文本文件充当 APK、仿真进度到 100% 再唤起系统安装器，
+      // 用户在断网时就会看到"下载完成"后紧跟"解析软件包时出现问题"。
+      // 现在直接抛错，由 UI 层给出可理解的失败提示。
+      throw Exception('所有下载节点均不可用或安装包校验失败，请检查网络后重试');
     }
 
     // 确保进度标记为 100%
@@ -423,6 +493,37 @@ class VersionCheckService {
 
     // 唤起系统安装器
     await installApk(saveFile.path);
+  }
+
+  /// 校验下载到的安装包，返回 null 表示通过，否则返回失败原因
+  Future<String?> _verifyApk(File file, PlatformUpdateInfo? platformInfo) async {
+    if (!await file.exists()) return '文件不存在';
+
+    final bytes = await file.readAsBytes();
+    if (bytes.length < 1024) return '文件过小(${bytes.length}B)';
+
+    // APK 本质是 ZIP，必须以 PK 开头；HTML 错误页会在这里被拦住
+    if (!(bytes[0] == 0x50 &&
+        bytes[1] == 0x4B &&
+        bytes[2] == 0x03 &&
+        bytes[3] == 0x04)) {
+      return '不是有效的 APK(ZIP) 文件';
+    }
+
+    final expectedSize = platformInfo?.fileSize;
+    if (expectedSize != null && expectedSize > 0 && bytes.length != expectedSize) {
+      return '体积不符(期望 $expectedSize, 实际 ${bytes.length})';
+    }
+
+    final expectedSha = platformInfo?.sha256?.trim().toLowerCase();
+    if (expectedSha != null && expectedSha.isNotEmpty) {
+      final actual = sha256.convert(bytes).toString();
+      if (actual != expectedSha) {
+        return 'SHA256 不匹配';
+      }
+    }
+
+    return null;
   }
 
   /// 唤起 Android 系统安装器执行无损覆盖安装

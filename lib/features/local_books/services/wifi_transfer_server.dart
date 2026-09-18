@@ -41,6 +41,60 @@ class WifiTransferServer {
   // 接收上传文件回调
   Future<void> Function(File file)? onFileReceived;
 
+  /// 单次上传体积上限（100MB），防止恶意/误操作的超大请求把进程撑爆
+  static const int maxUploadBytes = 100 * 1024 * 1024;
+
+  /// 允许接收的图书扩展名白名单
+  static const Set<String> allowedExtensions = {'.txt', '.epub'};
+
+  /// 净化上传文件名，彻底阻断路径穿越
+  ///
+  /// 此前文件名直接取自 query 参数 / Content-Disposition 并拼进路径，
+  /// 同一局域网内任何人都可用 `?filename=../../shared_prefs/x.xml`
+  /// 覆写应用沙盒里的任意文件。
+  static String sanitizeFileName(String raw) {
+    // 1. 只取最后一段，剥掉任何目录成分（含 Windows 反斜杠与 URL 编码后的分隔符）
+    var name = raw.trim();
+    try {
+      name = Uri.decodeComponent(name);
+    } catch (_) {
+      // 非法百分号编码保持原样，后续字符过滤同样能兜住
+    }
+    name = name.split(RegExp(r'[/\\]')).last;
+
+    // 2. 去掉控制字符、路径穿越序列与文件系统保留字符
+    name = name
+        .replaceAll(RegExp(r'[\x00-\x1f]'), '')
+        .replaceAll('..', '')
+        .replaceAll(RegExp(r'[<>:"|?*]'), '')
+        .trim();
+
+    // 3. 剥掉开头的点，避免生成隐藏文件或空名
+    while (name.startsWith('.')) {
+      name = name.substring(1);
+    }
+
+    // 4. 扩展名白名单校验，非图书格式一律按 .txt 落盘
+    final lower = name.toLowerCase();
+    final ext = allowedExtensions.firstWhere(
+      (e) => lower.endsWith(e),
+      orElse: () => '',
+    );
+    if (ext.isEmpty) {
+      name = '${name.isEmpty ? 'novel' : name}.txt';
+    }
+
+    // 5. 限制长度并兜底
+    if (name.length > 120) {
+      final keepExt = name.substring(name.lastIndexOf('.'));
+      name = name.substring(0, 100) + keepExt;
+    }
+    if (name.isEmpty || name == '.txt') {
+      name = 'novel_${DateTime.now().millisecondsSinceEpoch}.txt';
+    }
+    return name;
+  }
+
   WifiServerStatus get status => _status;
   String get ipAddress => _ipAddress;
   int get port => _port;
@@ -163,6 +217,18 @@ class WifiTransferServer {
     request.response.close();
   }
 
+  /// 二次防线：确认最终落点确实位于 local_books 目录内
+  File _resolveSafeTarget(Directory baseDir, String fileName) {
+    final safeName = sanitizeFileName(fileName);
+    final target = File('${baseDir.path}/$safeName');
+    final normalizedBase = baseDir.path.replaceAll(r'\', '/');
+    final normalizedTarget = target.path.replaceAll(r'\', '/');
+    if (!normalizedTarget.startsWith('$normalizedBase/')) {
+      throw Exception('非法的上传路径: $fileName');
+    }
+    return target;
+  }
+
   Future<void> _handleUpload(HttpRequest request) async {
     try {
       final contentType = request.headers.contentType;
@@ -170,7 +236,20 @@ class WifiTransferServer {
 
       // 提取文件名（支持 query 参数 ?filename=... 或 Content-Disposition）
       if (request.uri.queryParameters.containsKey('filename')) {
-        filename = request.uri.queryParameters['filename']!;
+        filename = sanitizeFileName(request.uri.queryParameters['filename']!);
+      }
+
+      // 体积闸门：Content-Length 明显超限直接拒绝，不读取任何字节
+      final declaredLength = request.contentLength;
+      if (declaredLength > maxUploadBytes) {
+        request.response.statusCode = HttpStatus.requestEntityTooLarge;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(jsonEncode({
+          'success': false,
+          'message': '文件超过 ${maxUploadBytes ~/ (1024 * 1024)}MB 上限',
+        }));
+        await request.response.close();
+        return;
       }
 
       String basePath;
@@ -185,8 +264,6 @@ class WifiTransferServer {
         await localBooksDir.create(recursive: true);
       }
 
-      final targetFile = File('${localBooksDir.path}/$filename');
-
       if (contentType != null && contentType.primaryType == 'multipart') {
         // multipart/form-data 处理
         final boundary = contentType.parameters['boundary'];
@@ -194,28 +271,41 @@ class WifiTransferServer {
           throw Exception('Missing multipart boundary');
         }
 
-        final bytes = await request
-            .fold<List<int>>([], (prev, element) => prev..addAll(element));
+        final bytes = <int>[];
+        await for (final chunk in request) {
+          bytes.addAll(chunk);
+          if (bytes.length > maxUploadBytes) {
+            throw Exception('上传体积超过上限');
+          }
+        }
         final fileData = _extractMultipartFile(bytes, boundary);
         if (fileData != null) {
           if (fileData.filename != null) {
-            filename = fileData.filename!;
+            filename = sanitizeFileName(fileData.filename!);
           }
-          final finalFile = File('${localBooksDir.path}/$filename');
+          final finalFile = _resolveSafeTarget(localBooksDir, filename);
           await finalFile.writeAsBytes(fileData.bytes);
           if (onFileReceived != null) {
             await onFileReceived!(finalFile);
           }
         }
       } else {
-        final sink = targetFile.openWrite();
+        final safeTarget = _resolveSafeTarget(localBooksDir, filename);
+        final sink = safeTarget.openWrite();
+        var written = 0;
         await for (final chunk in request) {
+          written += chunk.length;
+          if (written > maxUploadBytes) {
+            await sink.close();
+            await safeTarget.delete();
+            throw Exception('上传体积超过上限');
+          }
           sink.add(chunk);
         }
         await sink.flush();
         await sink.close();
         if (onFileReceived != null) {
-          await onFileReceived!(targetFile);
+          await onFileReceived!(safeTarget);
         }
       }
 

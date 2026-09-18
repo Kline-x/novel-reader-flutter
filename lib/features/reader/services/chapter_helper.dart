@@ -118,7 +118,12 @@ class ChapterHelper {
   }
 
   /// 获取预置书籍的专属精排正文段落；非预置书返回 null
+  ///
+  /// 重要：这些段落是各书**第一章**的保真节选，只对 chapterIndex == 0 生效。
+  /// 此前该方法忽略 chapterIndex，导致任意章节离线降级都显示第 1 章内容，
+  /// 用户读第 500 章却看到主角初登场的段落，属于伪装成真实正文的假数据。
   static List<String>? getPresetParagraphs(String bookTitle, int chapterIndex) {
+    if (chapterIndex != 0) return null;
     final title = cleanTitle(bookTitle).toLowerCase();
     if (title.contains('shiri') || title.contains('十日')) {
       return [

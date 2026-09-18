@@ -54,6 +54,44 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_URL", "URL cannot be null", null)
                     }
                 }
+                "getPackageInfo" -> {
+                    // 提供真实已安装版本号，避免 Dart 侧写死常量与安装包脱节，
+                    // 导致"已是最新版仍提示升级""装完被判定为降级"。
+                    try {
+                        val pInfo = packageManager.getPackageInfo(packageName, 0)
+                        val code: Long =
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                                pInfo.longVersionCode
+                            } else {
+                                @Suppress("DEPRECATION")
+                                pInfo.versionCode.toLong()
+                            }
+                        result.success(
+                            mapOf(
+                                "versionCode" to code.toInt(),
+                                "versionName" to (pInfo.versionName ?: "")
+                            )
+                        )
+                    } catch (e: Exception) {
+                        result.error("PACKAGE_INFO_ERROR", e.localizedMessage, null)
+                    }
+                }
+                "getBatteryLevel" -> {
+                    try {
+                        val bm = getSystemService(android.content.Context.BATTERY_SERVICE)
+                                as android.os.BatteryManager
+                        val level = bm.getIntProperty(
+                            android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
+                        )
+                        if (level in 0..100) {
+                            result.success(level)
+                        } else {
+                            result.success(null)
+                        }
+                    } catch (e: Exception) {
+                        result.success(null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

@@ -115,9 +115,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     // 1. 若非强制刷新，优先读取沙盒缓存目录
     if (!forceRefresh) {
       final cachedToc = await _storageService.getBookToc(_book.id);
-      if (cachedToc != null &&
-          cachedToc.length >= 20 &&
-          cachedToc.any((c) => (c['url'] as String? ?? '').isNotEmpty)) {
+      // 与 StorageService.getBookToc 保持同一套脏数据判据，
+      // 不再用「章节数 >= 20」误伤短篇书
+      if (cachedToc != null && !StorageService.isDirtyToc(cachedToc)) {
         if (mounted) {
           setState(() {
             _chapters = cachedToc.map((m) => ChapterItem.fromJson(m)).toList();

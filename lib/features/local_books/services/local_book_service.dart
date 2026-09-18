@@ -38,6 +38,13 @@ class LocalBookService {
     }
 
     final bookId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+
+    // 关键修复：必须把原始文件复制进应用沙盒后再引用。
+    // 此前只记录外部路径（常在系统缓存/分享临时目录里），
+    // 一旦系统清理缓存或权限失效，整本书就永久变成"源文件已不存在"，
+    // 而 TXT 的分章索引又是基于字节偏移的，强依赖该文件长期不变。
+    final storedFile = await _ensureFileInSandbox(file, bookId, isEpub);
+
     String title =
         fileName.replaceAll(RegExp(r'\.(txt|epub)$', caseSensitive: false), '');
     String author = '本地导入';
@@ -45,7 +52,7 @@ class LocalBookService {
     List<LocalChapter> chapters = [];
 
     if (isEpub) {
-      final epubInfo = await EpubParserEngine.parseEpub(file);
+      final epubInfo = await EpubParserEngine.parseEpub(storedFile);
       title = epubInfo.title;
       author = epubInfo.author;
       chapters = epubInfo.chapters;
@@ -60,7 +67,7 @@ class LocalBookService {
         coverUrl = coverFile.path;
       }
     } else {
-      chapters = await TxtParserEngine.parseChapters(file);
+      chapters = await TxtParserEngine.parseChapters(storedFile);
     }
 
     // 保存章节目录索引至本地 meta 目录
@@ -74,7 +81,7 @@ class LocalBookService {
       'bookId': bookId,
       'title': title,
       'author': author,
-      'filePath': file.path,
+      'filePath': storedFile.path,
       'type': isEpub ? 'epub' : 'txt',
       'coverUrl': coverUrl,
       'totalChapters': chapters.length,
@@ -88,7 +95,7 @@ class LocalBookService {
       author: author,
       coverUrl: coverUrl,
       sourceId: isEpub ? 'local_epub' : 'local_txt',
-      filePath: file.path,
+      filePath: storedFile.path,
       totalChapters: chapters.length,
       currentChapterIndex: 0,
       currentCharOffset: 0,
@@ -100,6 +107,25 @@ class LocalBookService {
     _bookImportedController.add(shelfBook);
 
     return shelfBook;
+  }
+
+  /// 把导入的图书复制进应用沙盒 local_books/raw/，返回沙盒内的文件句柄。
+  /// 若源文件本就位于沙盒（如 WiFi 传书落盘的文件），直接复用不重复拷贝。
+  Future<File> _ensureFileInSandbox(
+      File source, String bookId, bool isEpub) async {
+    final docDir = await getApplicationDocumentsDirectory();
+    final normalizedDoc = docDir.path.replaceAll(r'\', '/');
+    final normalizedSource = source.path.replaceAll(r'\', '/');
+    if (normalizedSource.startsWith('$normalizedDoc/')) {
+      return source;
+    }
+
+    final rawDir = Directory('${docDir.path}/local_books/raw');
+    if (!await rawDir.exists()) {
+      await rawDir.create(recursive: true);
+    }
+    final target = File('${rawDir.path}/$bookId.${isEpub ? 'epub' : 'txt'}');
+    return await source.copy(target.path);
   }
 
   /// 获取指定本地书籍的章节目录

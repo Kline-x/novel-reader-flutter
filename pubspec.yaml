@@ -22,6 +22,7 @@ dependencies:
   path_provider: ^2.1.2
   archive: ^4.3.0
   flutter_tts: ^4.2.5
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

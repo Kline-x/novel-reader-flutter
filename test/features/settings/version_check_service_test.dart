@@ -60,9 +60,9 @@ void main() {
       final service = VersionCheckService();
 
       final newVersion =
-          await service.checkLatestVersion(forceMock: true, currentCode: 1);
+          await service.checkLatestVersion(forceMock: true, currentCode: 1000);
       expect(newVersion, isNotNull);
-      expect(newVersion!.versionCode, 2);
+      expect(newVersion!.versionCode, 2002);
       expect(newVersion.versionName, '1.0.1');
       expect(newVersion.releaseNotes, contains('跨端高可用远程版本升级体系'));
     });
@@ -73,21 +73,32 @@ void main() {
       final service = VersionCheckService();
 
       final newVersion =
-          await service.checkLatestVersion(forceMock: true, currentCode: 2);
+          await service.checkLatestVersion(forceMock: true, currentCode: 2002);
       expect(newVersion, isNull);
     });
 
     test(
-        'fallback probe returns defaultMockVersion when endpoints fail or offline',
+        '所有节点不可达时视为暂无更新，绝不拿内置 Mock 版本冒充线上最新版',
         () async {
       final service = VersionCheckService();
+      service.currentVersionCode = 1000;
+      service.currentVersionName = '1.0.0';
 
       final result = await service.checkLatestVersion(
         endpoint: 'http://127.0.0.1:54321/invalid_version.json',
-        currentCode: 1,
+        currentCode: 1000,
       );
+      // 离线兜底若返回内置 Mock，就会让用户看到一个并不存在的新版本，
+      // 点进去必然下载失败；因此这里必须是 null（无更新）。
+      expect(result, isNull);
+    });
+
+    test('forceMock 仍可取到内置稳定版配置（供离线自检使用）', () async {
+      final service = VersionCheckService();
+      final result =
+          await service.checkLatestVersion(forceMock: true, currentCode: 1000);
       expect(result, isNotNull);
-      expect(result!.versionCode, 2);
+      expect(result!.versionCode, 2002);
       expect(result.currentPlatformInfo, isNotNull);
     });
 
