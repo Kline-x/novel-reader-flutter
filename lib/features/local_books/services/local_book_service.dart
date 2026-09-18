@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:fast_gbk/fast_gbk.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../reader/data/storage_service.dart';
 import '../models/local_chapter.dart';
@@ -38,14 +41,22 @@ class LocalBookService {
     }
 
     final bookId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+
+    // 关键修复：必须把原始文件复制进应用沙盒后再引用。
+    // 此前只记录外部路径（常在系统缓存/分享临时目录里），
+    // 一旦系统清理缓存或权限失效，整本书就永久变成"源文件已不存在"，
+    // 而 TXT 的分章索引又是基于字节偏移的，强依赖该文件长期不变。
+    final storedFile = await _ensureFileInSandbox(file, bookId, isEpub);
+
     String title =
         fileName.replaceAll(RegExp(r'\.(txt|epub)$', caseSensitive: false), '');
     String author = '本地导入';
     String? coverUrl;
+    String? detectedEncoding;
     List<LocalChapter> chapters = [];
 
     if (isEpub) {
-      final epubInfo = await EpubParserEngine.parseEpub(file);
+      final epubInfo = await EpubParserEngine.parseEpub(storedFile);
       title = epubInfo.title;
       author = epubInfo.author;
       chapters = epubInfo.chapters;
@@ -60,7 +71,8 @@ class LocalBookService {
         coverUrl = coverFile.path;
       }
     } else {
-      chapters = await TxtParserEngine.parseChapters(file);
+      chapters = await TxtParserEngine.parseChapters(storedFile);
+      detectedEncoding = await _detectFileEncoding(storedFile);
     }
 
     // 保存章节目录索引至本地 meta 目录
@@ -74,8 +86,9 @@ class LocalBookService {
       'bookId': bookId,
       'title': title,
       'author': author,
-      'filePath': file.path,
+      'filePath': storedFile.path,
       'type': isEpub ? 'epub' : 'txt',
+      'encoding': detectedEncoding,
       'coverUrl': coverUrl,
       'totalChapters': chapters.length,
     };
@@ -88,7 +101,7 @@ class LocalBookService {
       author: author,
       coverUrl: coverUrl,
       sourceId: isEpub ? 'local_epub' : 'local_txt',
-      filePath: file.path,
+      filePath: storedFile.path,
       totalChapters: chapters.length,
       currentChapterIndex: 0,
       currentCharOffset: 0,
@@ -100,6 +113,41 @@ class LocalBookService {
     _bookImportedController.add(shelfBook);
 
     return shelfBook;
+  }
+
+  /// 对整份文件做一次编码嗅探并固化下来
+  Future<String> _detectFileEncoding(File file) async {
+    try {
+      final raf = await file.open(mode: FileMode.read);
+      final len = await file.length();
+      final sample =
+          await raf.read(len > 65536 ? 65536 : len);
+      await raf.close();
+      return TxtParserEngine.detectEncoding(Uint8List.fromList(sample)) == utf8
+          ? 'utf-8'
+          : 'gbk';
+    } catch (_) {
+      return 'utf-8';
+    }
+  }
+
+  /// 把导入的图书复制进应用沙盒 local_books/raw/，返回沙盒内的文件句柄。
+  /// 若源文件本就位于沙盒（如 WiFi 传书落盘的文件），直接复用不重复拷贝。
+  Future<File> _ensureFileInSandbox(
+      File source, String bookId, bool isEpub) async {
+    final docDir = await getApplicationDocumentsDirectory();
+    final normalizedDoc = docDir.path.replaceAll(r'\', '/');
+    final normalizedSource = source.path.replaceAll(r'\', '/');
+    if (normalizedSource.startsWith('$normalizedDoc/')) {
+      return source;
+    }
+
+    final rawDir = Directory('${docDir.path}/local_books/raw');
+    if (!await rawDir.exists()) {
+      await rawDir.create(recursive: true);
+    }
+    final target = File('${rawDir.path}/$bookId.${isEpub ? 'epub' : 'txt'}');
+    return await source.copy(target.path);
   }
 
   /// 获取指定本地书籍的章节目录
@@ -147,7 +195,12 @@ class LocalBookService {
       if (type == 'epub') {
         return await EpubParserEngine.readChapterContent(file, chapter);
       } else {
-        return await TxtParserEngine.readChapterContent(file, chapter);
+        // 复用导入时固化的编码：按单章切片再嗅探一次，
+        // 遇到刚好是合法 UTF-8 的 GBK 片段仍可能判错
+        final encName = meta['encoding'] as String?;
+        final enc = encName == 'gbk' ? gbk : (encName == 'utf-8' ? utf8 : null);
+        return await TxtParserEngine.readChapterContent(file, chapter,
+            encoding: enc);
       }
     } catch (e) {
       return ['\u3000\u3000（读取章节内容失败: $e）'];

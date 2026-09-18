@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/components/soft_button.dart';
@@ -30,10 +31,32 @@ class UpdateDialog extends StatefulWidget {
 class _UpdateDialogState extends State<UpdateDialog> {
   final VersionCheckService _versionService = VersionCheckService();
 
+  CancelToken? _cancelToken;
   bool _isProcessing = false;
+  bool _isInstalledInvoked = false;
   double _progress = 0.0;
   String _statusText = '准备中...';
   bool _hasError = false;
+
+  @override
+  void dispose() {
+    _cancelToken?.cancel('弹窗销毁');
+    super.dispose();
+  }
+
+  void _cancelDownload() {
+    if (_cancelToken != null && !_cancelToken!.isCancelled) {
+      _cancelToken!.cancel('用户取消下载');
+    }
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+        _progress = 0.0;
+        _statusText = '已取消下载';
+      });
+      Navigator.of(context).pop();
+    }
+  }
 
   /// 根据运行平台展示行动按钮文案
   String get _actionButtonText {
@@ -59,9 +82,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
   }
 
   Future<void> _startUpdate() async {
+    _cancelToken = CancelToken();
     setState(() {
       _isProcessing = true;
       _hasError = false;
+      _isInstalledInvoked = false;
       _progress = 0.0;
       _statusText = _isDirectDownload ? '正在建立高速连接...' : '正在跳转应用商店...';
     });
@@ -69,14 +94,19 @@ class _UpdateDialogState extends State<UpdateDialog> {
     try {
       await _versionService.executePlatformUpdate(
         widget.info,
+        cancelToken: _cancelToken,
         onProgress: (progress) {
           if (mounted) {
             setState(() {
               _progress = progress;
               if (_isDirectDownload) {
-                _statusText = progress >= 1.0
-                    ? '下载完成，正在唤起系统安装器...'
-                    : '正在下载升级包... ${(progress * 100).toStringAsFixed(1)}%';
+                if (progress >= 1.0) {
+                  _statusText = '下载完成，已唤起系统安装器';
+                  _isInstalledInvoked = true;
+                } else {
+                  _statusText =
+                      '正在下载升级包... ${(progress * 100).toStringAsFixed(1)}%';
+                }
               } else {
                 _statusText = '正在跳转分发中心...';
               }
@@ -84,6 +114,13 @@ class _UpdateDialogState extends State<UpdateDialog> {
           }
         },
       );
+
+      if (mounted && _isDirectDownload) {
+        setState(() {
+          _isInstalledInvoked = true;
+          _statusText = '已唤起系统安装器，请在系统界面完成安装';
+        });
+      }
 
       if (!_isDirectDownload && mounted) {
         // 跳转商店后稍作延时关闭或保留
@@ -93,6 +130,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
         }
       }
     } catch (e) {
+      if (_cancelToken?.isCancelled == true) {
+        return;
+      }
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -107,7 +147,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
     final colors = SoftTheme.of(context);
 
     return PopScope(
-      canPop: !widget.info.isForceUpdate && !_isProcessing,
+      canPop: !widget.info.isForceUpdate,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop && _isProcessing) {
+          _cancelToken?.cancel('物理返回退出弹窗');
+        }
+      },
       child: Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -127,8 +172,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. 顶部科技感徽标与标题区
+              // 1. 顶部科技感徽标与标题区（支持随时点击右上角✕关闭）
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     width: 48.0,
@@ -163,7 +209,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
                           ),
                         ),
                         const SizedBox(height: 4.0),
-                        Row(
+                        Wrap(
+                          spacing: 8.0,
+                          runSpacing: 4.0,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -181,8 +230,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                                 ),
                               ),
                             ),
-                            if (widget.info.publishDate.isNotEmpty) ...[
-                              const SizedBox(width: 8.0),
+                            if (widget.info.publishDate.isNotEmpty)
                               Text(
                                 widget.info.publishDate,
                                 style: TextStyle(
@@ -190,12 +238,41 @@ class _UpdateDialogState extends State<UpdateDialog> {
                                   color: colors.textSecondary,
                                 ),
                               ),
-                            ],
                           ],
                         ),
                       ],
                     ),
                   ),
+                  if (!widget.info.isForceUpdate) ...[
+                    const SizedBox(width: 8.0),
+                    GestureDetector(
+                      key: const ValueKey('btn_close_update_dialog'),
+                      onTap: () {
+                        if (_isProcessing) {
+                          _cancelToken?.cancel('点击关闭按钮退出');
+                        }
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        width: 32.0,
+                        height: 32.0,
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: colors.border.withValues(alpha: 0.6),
+                            width: 1.0,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18.0,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 18.0),
@@ -414,6 +491,102 @@ class _UpdateDialogState extends State<UpdateDialog> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16.0),
+                    // 控制按钮：已唤起安装器显示完成/重新唤起；下载中显示取消下载/后台下载
+                    if (_isInstalledInvoked)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SoftButton(
+                              key: const ValueKey('btn_update_complete'),
+                              colors: colors,
+                              isFilled: true,
+                              isPill: true,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 10.0),
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Center(
+                                child: Text(
+                                  '完成',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12.0),
+                          Expanded(
+                            child: SoftButton(
+                              key: const ValueKey('btn_reinstall'),
+                              colors: colors,
+                              isPill: true,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 10.0),
+                              onPressed: _startUpdate,
+                              child: Center(
+                                child: Text(
+                                  '重新安装',
+                                  style: TextStyle(
+                                    fontSize: 13.0,
+                                    color: colors.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          if (!widget.info.isForceUpdate) ...[
+                            Expanded(
+                              child: SoftButton(
+                                key: const ValueKey('btn_cancel_download'),
+                                colors: colors,
+                                isPill: true,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10.0),
+                                onPressed: _cancelDownload,
+                                child: Center(
+                                  child: Text(
+                                    '取消下载',
+                                    style: TextStyle(
+                                      fontSize: 13.0,
+                                      fontWeight: FontWeight.w600,
+                                      color: colors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12.0),
+                            Expanded(
+                              child: SoftButton(
+                                key: const ValueKey('btn_background_download'),
+                                colors: colors,
+                                isFilled: true,
+                                isPill: true,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10.0),
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Center(
+                                  child: Text(
+                                    '后台下载',
+                                    style: TextStyle(
+                                      fontSize: 13.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                   ],
                 ),
             ],

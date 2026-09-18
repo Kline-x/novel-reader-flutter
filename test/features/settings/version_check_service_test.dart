@@ -60,9 +60,9 @@ void main() {
       final service = VersionCheckService();
 
       final newVersion =
-          await service.checkLatestVersion(forceMock: true, currentCode: 1);
+          await service.checkLatestVersion(forceMock: true, currentCode: 1000);
       expect(newVersion, isNotNull);
-      expect(newVersion!.versionCode, 2);
+      expect(newVersion!.versionCode, 2002);
       expect(newVersion.versionName, '1.0.1');
       expect(newVersion.releaseNotes, contains('跨端高可用远程版本升级体系'));
     });
@@ -73,22 +73,116 @@ void main() {
       final service = VersionCheckService();
 
       final newVersion =
-          await service.checkLatestVersion(forceMock: true, currentCode: 2);
+          await service.checkLatestVersion(forceMock: true, currentCode: 2002);
       expect(newVersion, isNull);
     });
 
     test(
-        'fallback probe returns defaultMockVersion when endpoints fail or offline',
+        '所有节点不可达时视为暂无更新，绝不拿内置 Mock 版本冒充线上最新版',
         () async {
       final service = VersionCheckService();
+      service.currentVersionCode = 1000;
+      service.currentVersionName = '1.0.0';
 
       final result = await service.checkLatestVersion(
         endpoint: 'http://127.0.0.1:54321/invalid_version.json',
-        currentCode: 1,
+        currentCode: 1000,
       );
+      // 离线兜底若返回内置 Mock，就会让用户看到一个并不存在的新版本，
+      // 点进去必然下载失败；因此这里必须是 null（无更新）。
+      expect(result, isNull);
+    });
+
+    test('forceMock 仍可取到内置稳定版配置（供离线自检使用）', () async {
+      final service = VersionCheckService();
+      final result =
+          await service.checkLatestVersion(forceMock: true, currentCode: 1000);
       expect(result, isNotNull);
-      expect(result!.versionCode, 2);
+      expect(result!.versionCode, 2002);
       expect(result.currentPlatformInfo, isNotNull);
+    });
+
+    test('必须按本机 ABI 的 versionCode 比较，否则分包后永远判定"已是最新"', () {
+      // --split-per-abi 把 versionCode 重写成 abiCode*1000+base：
+      // base=4003 → v7a 5003 / arm64 6003 / x86_64 8003（x86_64 的 abiCode 是 4 不是 3）
+      final info = AppVersionInfo.fromJson({
+        'versionCode': 6003,
+        'versionName': '1.0.2',
+        'releaseNotes': '',
+        'publishDate': '',
+        'platforms': {
+          'android': {
+            'versionCode': 6003,
+            'installMode': 'in_app_apk',
+            'variants': {
+              'arm64-v8a': {'versionCode': 6003},
+              'armeabi-v7a': {'versionCode': 5003},
+              'x86_64': {'versionCode': 8003},
+            },
+          },
+        },
+      });
+
+      expect(info.effectiveVersionCodeFor(['arm64-v8a']), 6003);
+      expect(info.effectiveVersionCodeFor(['armeabi-v7a', 'armeabi']), 5003);
+      expect(info.effectiveVersionCodeFor(['x86_64']), 8003);
+      // 未知 ABI 回退顶层
+      expect(info.effectiveVersionCodeFor(['mips']), 6003);
+      expect(info.effectiveVersionCodeFor(const []), 6003);
+    });
+
+
+    test('按设备 ABI 选择匹配的安装包，避免 v7a 设备下到 arm64 包', () {
+      final android = PlatformUpdateInfo.fromJson({
+        'downloadUrl': 'https://example.com/arm64.apk',
+        'fileSize': 100,
+        'sha256': 'aaa',
+        'installMode': 'in_app_apk',
+        'variants': {
+          'arm64-v8a': {
+            'downloadUrl': 'https://example.com/arm64.apk',
+            'fileSize': 100,
+            'sha256': 'aaa',
+          },
+          'armeabi-v7a': {
+            'downloadUrl': 'https://example.com/v7a.apk',
+            'fileSize': 90,
+            'sha256': 'bbb',
+          },
+        },
+      });
+
+      // v7a 设备（SUPPORTED_ABIS 通常是 [armeabi-v7a, armeabi]）
+      final v7a = android.resolveForAbis(['armeabi-v7a', 'armeabi']);
+      expect(v7a.downloadUrl, 'https://example.com/v7a.apk');
+      expect(v7a.sha256, 'bbb');
+      expect(v7a.fileSize, 90);
+
+      // arm64 设备优先命中 arm64
+      final a64 = android.resolveForAbis(['arm64-v8a', 'armeabi-v7a']);
+      expect(a64.downloadUrl, 'https://example.com/arm64.apk');
+
+      // 未知 ABI 或拿不到 ABI 时回退到扁平字段，绝不能返回空
+      expect(android.resolveForAbis(['mips']).downloadUrl,
+          'https://example.com/arm64.apk');
+      expect(android.resolveForAbis(const []).downloadUrl,
+          'https://example.com/arm64.apk');
+    });
+
+    test('variants 能完整 round-trip 序列化', () {
+      final src = PlatformUpdateInfo.fromJson({
+        'downloadUrl': 'https://example.com/a.apk',
+        'installMode': 'in_app_apk',
+        'variants': {
+          'x86_64': {
+            'downloadUrl': 'https://example.com/x64.apk',
+            'sha256': 'ccc',
+          },
+        },
+      });
+      final back = PlatformUpdateInfo.fromJson(src.toJson());
+      expect(back.variants.length, 1);
+      expect(back.variants['x86_64']!.sha256, 'ccc');
     });
 
     test(

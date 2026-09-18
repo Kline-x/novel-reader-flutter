@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'pinyin_rule_service.dart';
 
 /// 智能拼音转汉字还原自愈引擎 (pinyin_harmonizer.dart)
@@ -13,6 +15,13 @@ class PinyinHarmonizer {
   static void setDynamicRules(Map<String, String> rules) {
     _dynamicMap.clear();
     _dynamicMap.addAll(rules);
+    invalidateCache();
+  }
+
+  /// 主动让规则表与预编译正则缓存失效（规则增删改、云端热更后调用）
+  static void invalidateCache() {
+    _cachedRulesMap = null;
+    _cachedCompiledRules = null;
   }
 
   /// 获取当前全部动态规则快照
@@ -93,6 +102,12 @@ class PinyinHarmonizer {
     'mimang': '迷茫',
     'mimi': '秘密',
     'zongjiao': '宗教',
+    'didu': '帝都',
+    'huangdi': '皇帝',
+    'junduì': '军队',
+    'jundui': '军队',
+    'zhanzheng': '战争',
+    'shibing': '士兵',
   };
 
   /// 常见单字拼音音节集合（用于变异解混淆中的单字归一化判定）
@@ -129,12 +144,51 @@ class PinyinHarmonizer {
     'jia',
   };
 
+  static Map<String, String>? _cachedRulesMap;
+  static List<_CompiledExactRule>? _cachedCompiledRules;
+
   /// 获取当前所有生效的精确字典映射（内置字典 + PinyinRuleService + 动态注入）
+  ///
+  /// 缓存策略：此前该 getter 每处理一个段落都会重建整张表，
+  /// 一章 60 段即产生数千次 Map 构造与正则编译，全部压在 UI 线程上。
+  /// 现改为常驻缓存，仅在 [invalidateCache] 被调用（规则真正变更）时重建。
   static Map<String, String> get _activeRulesMap {
+    final cached = _cachedRulesMap;
+    if (cached != null) return cached;
+
     final map = Map<String, String>.from(_multiSyllableMap);
     map.addAll(PinyinRuleService().exactRulesMap);
     map.addAll(_dynamicMap);
+    _cachedRulesMap = map;
     return map;
+  }
+
+  /// 预编译的精确规则正则（带词边界），非法 pattern 在编译期就被剔除
+  static List<_CompiledExactRule> get _compiledExactRules {
+    final cached = _cachedCompiledRules;
+    if (cached != null) return cached;
+
+    final compiled = <_CompiledExactRule>[];
+    for (final entry in _activeRulesMap.entries) {
+      final pattern = entry.key;
+      if (pattern.isEmpty) continue;
+      try {
+        // 关键修复：pattern 可能来自用户自定义规则或云端热更，必须转义后再拼进正则，
+        // 否则一条含 '(' / '[' / '+' 的规则会抛 FormatException 并中断全书正文渲染。
+        final escaped = RegExp.escape(pattern);
+        compiled.add(
+          _CompiledExactRule(
+            regex: RegExp('(?<![a-zA-Z])$escaped(?![a-zA-Z])',
+                caseSensitive: false),
+            replacement: entry.value,
+          ),
+        );
+      } catch (e) {
+        debugPrint('[PinyinHarmonizer] 跳过非法规则 "$pattern": $e');
+      }
+    }
+    _cachedCompiledRules = compiled;
+    return compiled;
   }
 
   /// 2. 语境单字/单音节混排正则映射表
@@ -245,8 +299,25 @@ class PinyinHarmonizer {
       replacement: (m) => '${m.group(1)}操',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'she\s*([精出入头击穿向来])', caseSensitive: false),
+      pattern: RegExp(r'she\s*([精出入头击穿向来程线])', caseSensitive: false),
       replacement: (m) => '射${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([放注发喷辐折反投映扫])\s*she', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}射',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([夏烈春秋冬今明昨往末生落旭朝白终])\s*ri(?![a-z])',
+          caseSensitive: false),
+      replacement: (m) => '${m.group(1)}日',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'ri\s*([光子后期记出落夜间])', caseSensitive: false),
+      replacement: (m) => '日${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([吃喂断哺牛羊])\s*nai(?![a-z])', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}奶',
     ),
     _ContextualPinyinRule(
       pattern: RegExp(r'da\s*([腿腿肚腿部胸乳])', caseSensitive: false),
@@ -335,6 +406,47 @@ class PinyinHarmonizer {
     r'''(?<=[\u4e00-\u9fa5])([a-z]{2,20})(?=[\u4e00-\u9fa5])''',
   );
 
+  /// 带声调拼音字母 → 基本拉丁字母
+  ///
+  /// 书源里大量使用带声调的拼音规避审查（「夏rì」「放shè」「dìdū」「吃nǎi」），
+  /// 而规则表里全是无声调写法，导致一条都匹配不上、整段正文夹满拼音。
+  static const Map<String, String> _toneFoldMap = {
+    'ā': 'a', 'á': 'a', 'ǎ': 'a', 'à': 'a',
+    'ē': 'e', 'é': 'e', 'ě': 'e', 'è': 'e',
+    'ī': 'i', 'í': 'i', 'ǐ': 'i', 'ì': 'i',
+    'ō': 'o', 'ó': 'o', 'ǒ': 'o', 'ò': 'o',
+    'ū': 'u', 'ú': 'u', 'ǔ': 'u', 'ù': 'u',
+    'ǖ': 'v', 'ǘ': 'v', 'ǚ': 'v', 'ǜ': 'v',
+    'ü': 'v',
+    'ń': 'n', 'ň': 'n', 'ǹ': 'n', 'ḿ': 'm',
+  };
+
+  /// 被汉字紧密包围的「带声调拼音片段」预归一化为无声调形式
+  ///
+  /// 只处理夹在汉字之间的片段，纯英文语境（café、naïve）绝不触碰。
+  static final RegExp _tonedSandwichPattern = RegExp(
+    '(?<=[一-龥])'
+    '([a-zA-Zāáǎàēéěè'
+    'īíǐìōóǒò'
+    'ūúǔùǖǘǚǜü'
+    'ńňǹḿ]{1,20})'
+    '(?=[一-龥])',
+  );
+
+  /// 把一段拼音里的声调字母折叠掉
+  static String foldTones(String input) {
+    if (input.isEmpty) return input;
+    final buffer = StringBuffer();
+    for (final ch in input.split('')) {
+      buffer.write(_toneFoldMap[ch] ?? ch);
+    }
+    return buffer.toString();
+  }
+
+  /// 是否含带声调字母
+  static bool _hasTone(String input) =>
+      input.split('').any(_toneFoldMap.containsKey);
+
   /// 智能对单行小说正文执行拼音和谐脱敏自愈
   static String restorePinyin(String text) {
     if (text.isEmpty) return text;
@@ -345,6 +457,14 @@ class PinyinHarmonizer {
     }
 
     var result = text;
+
+    // 阶段零：把夹在汉字之间的带声调拼音折叠成无声调形式，
+    // 让后续所有规则（字典 / 夹缝探测 / 语境单字）都能正常命中。
+    result = result.replaceAllMapped(_tonedSandwichPattern, (m) {
+      final token = m.group(1)!;
+      return _hasTone(token) ? foldTones(token) : token;
+    });
+
     final activeMap = _activeRulesMap;
 
     // 阶段一：解包形如 [zhengfu]、(jingcha)、【sharen】、*guojia* 等被符号包围的拼音
@@ -391,16 +511,14 @@ class PinyinHarmonizer {
     });
 
     // 阶段四：处理无歧义的多音节拼音词（全词边界匹配或前后紧邻中文/标点）
-    // 动态规则优先匹配
-    for (final entry in activeMap.entries) {
-      final pinyin = entry.key;
-      final hanzi = entry.value;
-
-      // 严格词边界或前后紧邻汉字标点，绝不误伤形如 "teaching" 或 "level" 的长单词
-      final regex =
-          RegExp('(?<![a-zA-Z])$pinyin(?![a-zA-Z])', caseSensitive: false);
-      if (regex.hasMatch(result)) {
-        result = result.replaceAll(regex, hanzi);
+    // 使用预编译且已转义的正则，单条规则异常不影响整篇正文
+    for (final rule in _compiledExactRules) {
+      try {
+        if (rule.regex.hasMatch(result)) {
+          result = result.replaceAll(rule.regex, rule.replacement);
+        }
+      } catch (e) {
+        debugPrint('[PinyinHarmonizer] 规则执行异常已跳过: $e');
       }
     }
 
@@ -427,6 +545,14 @@ class PinyinHarmonizer {
     if (paragraphs.isEmpty) return paragraphs;
     return paragraphs.map(restorePinyin).toList();
   }
+}
+
+/// 预编译的精确拼音规则（pattern 已转义）
+class _CompiledExactRule {
+  final RegExp regex;
+  final String replacement;
+
+  const _CompiledExactRule({required this.regex, required this.replacement});
 }
 
 /// 语境拼音规则实体

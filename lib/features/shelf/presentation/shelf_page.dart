@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/swipe_reveal_card.dart';
+import '../../../core/components/docked_bottom_bar.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../../core/utils/platform_adaptive_helper.dart';
 import '../../local_books/presentation/wifi_transfer_dialog.dart';
@@ -214,27 +215,29 @@ class _ShelfPageState extends State<ShelfPage> {
                     _openReader(book);
                   },
                 ),
-                ListTile(
-                  leading: Icon(Icons.download_for_offline_rounded,
-                      color: colors.accent),
-                  title: Text('离线下载全本',
-                      style: TextStyle(color: colors.textPrimary)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    DownloadService().startDownload(
-                      bookId: book.id,
-                      bookTitle: book.title,
-                      totalChapters: book.totalChapters,
-                      sourceName: book.sourceName,
-                      bookUrl: book.bookUrl,
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('已将《${book.title}》加入后台下载队列'),
-                          behavior: SnackBarBehavior.floating),
-                    );
-                  },
-                ),
+                // 本地导入的书全部内容已在设备上，不该出现"离线下载全本"
+                if (!book.isLocal)
+                  ListTile(
+                    leading: Icon(Icons.download_for_offline_rounded,
+                        color: colors.accent),
+                    title: Text('离线下载全本',
+                        style: TextStyle(color: colors.textPrimary)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      DownloadService().startDownload(
+                        bookId: book.id,
+                        bookTitle: book.title,
+                        totalChapters: book.totalChapters,
+                        sourceName: book.sourceName,
+                        bookUrl: book.bookUrl,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('已将《${book.title}》加入后台下载队列'),
+                            behavior: SnackBarBehavior.floating),
+                      );
+                    },
+                  ),
                 ListTile(
                   leading: Icon(
                       book.isPinned
@@ -637,9 +640,10 @@ class _ShelfPageState extends State<ShelfPage> {
             else
               _buildListView(filteredBooks, colors),
 
-            // 底部安全留白（避让贴底毛玻璃底栏，书籍优雅收口流淌）
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 72.0),
+            // 底部安全留白：按底栏实际高度（渐隐带 + 内容 + 安全区）动态预留
+            SliverToBoxAdapter(
+              child: SizedBox(
+                  height: DockedBottomBar.contentBottomPadding(context)),
             ),
           ],
         ),
@@ -797,6 +801,13 @@ class _ShelfPageState extends State<ShelfPage> {
           content: Text('已从书架移出《${book.title}》'),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
+          // 必须显式 persist: false。
+          // Flutter 的 SnackBar 构造里 `persist = persist ?? action != null`，
+          // 而 ScaffoldMessenger 的超时回调里 `if (snackBar.persist) return;`——
+          // 也就是说带 action 的 SnackBar 默认永不自动消失，duration 完全失效。
+          // 这条「撤销」提示因此会一直挂在屏幕上。
+          persist: false,
+          showCloseIcon: true,
           action: SnackBarAction(
             label: '撤销',
             textColor: Colors.amberAccent,

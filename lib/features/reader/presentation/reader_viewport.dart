@@ -30,10 +30,15 @@ class ReaderViewport extends StatefulWidget {
   final VoidCallback? onToggleTheme;
   final VoidCallback? onNextChapter;
   final VoidCallback? onPreviousChapter;
-  final ValueChanged<int>? onProgressChanged;
+  /// 进度变更回调：除字符偏移外，一并回传当前页首行文本，
+  /// 供书签摘要使用——此前书签摘要恒为本章第一段，列表里根本分不出是哪一页。
+  final void Function(int charOffset, String pageSnippet)? onProgressChanged;
   final VoidCallback? onToggleBookmark;
   final VoidCallback? onOpenNotes;
-  final VoidCallback? onAddAnnotation;
+  /// 长按划线回调：带上用户真正按到的那一行文本与字符区间。
+  /// 此前是无参回调，阅读页只能拿本章第一段来划线——
+  /// 不管按在哪里，划的永远是章节开头那句。
+  final void Function(String text, int charStart, int charEnd)? onAddAnnotation;
   final VoidCallback? onAddToShelf;
   final bool isInShelf;
   final List<Annotation> annotations;
@@ -95,6 +100,16 @@ class _ReaderViewportState extends State<ReaderViewport>
 
   // 覆盖/仿真翻页手势动效参数
   double _dragOffset = 0.0;
+
+  // 滚动流式阅读模式的进度上报（此前该模式完全不上报进度，退出后回到章首）
+  final ScrollController _scrollController = ScrollController();
+  DateTime _lastScrollReport = DateTime.fromMillisecondsSinceEpoch(0);
+
+  // 真实电量（null = 当前平台取不到，此时页脚不渲染电量，杜绝写死的 85% 假数据）
+  static const MethodChannel _deviceChannel =
+      MethodChannel('com.kline.novelreader/app_update');
+  double? _batteryLevel;
+  Timer? _batteryTimer;
   final StorageService _storageService = StorageService();
   bool _volumeKeyPagingEnabled = true;
 
@@ -117,9 +132,28 @@ class _ReaderViewportState extends State<ReaderViewport>
       duration: const Duration(milliseconds: 280),
     );
 
+    _refreshBatteryLevel();
+    _batteryTimer = Timer.periodic(
+        const Duration(minutes: 1), (_) => _refreshBatteryLevel());
+
     _pageController = PageController(initialPage: _currentPageIndex);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _volumeChannel.setMethodCallHandler(_handleVolumeCall);
+  }
+
+  /// 读取宿主平台真实电量；取不到就保持 null，页脚不显示电量
+  Future<void> _refreshBatteryLevel() async {
+    try {
+      final level = await _deviceChannel.invokeMethod<int>('getBatteryLevel');
+      if (!mounted) return;
+      final normalized =
+          (level == null || level < 0 || level > 100) ? null : level / 100.0;
+      if (normalized != _batteryLevel) {
+        setState(() => _batteryLevel = normalized);
+      }
+    } catch (_) {
+      // 非 Android 平台或通道未实现：静默保持 null
+    }
   }
 
   Future<void> _loadReaderPreferences() async {
@@ -138,8 +172,10 @@ class _ReaderViewportState extends State<ReaderViewport>
     _volumeChannel.setMethodCallHandler(null);
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _clockTimer?.cancel();
+    _batteryTimer?.cancel();
     _turnAnimController.dispose();
     _pageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -209,8 +245,10 @@ class _ReaderViewportState extends State<ReaderViewport>
 
     // 状态栏 + 页眉高度与呼吸留白，避让居中挖孔摄像头
     final padTop = safeTop + 36.0;
-    // 底部手势安全区 + 页脚高度与呼吸留白，避免末行正文紧贴页码
-    final padBottom = safeBottom + 28.0;
+    // 底部手势安全区 + 页脚高度与呼吸留白，避免末行正文紧贴页码。
+    // 此前额外留 28px，叠加整数行截断的富余后，末段结束到页脚常空出 4~5 行；
+    // 收紧到 16px，正文得以多排一行，观感更饱满。
+    final padBottom = safeBottom + 16.0;
 
     return PagingConfig(
       viewportWidth: size.width,
@@ -220,6 +258,8 @@ class _ReaderViewportState extends State<ReaderViewport>
       hPad: 20.0,
       padTop: padTop,
       padBottom: padBottom,
+      // 章末标记本身只占一行左右，此前预留 48px 造成末页额外空出两行
+      endMarkHeight: 20.0,
     );
   }
 
@@ -263,12 +303,70 @@ class _ReaderViewportState extends State<ReaderViewport>
       _pageController.jumpToPage(_currentPageIndex);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted &&
-          _pageController.hasClients &&
+      if (!mounted) return;
+      if (_pageController.hasClients &&
           _pageController.page?.round() != _currentPageIndex) {
         _pageController.jumpToPage(_currentPageIndex);
       }
+      _restoreScrollAnchor(anchor);
     });
+  }
+
+  /// 滚动流式模式下按 charOffset 还原滚动位置
+  ///
+  /// ListView 首帧往往还没完成布局，maxScrollExtent 仍是 0，
+  /// 此前直接 return 导致还原被静默跳过、重进永远停在章首。
+  /// 这里改为跨帧重试，直到拿到有效的 maxScrollExtent 为止。
+  void _restoreScrollAnchor(int anchor, {int attempt = 0}) {
+    if (widget.turnMode != PageTurnMode.scroll) return;
+    if (anchor <= 0) return;
+    if (attempt > 12) return;
+
+    final total = _totalCharsOfChapter;
+    if (total <= 0) return;
+
+    if (!_scrollController.hasClients ||
+        _scrollController.position.maxScrollExtent <= 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _restoreScrollAnchor(anchor, attempt: attempt + 1);
+      });
+      return;
+    }
+
+    final extent = _scrollController.position.maxScrollExtent;
+    final fraction = anchor >= 999999 ? 1.0 : (anchor / total).clamp(0.0, 1.0);
+    final target = (extent * fraction).clamp(0.0, extent);
+    if ((_scrollController.offset - target).abs() > 1.0) {
+      _scrollController.jumpTo(target);
+    }
+  }
+
+  /// 把长按坐标映射到具体行，取该行的文本与字符区间用于划线
+  void _handleLongPress(Offset pos, PagingConfig config) {
+    final cb = widget.onAddAnnotation;
+    if (cb == null) return;
+
+    // 滚动流式模式没有分页行坐标，退回按段落整体划线
+    if (widget.turnMode == PageTurnMode.scroll ||
+        _pages.isEmpty ||
+        _currentPageIndex >= _pages.length) {
+      cb('', -1, -1);
+      return;
+    }
+
+    final page = _pages[_currentPageIndex];
+    if (page.lines.isEmpty) {
+      cb('', -1, -1);
+      return;
+    }
+
+    // PagePainter 的排版起点：正文顶边，首页还要跳过章节大标题
+    final startY = config.padTop + (page.isFirstPage ? config.titleHeight : 0.0);
+    final rawIndex = ((pos.dy - startY) / config.lineHeight).floor();
+    final lineIndex = rawIndex.clamp(0, page.lines.length - 1);
+    final line = page.lines[lineIndex];
+
+    cb(line.text.trim(), line.charStart, line.charEnd);
   }
 
   void _handleTap(TapUpDetails details, Size size) {
@@ -371,11 +469,11 @@ class _ReaderViewportState extends State<ReaderViewport>
 
   void _notifyProgress() {
     if (_pages.isNotEmpty && _currentPageIndex < _pages.length) {
-      final currentOffset = _pages[_currentPageIndex].charStart;
+      final page = _pages[_currentPageIndex];
+      final currentOffset = page.charStart;
       _activeCharOffset = currentOffset;
-      if (widget.onProgressChanged != null) {
-        widget.onProgressChanged!(currentOffset);
-      }
+      final snippet = page.lines.isNotEmpty ? page.lines.first.text.trim() : '';
+      widget.onProgressChanged?.call(currentOffset, snippet);
     }
   }
 
@@ -400,7 +498,8 @@ class _ReaderViewportState extends State<ReaderViewport>
               // 1. 阅读正文视口渲染
               GestureDetector(
                 onTapUp: (details) => _handleTap(details, size),
-                onLongPress: () => widget.onAddAnnotation?.call(),
+                onLongPressStart: (d) =>
+                    _handleLongPress(d.localPosition, config),
                 behavior: HitTestBehavior.opaque,
                 child: _buildReaderBody(size, config),
               ),
@@ -420,12 +519,12 @@ class _ReaderViewportState extends State<ReaderViewport>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 32.0,
             height: 32.0,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              color: Color(0xFF5B7FFF),
+              color: widget.theme.accent,
             ),
           ),
           const SizedBox(height: 16.0),
@@ -486,7 +585,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                 if (widget.onRetry != null)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5B7FFF),
+                      backgroundColor: widget.theme.accent,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.0)),
@@ -567,6 +666,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                   theme: widget.theme,
                   bookTitle: widget.bookTitle,
                   currentTime: _currentTimeString,
+                  batteryLevel: _batteryLevel,
                   annotations: widget.annotations,
                 ),
               );
@@ -641,6 +741,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -667,6 +768,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                           theme: widget.theme,
                           bookTitle: widget.bookTitle,
                           currentTime: _currentTimeString,
+                          batteryLevel: _batteryLevel,
                           annotations: widget.annotations,
                         ),
                       ),
@@ -689,6 +791,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -714,6 +817,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                       theme: widget.theme,
                       bookTitle: widget.bookTitle,
                       currentTime: _currentTimeString,
+                      batteryLevel: _batteryLevel,
                       annotations: widget.annotations,
                     ),
                   ),
@@ -780,6 +884,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -811,6 +916,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                           theme: widget.theme,
                           bookTitle: widget.bookTitle,
                           currentTime: _currentTimeString,
+                          batteryLevel: _batteryLevel,
                           annotations: widget.annotations,
                         ),
                       ),
@@ -834,6 +940,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
+                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -866,6 +973,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                       theme: widget.theme,
                       bookTitle: widget.bookTitle,
                       currentTime: _currentTimeString,
+                      batteryLevel: _batteryLevel,
                       annotations: widget.annotations,
                     ),
                   ),
@@ -878,6 +986,46 @@ class _ReaderViewportState extends State<ReaderViewport>
     );
   }
 
+  /// 章节正文的总字符数，与排版引擎的 charOffset 坐标系一致
+  /// （每段经 normalizeParagraph 后会附加 2 个全角空格缩进）
+  int get _totalCharsOfChapter {
+    var total = 0;
+    for (final p in widget.paragraphs) {
+      final trimmed = p.trim();
+      if (trimmed.isEmpty) continue;
+      total += trimmed.startsWith('　　')
+          ? trimmed.length
+          : trimmed.length + 2;
+    }
+    return total;
+  }
+
+  /// 滚动模式下按滚动比例换算 charOffset 并节流上报，保证退出后能回到原位
+  void _reportScrollProgress(ScrollMetrics metrics) {
+    final now = DateTime.now();
+    if (now.difference(_lastScrollReport) < const Duration(milliseconds: 400)) {
+      return;
+    }
+    _lastScrollReport = now;
+
+    final total = _totalCharsOfChapter;
+    if (total <= 0) return;
+
+    final extent = metrics.maxScrollExtent;
+    final fraction =
+        extent <= 0 ? 0.0 : (metrics.pixels / extent).clamp(0.0, 1.0);
+    final offset = (total * fraction).round().clamp(0, total);
+
+    final changed = _activeCharOffset != offset;
+    _activeCharOffset = offset;
+    widget.onProgressChanged?.call(offset, '');
+    // 菜单展开时底部的「本章已读 N%」依赖 _activeCharOffset，
+    // 不 setState 的话文案会一直停在 0%
+    if (changed && _showMenu && mounted) {
+      setState(() {});
+    }
+  }
+
   /// 垂直连续流式阅读 (ScrollTurner)
   Widget _buildScrollView(Size size, PagingConfig config) {
     return NotificationListener<ScrollNotification>(
@@ -888,10 +1036,14 @@ class _ReaderViewportState extends State<ReaderViewport>
         } else if (notification.metrics.pixels <=
             notification.metrics.minScrollExtent - 25.0) {
           _triggerPreviousChapterDebounced();
+        } else if (notification is ScrollUpdateNotification ||
+            notification is ScrollEndNotification) {
+          _reportScrollProgress(notification.metrics);
         }
         return false;
       },
       child: ListView.builder(
+        controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.symmetric(horizontal: config.hPad, vertical: 40.0),
         itemCount: widget.paragraphs.length + 1,
@@ -987,204 +1139,35 @@ class _ReaderViewportState extends State<ReaderViewport>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 6.0),
-                // 右侧功能胶囊排布区：紧凑自适应排布，确保在任何屏宽下「书签」胶囊完整展现 (解决 3.1)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  reverse: false,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 加书架 / 已入架
-                      if (widget.onAddToShelf != null) ...[
-                        GestureDetector(
-                          key: const ValueKey('reader_top_shelf_btn'),
-                          onTap: widget.isInShelf ? null : widget.onAddToShelf,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5.0, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: widget.isInShelf
-                                  ? (isDark
-                                      ? Colors.white12
-                                      : Colors.black.withValues(alpha: 0.05))
-                                  : const Color(0xFF07C160)
-                                      .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  widget.isInShelf
-                                      ? Icons.check_circle_outline
-                                      : Icons.bookmark_add_outlined,
-                                  size: 13.5,
-                                  color: widget.isInShelf
-                                      ? const Color(0xFF07C160)
-                                      : widget.theme.textColor,
-                                ),
-                                const SizedBox(width: 2.0),
-                                Text(
-                                  widget.isInShelf ? '已入架' : '加书架',
-                                  style: TextStyle(
-                                    color: widget.isInShelf
-                                        ? const Color(0xFF07C160)
-                                        : widget.theme.textColor,
-                                    fontSize: 10.0,
-                                    fontWeight: widget.isInShelf
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 3.0),
-                      ],
-                      // 换源按钮
-                      if (widget.onOpenSourceSwitcher != null) ...[
-                        GestureDetector(
-                          key: const ValueKey('reader_top_source_btn'),
-                          onTap: widget.onOpenSourceSwitcher,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5.0, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: (isDark ? Colors.white : Colors.black)
-                                  .withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.swap_horiz_rounded,
-                                    size: 14.0, color: widget.theme.textColor),
-                                const SizedBox(width: 2.0),
-                                Text(
-                                  '换源',
-                                  style: TextStyle(
-                                      color: widget.theme.textColor,
-                                      fontSize: 10.0),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 3.0),
-                      ],
-                      // 笔记与划线按钮
-                      if (widget.onOpenNotes != null) ...[
-                        GestureDetector(
-                          key: const ValueKey('reader_top_notes_btn'),
-                          onTap: widget.onOpenNotes,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5.0, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: (isDark ? Colors.white : Colors.black)
-                                  .withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.rate_review_outlined,
-                                    size: 13.5, color: widget.theme.textColor),
-                                const SizedBox(width: 2.0),
-                                Text(
-                                  '笔记',
-                                  style: TextStyle(
-                                      color: widget.theme.textColor,
-                                      fontSize: 10.0),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 3.0),
-                      ],
-                      // 书签按钮
-                      if (widget.onToggleBookmark != null) ...[
-                        GestureDetector(
-                          key: const ValueKey('reader_top_bookmark_btn'),
-                          onTap: widget.onToggleBookmark,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5.0, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: widget.isBookmarked
-                                  ? const Color(0xFFE5A93C)
-                                      .withValues(alpha: 0.18)
-                                  : (isDark ? Colors.white : Colors.black)
-                                      .withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  widget.isBookmarked
-                                      ? Icons.bookmark_rounded
-                                      : Icons.bookmark_border_rounded,
-                                  size: 13.5,
-                                  color: widget.isBookmarked
-                                      ? const Color(0xFFE5A93C)
-                                      : widget.theme.textColor,
-                                ),
-                                const SizedBox(width: 2.0),
-                                Text(
-                                  '书签',
-                                  style: TextStyle(
-                                    color: widget.isBookmarked
-                                        ? const Color(0xFFE5A93C)
-                                        : widget.theme.textColor,
-                                    fontSize: 10.0,
-                                    fontWeight: widget.isBookmarked
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 3.0),
-                      ],
-                      // 离线缓存按钮
-                      if (widget.onOpenDownload != null) ...[
-                        GestureDetector(
-                          onTap: widget.onOpenDownload,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5.0, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: (isDark ? Colors.white : Colors.black)
-                                  .withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.download_rounded,
-                                    size: 13.5, color: widget.theme.textColor),
-                                const SizedBox(width: 2.0),
-                                Text(
-                                  '离线',
-                                  style: TextStyle(
-                                      color: widget.theme.textColor,
-                                      fontSize: 10.0),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                const SizedBox(width: 12.0),
+                // 右侧功能区：只保留高频的「换源」「书签」，
+                // 其余（加入书架 / 笔记 / 离线）收进「更多」菜单。
+                // 此前 5 个胶囊挤在一行、与书名几乎无间距，指尖很难点准。
+                if (widget.onOpenSourceSwitcher != null) ...[
+                  _buildTopIconButton(
+                    key: const ValueKey('reader_top_source_btn'),
+                    icon: Icons.swap_horiz_rounded,
+                    tooltip: '换源',
+                    isDark: isDark,
+                    onTap: widget.onOpenSourceSwitcher!,
                   ),
-                ),
+                  const SizedBox(width: 8.0),
+                ],
+                if (widget.onToggleBookmark != null) ...[
+                  _buildTopIconButton(
+                    key: const ValueKey('reader_top_bookmark_btn'),
+                    icon: widget.isBookmarked
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    tooltip: widget.isBookmarked ? '取消书签' : '加书签',
+                    isDark: isDark,
+                    highlightColor:
+                        widget.isBookmarked ? const Color(0xFFE5A93C) : null,
+                    onTap: widget.onToggleBookmark!,
+                  ),
+                  const SizedBox(width: 8.0),
+                ],
+                _buildTopOverflowMenu(isDark),
               ],
             ),
           ),
@@ -1198,6 +1181,8 @@ class _ReaderViewportState extends State<ReaderViewport>
     final isDark = widget.theme.isDark;
     final total = _pages.isEmpty ? 1 : _pages.length;
     final current = (_currentPageIndex + 1).clamp(1, total);
+    // 无缝流式没有"页"的概念，显示页码与页码滑块既无意义也不会跟随滚动
+    final isScrollMode = widget.turnMode == PageTurnMode.scroll;
 
     return Positioned(
       bottom: 0,
@@ -1242,11 +1227,12 @@ class _ReaderViewportState extends State<ReaderViewport>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (!isScrollMode)
                           Slider(
                             value: current.toDouble(),
                             min: 1.0,
                             max: (total > 1 ? total : 1).toDouble(),
-                            activeColor: const Color(0xFF5B7FFF),
+                            activeColor: widget.theme.accent,
                             inactiveColor: widget.theme.subTextColor
                                 .withValues(alpha: 0.3),
                             onChanged: total > 1
@@ -1259,13 +1245,18 @@ class _ReaderViewportState extends State<ReaderViewport>
                                       } else {
                                         setState(
                                             () => _currentPageIndex = target);
+                                        // 非 slide 模式不会触发 onPageChanged，
+                                        // 需手动上报进度，否则拖动滑块后进度不落盘
+                                        _notifyProgress();
                                       }
                                     }
                                   }
                                 : null,
                           ),
                           Text(
-                            '第 $current / $total 页',
+                            isScrollMode
+                                ? '本章已读 ${_scrollPercentLabel()}'
+                                : '第 $current / $total 页',
                             style: TextStyle(
                               fontSize: 11.0,
                               color: widget.theme.subTextColor,
@@ -1320,6 +1311,121 @@ class _ReaderViewportState extends State<ReaderViewport>
         ),
       ),
     );
+  }
+
+  /// 顶栏图标按钮：紧凑但不拥挤，保持足够触控热区
+  Widget _buildTopIconButton({
+    required Key key,
+    required IconData icon,
+    required String tooltip,
+    required bool isDark,
+    required VoidCallback onTap,
+    Color? highlightColor,
+  }) {
+    final base = highlightColor ?? widget.theme.textColor;
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        key: key,
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 34.0,
+          height: 34.0,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: highlightColor != null
+                ? highlightColor.withValues(alpha: 0.16)
+                : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Icon(icon, size: 17.0, color: base),
+        ),
+      ),
+    );
+  }
+
+  /// 低频操作收进「更多」菜单，给书名让出呼吸空间
+  Widget _buildTopOverflowMenu(bool isDark) {
+    final entries = <PopupMenuEntry<String>>[];
+    if (widget.onAddToShelf != null) {
+      entries.add(PopupMenuItem<String>(
+        value: 'shelf',
+        enabled: !widget.isInShelf,
+        child: Row(children: [
+          Icon(
+            widget.isInShelf
+                ? Icons.check_circle_rounded
+                : Icons.library_add_outlined,
+            size: 18.0,
+            color: widget.isInShelf ? Colors.green : null,
+          ),
+          const SizedBox(width: 10.0),
+          Text(widget.isInShelf ? '已入架' : '加入书架'),
+        ]),
+      ));
+    }
+    if (widget.onOpenNotes != null) {
+      entries.add(const PopupMenuItem<String>(
+        value: 'notes',
+        child: Row(children: [
+          Icon(Icons.rate_review_outlined, size: 18.0),
+          SizedBox(width: 10.0),
+          Text('笔记与划线'),
+        ]),
+      ));
+    }
+    if (widget.onOpenDownload != null) {
+      entries.add(const PopupMenuItem<String>(
+        value: 'download',
+        child: Row(children: [
+          Icon(Icons.download_rounded, size: 18.0),
+          SizedBox(width: 10.0),
+          Text('离线缓存'),
+        ]),
+      ));
+    }
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    return PopupMenuButton<String>(
+      key: const ValueKey('reader_top_more_btn'),
+      tooltip: '更多',
+      padding: EdgeInsets.zero,
+      color: isDark ? const Color(0xFF232529) : Colors.white,
+      itemBuilder: (_) => entries,
+      onSelected: (v) {
+        switch (v) {
+          case 'shelf':
+            widget.onAddToShelf?.call();
+            break;
+          case 'notes':
+            widget.onOpenNotes?.call();
+            break;
+          case 'download':
+            widget.onOpenDownload?.call();
+            break;
+        }
+      },
+      child: Container(
+        width: 34.0,
+        height: 34.0,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        child: Icon(Icons.more_horiz_rounded,
+            size: 18.0, color: widget.theme.textColor),
+      ),
+    );
+  }
+
+  /// 滚动模式下用章内百分比替代页码
+  String _scrollPercentLabel() {
+    final total = _totalCharsOfChapter;
+    if (total <= 0) return '0%';
+    final pct = ((_activeCharOffset / total) * 100).clamp(0.0, 100.0);
+    return '${pct.toStringAsFixed(0)}%';
   }
 
   Widget _buildActionButton({

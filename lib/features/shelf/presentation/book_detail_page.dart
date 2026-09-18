@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/components/book_cover_widget.dart';
+import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
@@ -38,6 +39,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
   bool _isInShelf = false;
   bool _isLoadingToc = true;
+
+  /// 目录抓取失败：宁可空着让用户重试/换源，也不能塞 12 章假目录冒充真目录
+  bool _tocFailed = false;
   bool _isReversed = false;
   bool _isIntroExpanded = false;
   bool _isAllChaptersExpanded = false;
@@ -115,9 +119,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     // 1. 若非强制刷新，优先读取沙盒缓存目录
     if (!forceRefresh) {
       final cachedToc = await _storageService.getBookToc(_book.id);
-      if (cachedToc != null &&
-          cachedToc.length >= 20 &&
-          cachedToc.any((c) => (c['url'] as String? ?? '').isNotEmpty)) {
+      // 与 StorageService.getBookToc 保持同一套脏数据判据，
+      // 不再用「章节数 >= 20」误伤短篇书
+      if (cachedToc != null && !StorageService.isDirtyToc(cachedToc)) {
         if (mounted) {
           setState(() {
             _chapters = cachedToc.map((m) => ChapterItem.fromJson(m)).toList();
@@ -186,6 +190,7 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
             .timeout(const Duration(seconds: 8));
         if (toc.isNotEmpty) {
           _chapters = toc;
+          _tocFailed = false;
           await _storageService.saveBookToc(_book.id, toc);
           if (mounted) {
             setState(() => _isLoadingToc = false);
@@ -199,8 +204,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     }
 
     // 3. 网络异常且无缓存时的仅内存临时兜底，绝不写入本地持久化缓存以防污染
+    // 此前这里会回退到 ChapterHelper 的 12 章假目录，
+    // 用户看到的是「伯爵的儿子 / 白痴 / 文不成武不就…」这种伪造章节，
+    // 却完全不知道真目录根本没拉到。
     if (_chapters.isEmpty) {
-      _chapters = ChapterHelper.getFallbackChapters(_book.title);
+      _tocFailed = true;
     }
     if (mounted) {
       setState(() => _isLoadingToc = false);
@@ -477,10 +485,14 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
     final displayChapters =
         _isReversed ? _chapters.reversed.toList() : _chapters;
-    final totalChaptersCount =
-        _chapters.isNotEmpty ? _chapters.length : _book.totalChapters;
-    final readWordCount = _book.wordCount ??
-        '${(totalChaptersCount * 0.28).toStringAsFixed(1)}万字';
+    // 目录没拉到时不要拿 BookItem 的默认章节数顶上——
+    // 会出现"篇幅 100 章"和下方"目录获取失败"自相矛盾
+    final hasRealToc = _chapters.isNotEmpty;
+    final totalChaptersCount = hasRealToc ? _chapters.length : 0;
+    // 书源不返回字数，此前按"章节数 × 0.28"伪造成"198.2万字"。
+    // 拿不到真实字数时改为展示真实的章节总数。
+    final readWordCount =
+        _book.wordCount ?? (hasRealToc ? '$totalChaptersCount 章' : '—');
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -704,7 +716,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                       children: [
                                         _buildTag(colors, _book.category),
                                         _buildTag(colors, _book.status),
-                                        _buildTag(colors, '已连通 12 组源'),
+                                        // 此前写死"已连通 12 组源"，改为展示真实生效的书源
+                                        _buildTag(colors, _book.sourceName),
                                       ],
                                     ),
                                   ],
@@ -733,11 +746,19 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                   children: [
                     _buildStatItem(colors, '状态', _book.status, isGold: false),
                     _buildStatDivider(colors),
-                    _buildStatItem(colors, '总字数', readWordCount, isGold: false),
-                    _buildStatDivider(colors),
-                    _buildStatItem(
-                        colors, '读者评分', '★ ${_book.rating.toStringAsFixed(1)}',
-                        isGold: true),
+                    _buildStatItem(colors, '篇幅', readWordCount, isGold: false),
+                    // 书源不提供评分，拿不到真实值就不显示这一格，
+                    // 而不是给每本书都挂一个写死的"★ 9.6"
+                    if (_book.rating != null) ...[
+                      _buildStatDivider(colors),
+                      _buildStatItem(colors, '读者评分',
+                          '★ ${_book.rating!.toStringAsFixed(1)}',
+                          isGold: true),
+                    ] else ...[
+                      _buildStatDivider(colors),
+                      _buildStatItem(colors, '书源', _book.sourceName,
+                          isGold: false),
+                    ],
                   ],
                 ),
               ),
@@ -982,11 +1003,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                 child: Center(
                   child: Column(
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 24.0,
                         height: 24.0,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2.0, color: Color(0xFF5B7FFF)),
+                            strokeWidth: 2.0, color: colors.accent),
                       ),
                       const SizedBox(height: 10.0),
                       Text('正在从【${_book.sourceName}】同步千章目录...',
@@ -994,6 +1015,38 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                               fontSize: 12.0, color: colors.textSecondary)),
                     ],
                   ),
+                ),
+              ),
+            )
+          else if (_tocFailed || _chapters.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0, vertical: 28.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.cloud_off_rounded,
+                        size: 36.0, color: colors.textSecondary),
+                    const SizedBox(height: 10.0),
+                    Text('目录获取失败',
+                        style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: colors.textPrimary)),
+                    const SizedBox(height: 6.0),
+                    Text('网络不稳定或【${_book.sourceName}】暂未收录本书',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary)),
+                    const SizedBox(height: 14.0),
+                    SoftButton(
+                      colors: colors,
+                      isFilled: true,
+                      isPill: true,
+                      onPressed: () => _loadToc(forceRefresh: true),
+                      child: const Text('重新获取目录'),
+                    ),
+                  ],
                 ),
               ),
             )
@@ -1302,7 +1355,7 @@ class _BookDetailTocHeaderDelegate extends SliverPersistentHeaderDelegate {
               ),
               const SizedBox(width: 8.0),
               Text(
-                '共 $totalCount 章',
+                totalCount > 0 ? '共 $totalCount 章' : '暂未获取',
                 style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
               ),
               const Spacer(),

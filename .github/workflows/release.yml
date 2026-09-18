@@ -113,6 +113,45 @@ jobs:
           cat SHA256SUMS.txt
           cd ..
 
+      # 把三个 ABI 包的真实下载地址、sha256 与体积回填进 version_manifest.json，
+      # 并提交回 main —— 客户端就是从 main 拉这份清单的。
+      # 不回填的话：客户端的完整性校验会拦下自家的包，
+      # 且 armeabi-v7a 设备会下到 arm64 包而 INSTALL_FAILED_NO_MATCHING_ABIS。
+      - name: Fill Version Manifest (URLs / sha256 / fileSize)
+        run: |
+          TAG="${{ github.event.inputs.version_tag || github.ref_name }}"
+          dart run tool/sync_version_manifest.dart --write --tag "$TAG" \
+            --apk arm64-v8a=release-artifacts/apk/novel-reader-arm64-v8a.apk \
+            --apk armeabi-v7a=release-artifacts/apk/novel-reader-armeabi-v7a.apk \
+            --apk x86_64=release-artifacts/apk/novel-reader-x86_64.apk
+          cat version_manifest.json
+
+      - name: Commit Manifest Back to main
+        run: |
+          if git diff --quiet version_manifest.json; then
+            echo "清单无变化，跳过提交"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version_manifest.json
+          git commit -m "chore(release): 回填 ${{ github.event.inputs.version_tag || github.ref_name }} 的下载地址与 sha256 校验和"
+          git push origin HEAD:main
+
+      # 发布说明直接取 version_manifest.json 里的 releaseNotes，
+      # 与用户在 App 内「发现新版本」弹窗看到的文案是同一份，避免两处各写一套。
+      - name: Compose Release Body
+        run: |
+          {
+            echo "## 藏书阁 (Novel Reader) $(jq -r .versionName version_manifest.json)"
+            echo
+            jq -r .releaseNotes version_manifest.json
+            echo
+            echo "安装包按 ABI 分发，arm64-v8a 适用于绝大多数机型；"
+            echo "各包的 sha256 见 SHA256SUMS.txt，App 内更新时会自动校验。"
+          } > RELEASE_BODY.md
+          cat RELEASE_BODY.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
@@ -129,12 +168,5 @@ jobs:
             release-artifacts/aab/*.aab
             release-artifacts/novel-reader-web.zip
             release-artifacts/SHA256SUMS.txt
-          body: |
-            ## 藏书阁 (Novel Reader) 生产正式发版
-
-            ### 💎 核心亮点
-            - **全量 14 阶段完整落地**：从排版引擎到全网换源、离线并发、大文件分章、自然语音听书、WebDAV 云漫游到纯血鸿蒙 NEXT 对等支持；
-            - **出版级 CJK 排版引擎**：整数行截断、字符锚点追踪、四种翻页动效，彻底告别半行切割；
-            - **Modern Soft UI 视觉设计**：连续曲率 Squircle、双层微阴影与 62px 悬浮毛玻璃胶囊 Dock；
-            - **极客瘦身架构**：R8 代码混淆优化 + 资源修剪，单架构 APK 体积仅 ~22MB（较 Debug 瘦身 85%+）；
-            - **全平台多端对等**：Android、iOS、OpenHarmony NEXT (纯血鸿蒙)、Web (WASM)。
+            version_manifest.json
+          body_path: RELEASE_BODY.md

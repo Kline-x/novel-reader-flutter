@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
+import '../../../core/components/docked_bottom_bar.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
 import '../../reader/services/chapter_helper.dart';
@@ -909,7 +910,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               ),
             ],
 
-            const SliverToBoxAdapter(child: SizedBox(height: 120.0)),
+            SliverToBoxAdapter(
+                child: SizedBox(
+                    height: DockedBottomBar.contentBottomPadding(context))),
           ],
         ),
       ),

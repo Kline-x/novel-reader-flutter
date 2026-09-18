@@ -6,6 +6,7 @@ import '../../shelf/models/book_item.dart';
 import '../../sources/services/builtin_sources.dart';
 import '../../sources/services/source_parser.dart';
 import '../../sources/services/multi_source_service.dart';
+import '../../sources/models/book_search_result.dart';
 import '../../sources/models/source_rule.dart';
 import '../../tts/presentation/tts_control_sheet.dart';
 import '../../tts/presentation/tts_mini_player.dart';
@@ -67,6 +68,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
   bool _isInShelf = false;
   List<Annotation> _annotations = [];
   double _ttsMiniOffsetY = 0.0;
+
+  /// 当前页首行文本，用于书签摘要（避免每条书签都显示本章第一段）
+  String _currentPageSnippet = '';
 
   late int _currentChapterIndex;
   late int _currentCharOffset;
@@ -386,8 +390,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
 
     // 4. 网络异常且无缓存时的内存临时降级（绝不向本地沙盒写入12章假目录）
-    if (_chapters.isEmpty) {
-      _chapters = ChapterHelper.getFallbackChapters(widget.bookTitle);
+    // 不再回退到 12 章假目录——宁可显示错误态让用户重试或换源，
+    // 也不能拿伪造的章节名冒充真目录
+    if (_chapters.isEmpty && mounted) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
+      return;
     }
     if (mounted) {
       setState(() => _isLoading = false);
@@ -435,6 +445,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           charOffset: _currentCharOffset,
         );
         await _loadAnnotations();
+        await _checkBookmarkStatus();
         return;
       }
     }
@@ -445,7 +456,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
       if (mounted) {
         setState(() {
           _currentChapterIndex = validIndex;
-          _currentParagraphs = cached;
+          _currentParagraphs = ChapterHelper.stripDuplicateTitle(
+              cached, _chapters[validIndex].title);
           _isLoading = false;
           _hasError = false;
         });
@@ -456,6 +468,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         charOffset: _currentCharOffset,
       );
       await _loadAnnotations();
+      await _checkBookmarkStatus();
       return;
     }
 
@@ -477,7 +490,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
           if (mounted) {
             setState(() {
               _currentChapterIndex = validIndex;
-              _currentParagraphs = fetchedParas;
+              _currentParagraphs =
+                  ChapterHelper.stripDuplicateTitle(fetchedParas, chapter.title);
               _isLoading = false;
               _hasError = false;
             });
@@ -488,6 +502,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             charOffset: _currentCharOffset,
           );
           await _loadAnnotations();
+          await _checkBookmarkStatus();
           return;
         }
       } catch (e) {
@@ -514,6 +529,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         charOffset: _currentCharOffset,
       );
       await _loadAnnotations();
+      await _checkBookmarkStatus();
       return;
     }
 
@@ -539,6 +555,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       charOffset: _currentCharOffset,
     );
     await _loadAnnotations();
+    await _checkBookmarkStatus();
   }
 
   Future<void> _loadSettings() async {
@@ -585,15 +602,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _persistSettings();
   }
 
-  void _nextChapter() {
+  Future<void> _nextChapter() async {
     if (_currentChapterIndex < _chapters.length - 1) {
-      _loadChapterContent(_currentChapterIndex + 1, landOnLastPage: false);
+      await _loadChapterContent(_currentChapterIndex + 1,
+          landOnLastPage: false);
     }
   }
 
-  void _previousChapter() {
+  Future<void> _previousChapter() async {
     if (_currentChapterIndex > 0) {
-      _loadChapterContent(_currentChapterIndex - 1, landOnLastPage: true);
+      await _loadChapterContent(_currentChapterIndex - 1,
+          landOnLastPage: true);
     }
   }
 
@@ -641,6 +660,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
+  /// 换源：先探活候选书源，再由用户确认目标书籍，杜绝"串书"
+  ///
+  /// 此前的实现用 `t.contains(name) || name.contains(t)` 双向包含匹配，
+  /// 再直接取 `matches.first`，导致任何书名里含原书名的同人文都会被换上，
+  /// 且顶栏仍显示原书名，用户完全无法察觉自己已经在读另一本书。
   void _openSourceSwitcher() {
     final isLocal =
         widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
@@ -656,254 +680,468 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
 
     const sources = BuiltinSources.all;
+    // 真实测速结果：sourceId -> 延迟(ms)，null 表示不可达，缺省表示仍在测
+    final latencyMap = <String, int?>{};
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        final isDark = _theme.isDark;
-        final cardBg = isDark ? const Color(0xFF1E1E20) : Colors.white;
-        final textPri = isDark ? Colors.white : const Color(0xFF2B2824);
-        final textSec = isDark ? Colors.white60 : const Color(0xFF8A8275);
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final isDark = _theme.isDark;
+            final accent = _theme.accent;
+            final cardBg = isDark ? const Color(0xFF1E1E20) : Colors.white;
+            final textPri = isDark ? Colors.white : const Color(0xFF2B2824);
+            final textSec = isDark ? Colors.white60 : const Color(0xFF8A8275);
 
-        return Material(
-          color: cardBg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-          child: Container(
-            height: MediaQuery.of(sheetContext).size.height * 0.65,
-            padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 拖动握柄
-                Center(
-                  child: Container(
-                    width: 36.0,
-                    height: 4.0,
-                    decoration: BoxDecoration(
-                      color: textSec.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2.0),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // 首次构建时发起真实测速（替换此前 45 + index*13 的伪造等差数列）
+            if (latencyMap.isEmpty) {
+              _multiSourceService.pingAllSources().then((results) {
+                for (final r in results) {
+                  latencyMap[r.sourceId] = r.latencyMs;
+                }
+                if (sheetContext.mounted) setSheetState(() {});
+              }).catchError((_) {
+                for (final s in sources) {
+                  latencyMap[s.id] = null;
+                }
+                if (sheetContext.mounted) setSheetState(() {});
+              });
+            }
+
+            final probedCount = latencyMap.values.where((v) => v != null).length;
+
+            return Material(
+              color: cardBg,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24.0)),
+              child: Container(
+                height: MediaQuery.of(sheetContext).size.height * 0.65,
+                padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '全网可用书源热切',
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                        color: textPri,
+                    Center(
+                      child: Container(
+                        width: 36.0,
+                        height: 4.0,
+                        decoration: BoxDecoration(
+                          color: textSec.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2.0),
+                        ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 3.0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5B7FFF).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: const Text(
-                        '已连通 12 组稳定书源',
-                        style: TextStyle(
-                            fontSize: 11.0,
-                            color: Color(0xFF5B7FFF),
-                            fontWeight: FontWeight.bold),
+                    const SizedBox(height: 16.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '切换书源',
+                          style: TextStyle(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
+                            color: textPri,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0, vertical: 3.0),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: Text(
+                            latencyMap.isEmpty
+                                ? '正在测速...'
+                                : '$probedCount/${sources.length} 组可达',
+                            style: TextStyle(
+                              fontSize: 11.0,
+                              color: accent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4.0),
+                    Text(
+                      '换源前会先核对书名与作者，确认无误后才替换目录',
+                      style: TextStyle(fontSize: 12.0, color: textSec),
+                    ),
+                    const SizedBox(height: 12.0),
+                    Expanded(
+                      child: ListView.separated(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: sources.length,
+                        separatorBuilder: (_, __) => Divider(
+                          height: 1.0,
+                          color: textSec.withValues(alpha: 0.1),
+                        ),
+                        itemBuilder: (itemCtx, index) {
+                          final source = sources[index];
+                          final isCurrent = source.name == _currentSourceName;
+                          final isGbk =
+                              source.charset.toLowerCase().contains('gb');
+                          final probed = latencyMap.containsKey(source.id);
+                          final latency = latencyMap[source.id];
+
+                          return ListTile(
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 4.0),
+                            leading: Container(
+                              width: 38.0,
+                              height: 38.0,
+                              decoration: BoxDecoration(
+                                color: isCurrent
+                                    ? accent
+                                    : (isDark
+                                        ? Colors.white10
+                                        : Colors.black.withValues(alpha: 0.05)),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                source.name.characters.take(1).toString(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isCurrent ? Colors.white : textPri,
+                                ),
+                              ),
+                            ),
+                            title: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    source.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 15.0,
+                                      fontWeight: isCurrent
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      color: isCurrent ? accent : textPri,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8.0),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5.0, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: (isGbk ? Colors.orange : Colors.blue)
+                                        .withValues(alpha: 0.14),
+                                    borderRadius: BorderRadius.circular(4.0),
+                                  ),
+                                  child: Text(
+                                    isGbk ? 'GBK转码' : 'UTF-8',
+                                    style: TextStyle(
+                                      fontSize: 9.0,
+                                      color: isGbk ? Colors.orange : Colors.blue,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                _buildLatencyBadge(probed, latency),
+                              ],
+                            ),
+                            subtitle: Text(
+                              !probed
+                                  ? '正在探测连通性...'
+                                  : (latency == null ? '当前不可达' : '连通正常'),
+                              style: TextStyle(fontSize: 11.0, color: textSec),
+                            ),
+                            trailing: isCurrent
+                                ? Icon(Icons.check_circle,
+                                    color: accent, size: 20.0)
+                                : Icon(Icons.chevron_right,
+                                    color: textSec.withValues(alpha: 0.4),
+                                    size: 18.0),
+                            onTap: isCurrent
+                                ? null
+                                : () {
+                                    Navigator.of(sheetContext).pop();
+                                    _switchToSource(source);
+                                  },
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4.0),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLatencyBadge(bool probed, int? latency) {
+    if (!probed) {
+      return const SizedBox(
+        width: 12.0,
+        height: 12.0,
+        child: CircularProgressIndicator(strokeWidth: 1.6),
+      );
+    }
+    final ok = latency != null;
+    final color =
+        ok ? (latency < 400 ? Colors.green : Colors.orange) : Colors.redAccent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6.0),
+      ),
+      child: Text(
+        ok ? '${latency}ms' : '超时',
+        style:
+            TextStyle(fontSize: 11.0, color: color, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  /// 执行换源：搜索 → 择优匹配 → 用户确认 → 替换目录
+  Future<void> _switchToSource(SourceRule chosenSource) async {
+    final cleanName = ChapterHelper.cleanTitle(widget.bookTitle);
+    final oldChapterCount = _chapters.length;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('正在【${chosenSource.name}】中查找《${widget.bookTitle}》...'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    List<BookSearchResult> searchRes = [];
+    try {
+      searchRes = await _parser
+          .searchBooks(chosenSource, cleanName)
+          .timeout(const Duration(seconds: 6));
+    } catch (e) {
+      debugPrint('换源检索失败: $e');
+    }
+
+    if (!mounted) return;
+
+    // 1) 只认书名精确相等（去掉书名号与空白后）
+    final exact = searchRes.where((b) {
+      final t = ChapterHelper.cleanTitle(b.title);
+      return t == cleanName;
+    }).toList();
+
+    // 2) 精确匹配里若有作者也对得上的，优先用它
+    BookSearchResult? target;
+    if (exact.isNotEmpty) {
+      final authorMatched = exact.where((b) {
+        final a = b.author.trim();
+        return a.isNotEmpty && a == widget.author.trim();
+      }).toList();
+      target = authorMatched.isNotEmpty ? authorMatched.first : exact.first;
+    }
+
+    // 3) 没有精确匹配时，绝不自动采用模糊结果，交给用户自己挑
+    if (target == null) {
+      final fuzzy = searchRes.where((b) {
+        final t = ChapterHelper.cleanTitle(b.title);
+        return t.contains(cleanName) || cleanName.contains(t);
+      }).toList();
+
+      if (fuzzy.isEmpty) {
+        _showSourceFailure(
+            '【${chosenSource.name}】未收录《${widget.bookTitle}》，已为您保留当前书源');
+        return;
+      }
+      target = await _pickCandidate(fuzzy, chosenSource.name);
+      if (target == null || !mounted) return;
+    }
+
+    final picked = target;
+
+    // 4) 拉取新源目录
+    List<ChapterItem> newToc = [];
+    try {
+      newToc = await _parser
+          .fetchToc(chosenSource, picked.bookUrl)
+          .timeout(const Duration(seconds: 8));
+    } catch (e) {
+      debugPrint('换源目录拉取失败: $e');
+    }
+
+    if (!mounted) return;
+    if (newToc.isEmpty) {
+      _showSourceFailure('【${chosenSource.name}】目录解析失败，已为您保留当前书源');
+      return;
+    }
+
+    // 5) 章节数偏差过大时二次确认——这是"串书"的最后一道闸门
+    if (oldChapterCount > 0 && newToc.length < oldChapterCount * 0.5) {
+      final go = await _confirmDialog(
+        title: '目录差异较大',
+        content: '当前书源有 $oldChapterCount 章，'
+            '【${chosenSource.name}】的《${picked.title}》只有 ${newToc.length} 章。\n\n'
+            '这可能不是同一本书，继续切换会替换整个目录。确定继续吗？',
+        confirmText: '仍要切换',
+      );
+      if (go != true || !mounted) return;
+    }
+
+    // 6) 告知将清除离线缓存
+    final cachedCount = await _storage.getDownloadedChaptersCount(widget.bookId);
+    if (!mounted) return;
+    if (cachedCount > 0) {
+      final go = await _confirmDialog(
+        title: '切换书源',
+        content:
+            '切换后将清除本书已下载的 $cachedCount 章离线缓存（新书源的章节编号与旧源不一致）。\n\n确定切换吗？',
+        confirmText: '确定切换',
+      );
+      if (go != true || !mounted) return;
+    }
+
+    setState(() {
+      _currentSourceName = chosenSource.name;
+      _chapters = newToc;
+      _resolvedBookUrl = picked.bookUrl;
+    });
+
+    // 旧书源写下的正文缓存必须清掉，否则会继续命中旧内容
+    await _storage.clearBookCache(widget.bookId);
+    await _storage.saveBookToc(widget.bookId, newToc);
+    if (_currentChapterIndex >= _chapters.length) {
+      _currentChapterIndex = 0;
+    }
+    await _loadChapterContent(_currentChapterIndex);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已切换至【${chosenSource.name}】，共 ${newToc.length} 章'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showSourceFailure(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<bool?> _confirmDialog({
+    required String title,
+    required String content,
+    required String confirmText,
+  }) {
+    final isDark = _theme.isDark;
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E20) : Colors.white,
+        title: Text(title,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+        content: Text(content,
+            style: TextStyle(
+                fontSize: 13.5,
+                height: 1.5,
+                color: isDark ? Colors.white70 : Colors.black87)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            child: Text(confirmText, style: TextStyle(color: _theme.accent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 无精确匹配时，把候选书目摊开让用户自己确认，绝不替用户瞎猜
+  Future<BookSearchResult?> _pickCandidate(
+      List<BookSearchResult> candidates, String sourceName) {
+    final isDark = _theme.isDark;
+    return showModalBottomSheet<BookSearchResult>(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E1E20) : Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  '智能保持字符锚点（charOffset）与章节进度，切换书源分毫不跳',
-                  style: TextStyle(fontSize: 12.0, color: textSec),
+                  '【$sourceName】没有完全同名的作品',
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6.0),
+                Text(
+                  '以下是名称相近的结果，请确认哪一本才是您在读的《${widget.bookTitle}》',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      color: isDark ? Colors.white60 : Colors.black54),
                 ),
                 const SizedBox(height: 12.0),
-                Expanded(
+                Flexible(
                   child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: sources.length,
-                    separatorBuilder: (_, __) => Divider(
-                      height: 1.0,
-                      color: textSec.withValues(alpha: 0.1),
-                    ),
-                    itemBuilder: (itemCtx, index) {
-                      final source = sources[index];
-                      final isCurrent = source.name == _currentSourceName;
-                      final latency = 45 + (index * 13) % 120;
-                      final isGbk = source.charset.toLowerCase().contains('gb');
-
+                    shrinkWrap: true,
+                    itemCount: candidates.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final b = candidates[i];
                       return ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 4.0),
-                        leading: Container(
-                          width: 38.0,
-                          height: 38.0,
-                          decoration: BoxDecoration(
-                            color: isCurrent
-                                ? const Color(0xFF5B7FFF)
-                                : (isDark
-                                    ? Colors.white10
-                                    : Colors.black.withValues(alpha: 0.05)),
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            source.name.characters.take(1).toString(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isCurrent ? Colors.white : textPri,
-                            ),
-                          ),
-                        ),
-                        title: Row(
-                          children: [
-                            Text(
-                              source.name,
-                              style: TextStyle(
-                                fontSize: 15.0,
-                                fontWeight: isCurrent
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                                color: isCurrent
-                                    ? const Color(0xFF5B7FFF)
-                                    : textPri,
-                              ),
-                            ),
-                            const SizedBox(width: 8.0),
-                            if (isGbk)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 5.0, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                child: const Text('GBK转码',
-                                    style: TextStyle(
-                                        fontSize: 9.0,
-                                        color: Colors.orange,
-                                        fontWeight: FontWeight.bold)),
-                              )
-                            else
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 5.0, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(4.0),
-                                ),
-                                child: const Text('UTF-8',
-                                    style: TextStyle(
-                                        fontSize: 9.0,
-                                        color: Colors.blue,
-                                        fontWeight: FontWeight.bold)),
-                              ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6.0, vertical: 2.0),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6.0),
-                              ),
-                              child: Text(
-                                '${latency}ms',
-                                style: const TextStyle(
-                                    fontSize: 11.0,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
+                        title: Text(
+                          b.title,
+                          style: TextStyle(
+                              fontSize: 14.5,
+                              color: isDark ? Colors.white : Colors.black87),
                         ),
                         subtitle: Text(
-                          '目录已核准 · 最新更新至当前章',
-                          style: TextStyle(fontSize: 11.0, color: textSec),
+                          [
+                            if (b.author.isNotEmpty) b.author,
+                            if (b.latestChapter?.isNotEmpty == true)
+                              '最新：${b.latestChapter}',
+                          ].join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark ? Colors.white54 : Colors.black45),
                         ),
-                        trailing: isCurrent
-                            ? const Icon(Icons.check_circle,
-                                color: Color(0xFF5B7FFF), size: 20.0)
-                            : Icon(Icons.chevron_right,
-                                color: textSec.withValues(alpha: 0.4),
-                                size: 18.0),
-                        onTap: () async {
-                          final chosenSource = source;
-                          Navigator.of(sheetContext).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content:
-                                  Text('正在探活【${chosenSource.name}】全本目录收录情况...'),
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
-                          try {
-                            final cleanName = widget.bookTitle
-                                .replaceAll(RegExp(r'[《》【】\s]'), '');
-                            final searchRes = await _parser
-                                .searchBooks(chosenSource, cleanName)
-                                .timeout(const Duration(seconds: 5));
-                            final matches = searchRes.where((b) {
-                              final t =
-                                  b.title.replaceAll(RegExp(r'[《》【】\s]'), '');
-                              return t == cleanName ||
-                                  t.contains(cleanName) ||
-                                  cleanName.contains(t);
-                            }).toList();
-                            if (matches.isNotEmpty) {
-                              final match = matches.first;
-                              final newToc = await _parser
-                                  .fetchToc(chosenSource, match.bookUrl)
-                                  .timeout(const Duration(seconds: 7));
-                              if (newToc.isNotEmpty) {
-                                setState(() {
-                                  _currentSourceName = chosenSource.name;
-                                  _chapters = newToc;
-                                  _resolvedBookUrl = match.bookUrl;
-                                });
-                                await _storage.saveBookToc(
-                                    widget.bookId, newToc);
-                                if (_currentChapterIndex >= _chapters.length) {
-                                  _currentChapterIndex = 0;
-                                }
-                                await _loadChapterContent(_currentChapterIndex);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context)
-                                      .hideCurrentSnackBar();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          '已成功平滑切至书源【${chosenSource.name}】，共获取 ${newToc.length} 章目录！'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                                return;
-                              }
-                            }
-                          } catch (e) {
-                            debugPrint('后台对齐新源目录失败: $e');
-                          }
-
-                          // 目标源未收录或解析失败时的安全保护
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    '【${chosenSource.name}】暂未收录《${widget.bookTitle}》，已为您保留当前高可用源！'),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
+                        onTap: () => Navigator.of(ctx).pop(b),
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 8.0),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('都不是，保留当前书源'),
                   ),
                 ),
               ],
@@ -967,9 +1205,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final tts = TtsService();
     tts.onChapterComplete = () async {
       if (_currentChapterIndex + 1 < _chapters.length) {
-        _nextChapter();
+        // 必须 await：_loadChapterContent 只在首个 await 前同步更新章索引，
+        // 正文 _currentParagraphs 要等存储/网络返回后才赋值。
+        // 漏掉 await 会出现"标题已翻到下一章、朗读的还是上一章句子"。
+        await _nextChapter();
+        if (!mounted) return;
         final newTitle = _chapters[_currentChapterIndex].title;
         final newText = _currentParagraphs.join('\n\n');
+        if (newText.trim().isEmpty) {
+          await tts.stop();
+          return;
+        }
         await tts.playChapter(
           bookId: widget.bookId,
           bookTitle: widget.bookTitle,
@@ -1014,29 +1260,43 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     if (_isCurrentPageBookmarked) {
       final bookmarks = await _notesService.getBookmarks(widget.bookId);
-      if (bookmarks.isNotEmpty) {
-        final match = bookmarks.firstWhere(
-          (b) =>
-              b.chapterIndex == _currentChapterIndex &&
-              (b.charOffset - _currentCharOffset).abs() < 100,
-          orElse: () => bookmarks.first,
-        );
-        await _notesService.removeBookmark(match.id);
+      // 关键修复：此前 orElse 回退到 bookmarks.first（按创建时间倒序 = 全书最新的书签），
+      // 一旦状态与实际位置不同步，就会静默删掉一条完全无关的书签。
+      Bookmark? match;
+      for (final b in bookmarks) {
+        if (b.chapterIndex == _currentChapterIndex &&
+            (b.charOffset - _currentCharOffset).abs() < 100) {
+          match = b;
+          break;
+        }
       }
+
+      if (match == null) {
+        // 当前位置本就没有书签，纠正状态而非误删他人
+        if (mounted) {
+          setState(() => _isCurrentPageBookmarked = false);
+        }
+        return;
+      }
+
+      await _notesService.removeBookmark(match.id);
+      if (!mounted) return;
       setState(() => _isCurrentPageBookmarked = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('已移除书签'),
-            duration: Duration(milliseconds: 1000),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('已移除书签'),
+          duration: Duration(milliseconds: 1000),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } else {
-      final snippet = _currentParagraphs.isNotEmpty
-          ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
-          : currentTitle;
+      // 优先用当前页首行做摘要；拿不到才退回段落开头
+      final raw = _currentPageSnippet.isNotEmpty
+          ? _currentPageSnippet
+          : (_currentParagraphs.isNotEmpty
+              ? _currentParagraphs.first
+              : currentTitle);
+      final snippet = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
       final bm = Bookmark(
         id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
         bookId: widget.bookId,
@@ -1049,6 +1309,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         createdAt: DateTime.now(),
       );
       await _notesService.saveBookmark(bm);
+      if (!mounted) return;
       setState(() => _isCurrentPageBookmarked = true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1062,8 +1323,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
-  void _openNotesSheet() {
-    ReaderNotesSheet.show(
+  void _openNotesSheet() async {
+    // 面板里可以删除书签，关闭后必须重算顶栏书签高亮，
+    // 否则会出现"书签已全部删除、图标还亮着"的状态不同步。
+    await ReaderNotesSheet.show(
       context,
       bookId: widget.bookId,
       bookTitle: widget.bookTitle,
@@ -1072,17 +1335,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _loadChapterContent(chIdx, initialCharOffset: offset);
       },
     );
+    if (!mounted) return;
+    await _checkBookmarkStatus();
+    await _loadAnnotations();
   }
 
-  void _openAddAnnotation() async {
+  /// [lineText] / [charStart] / [charEnd] 来自用户长按命中的那一行；
+  /// charStart 为 -1 表示拿不到行坐标（如滚动模式），此时退回段落首句。
+  void _openAddAnnotation(String lineText, int charStart, int charEnd) async {
     final currentTitle =
         _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
             ? _chapters[_currentChapterIndex].title
             : '第${_currentChapterIndex + 1}章';
-    final snippet = _currentParagraphs.isNotEmpty
-        ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
-        : '精彩选段';
+
+    final hasLine = charStart >= 0 && lineText.trim().isNotEmpty;
+    final snippet = hasLine
+        ? lineText.replaceAll(RegExp(r'\s+'), ' ').trim()
+        : (_currentParagraphs.isNotEmpty
+            ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
+            : '精彩选段');
     final excerpt = snippet.length > 60 ? snippet.substring(0, 60) : snippet;
+    final start = hasLine ? charStart : _currentCharOffset;
+    final end = hasLine ? charEnd : _currentCharOffset + excerpt.length;
 
     final result = await AddAnnotationDialog.show(
       context,
@@ -1090,8 +1364,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
       bookTitle: widget.bookTitle,
       chapterIndex: _currentChapterIndex,
       chapterTitle: currentTitle,
-      charStart: _currentCharOffset,
-      charEnd: _currentCharOffset + excerpt.length,
+      charStart: start,
+      charEnd: end,
       selectedText: excerpt,
       isDark: _theme.isDark,
     );
@@ -1169,8 +1443,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
               onToggleTheme: _toggleNightMode,
               onNextChapter: _nextChapter,
               onPreviousChapter: _previousChapter,
-              onProgressChanged: (charOffset) {
+              onProgressChanged: (charOffset, pageSnippet) {
                 _currentCharOffset = charOffset;
+                if (pageSnippet.isNotEmpty) {
+                  _currentPageSnippet = pageSnippet;
+                }
                 _storage.saveReadingProgress(
                   widget.bookId,
                   chapterIndex: _currentChapterIndex,

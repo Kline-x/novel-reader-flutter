@@ -19,6 +19,11 @@ class ReaderThemeOption {
   final Color subTextColor;
   final bool isDark;
 
+  /// 阅读器强调色。此前阅读器内各控件硬编码 0xFF5B7FFF（蓝），
+  /// 与应用整体的绿色主色冲突，进阅读器像换了一个 App。
+  /// 浅色主题用与全局一致的 #07C160，深色主题用提亮版本保证暗底可读。
+  final Color accent;
+
   const ReaderThemeOption({
     required this.id,
     required this.name,
@@ -26,6 +31,7 @@ class ReaderThemeOption {
     required this.textColor,
     required this.subTextColor,
     required this.isDark,
+    this.accent = const Color(0xFF07C160),
   });
 
   static const ReaderThemeOption paper = ReaderThemeOption(
@@ -62,6 +68,7 @@ class ReaderThemeOption {
     textColor: Color(0xFFC9CCD8),
     subTextColor: Color(0xFF9096A8),
     isDark: true,
+    accent: Color(0xFF2BD97C),
   );
 
   static const ReaderThemeOption night = ReaderThemeOption(
@@ -71,6 +78,7 @@ class ReaderThemeOption {
     textColor: Color(0xFFB8BCC9),
     subTextColor: Color(0xFF888D9C),
     isDark: true,
+    accent: Color(0xFF2BD97C),
   );
 
   static const ReaderThemeOption defaultTheme = paper;

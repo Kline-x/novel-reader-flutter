@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/components/docked_bottom_bar.dart';
 import 'core/components/main_scaffold.dart';
 import 'core/theme/soft_theme.dart';
 
@@ -9,12 +10,26 @@ import 'core/theme/theme_provider.dart';
 import 'features/local_books/services/local_book_service.dart';
 import 'features/local_books/services/wifi_transfer_server.dart';
 import 'features/reader/data/storage_service.dart';
+import 'features/settings/services/version_check_service.dart';
+import 'features/sources/services/pinyin_rule_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 预热持久化阅读设置
   await StorageService.init();
+
+  // 预热拼音自愈规则（含用户自定义规则与云端缓存）。
+  // 此前仅在设置页 initState 中调用，冷启动直接读书的用户自定义规则不会生效。
+  try {
+    await PinyinRuleService().init();
+  } catch (_) {}
+
+  // 读取真实已安装版本号，替换 Dart 侧写死的常量，
+  // 避免"已是最新版仍提示升级""装完被系统判定为降级"。
+  try {
+    await VersionCheckService().loadInstalledVersion();
+  } catch (_) {}
 
   // 绑定局域网 WiFi 传书与本地图书自动解析入架
   WifiTransferServer().onFileReceived = (file) async {
@@ -67,6 +82,19 @@ class NovelReaderApp extends ConsumerWidget {
         theme: ThemeData(
           useMaterial3: true,
           scaffoldBackgroundColor: colors.background,
+          // 悬浮 SnackBar 抬到底栏之上，避免把整条导航栏盖住
+          snackBarTheme: SnackBarThemeData(
+            behavior: SnackBarBehavior.floating,
+            insetPadding: EdgeInsets.fromLTRB(
+              16.0,
+              8.0,
+              16.0,
+              DockedBottomBar.fadeHeight +
+                  DockedBottomBar.barContentHeight +
+                  MediaQueryData.fromView(View.of(context)).padding.bottom +
+                  8.0,
+            ),
+          ),
           colorScheme: ColorScheme.fromSeed(
             seedColor: colors.accent,
             surface: colors.surface,

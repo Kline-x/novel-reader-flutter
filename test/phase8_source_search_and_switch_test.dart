@@ -101,15 +101,15 @@ void main() {
       await tester.tapAt(const Offset(400, 600));
       await tester.pumpAndSettle();
 
-      // 2. 点击换源按钮
-      final switchSourceBtn = find.text('换源');
+      // 2. 点击换源按钮（顶栏精简后为图标按钮，按 Key 定位）
+      final switchSourceBtn =
+          find.byKey(const ValueKey('reader_top_source_btn'));
       expect(switchSourceBtn, findsOneWidget);
       await tester.tap(switchSourceBtn);
       await tester.pumpAndSettle();
 
-      // 3. 验证 12 组内置书源全部展示
-      expect(find.text('全网可用书源热切'), findsOneWidget);
-      expect(find.text('已连通 12 组稳定书源'), findsOneWidget);
+      // 3. 验证 12 组内置书源全部展示（面板标题与测速状态已改为真实探测）
+      expect(find.text('切换书源'), findsOneWidget);
 
       // 验证典型书源存在
       expect(find.text('笔趣阁CP'), findsOneWidget);
@@ -121,13 +121,15 @@ void main() {
       await tester.tap(situSource);
       await tester.pumpAndSettle();
 
-      // 5. 验证弹窗关闭并展示切换反馈提示（支持成功切换或安全保护提示）
+      // 5. 验证弹窗关闭并展示切换反馈提示
+      // 换源重构后：先提示"正在查找"，检索无果/未收录则提示保留当前书源，
+      // 绝不再静默替换成另一本书
       expect(
         find.byWidgetPredicate((w) =>
             w is Text &&
-            ((w.data?.contains('切至书源【思兔阅读】') ?? false) ||
-                (w.data?.contains('【思兔阅读】暂未收录') ?? false))),
-        findsOneWidget,
+            ((w.data?.contains('【思兔阅读】') ?? false) ||
+                (w.data?.contains('已切换至') ?? false))),
+        findsAtLeastNWidgets(1),
       );
     });
   });

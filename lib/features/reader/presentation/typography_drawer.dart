@@ -28,6 +28,25 @@ class TypographyDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = currentTheme.isDark;
+    final accent = currentTheme.accent;
+
+    // 行距三档基于当前字号推算；改字号后 lineHeight 不会自动跟着变，
+    // 此前用"数值差 < 1.0"判定选中，导致三档经常一个都不高亮。
+    // 改为永远高亮"最接近的一档"，让用户始终看得出当前处于哪一档。
+    final spacingOptions = <double>[
+      fontSize * 1.4,
+      fontSize * 1.7,
+      fontSize * 2.0,
+    ];
+    var nearestSpacingIndex = 0;
+    var nearestSpacingDelta = double.infinity;
+    for (var i = 0; i < spacingOptions.length; i++) {
+      final delta = (spacingOptions[i] - lineHeight).abs();
+      if (delta < nearestSpacingDelta) {
+        nearestSpacingDelta = delta;
+        nearestSpacingIndex = i;
+      }
+    }
     final cardBg = isDark ? const Color(0xFF282A2D) : const Color(0xFFF1F2F4);
     final textColor = isDark ? Colors.white : const Color(0xFF1F2329);
     final subTextColor = isDark ? Colors.white70 : const Color(0xFF646A73);
@@ -93,7 +112,7 @@ class TypographyDrawer extends StatelessWidget {
                   max: 32.0,
                   divisions: 20,
                   label: '${fontSize.toInt()}px',
-                  activeColor: const Color(0xFF5B7FFF),
+                  activeColor: accent,
                   inactiveColor: isDark ? Colors.white24 : null,
                   onChanged: onFontSizeChanged,
                 ),
@@ -131,22 +150,22 @@ class TypographyDrawer extends StatelessWidget {
               const SizedBox(width: 24.0),
               _buildLineSpacingChip(
                   label: '紧凑',
-                  value: fontSize * 1.4,
-                  current: lineHeight,
+                  value: spacingOptions[0],
+                  isSelected: nearestSpacingIndex == 0,
                   subTextColor: subTextColor,
                   isDark: isDark),
               const SizedBox(width: 12.0),
               _buildLineSpacingChip(
                   label: '舒适',
-                  value: fontSize * 1.7,
-                  current: lineHeight,
+                  value: spacingOptions[1],
+                  isSelected: nearestSpacingIndex == 1,
                   subTextColor: subTextColor,
                   isDark: isDark),
               const SizedBox(width: 12.0),
               _buildLineSpacingChip(
                   label: '宽松',
-                  value: fontSize * 2.0,
-                  current: lineHeight,
+                  value: spacingOptions[2],
+                  isSelected: nearestSpacingIndex == 2,
                   subTextColor: subTextColor,
                   isDark: isDark),
             ],
@@ -177,7 +196,7 @@ class TypographyDrawer extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 7.0),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(0xFF5B7FFF)
+                                  ? accent
                                   : (isDark
                                       ? Colors.white10
                                       : const Color(0xFFEBECEE)),
@@ -225,7 +244,7 @@ class TypographyDrawer extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF5B7FFF)
+                          ? accent
                           : Colors.grey.withValues(alpha: 0.3),
                       width: isSelected ? 2.5 : 1.0,
                     ),
@@ -270,25 +289,25 @@ class TypographyDrawer extends StatelessWidget {
   }
 
   Widget _buildLineSpacingChip({
+    required bool isSelected,
     required String label,
     required double value,
-    required double current,
     required Color subTextColor,
     required bool isDark,
   }) {
-    final isSelected = (value - current).abs() < 1.0;
+    final accent = currentTheme.accent;
     return GestureDetector(
       onTap: () => onLineHeightChanged(value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF5B7FFF).withValues(alpha: 0.2)
+              ? accent.withValues(alpha: 0.2)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16.0),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFF5B7FFF)
+                ? accent
                 : (isDark
                     ? Colors.white24
                     : Colors.grey.withValues(alpha: 0.3)),
@@ -299,7 +318,7 @@ class TypographyDrawer extends StatelessWidget {
           style: TextStyle(
             fontSize: 12.0,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? const Color(0xFF5B7FFF) : subTextColor,
+            color: isSelected ? accent : subTextColor,
           ),
         ),
       ),
