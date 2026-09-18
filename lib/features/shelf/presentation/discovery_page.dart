@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/components/book_cover_widget.dart';
@@ -40,6 +41,17 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
   final List<Map<String, String>> _allHotBooks = [
     // 玄幻奇幻
+    {
+      'id': 'emofaze_00',
+      'title': '恶魔法则',
+      'author': '跳舞',
+      'category': '玄幻奇幻',
+      'tag': '经典西幻 · 罗林家族',
+      'bookUrl': 'https://www.biquge7.xyz/1283/',
+      'sourceName': '笔趣阁7',
+      'sourceId': 'biquge7:笔趣阁7',
+      'desc': '一个一无是处的纨绔子弟，一个被家族放弃的废物，在得到了一份恶魔的契约后，他的人生彻底改变。罗林家族的传奇就此拉开序幕！',
+    },
     {
       'id': 'guimi_01',
       'title': '诡秘之主',
@@ -511,62 +523,17 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               ),
             ),
 
-            // 搜索输入框
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                child: Container(
-                  height: 48.0,
-                  decoration: BoxDecoration(
-                    color: colors.card,
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: SoftDecorations.insetShadows(colors),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 14.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, size: 20.0, color: colors.textSecondary),
-                      const SizedBox(width: 10.0),
-                      Expanded(
-                        child: TextField(
-                          key: const ValueKey('discovery_search_input'),
-                          controller: _searchController,
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: _performSearch,
-                          style: TextStyle(fontSize: 14.0, color: colors.textPrimary),
-                          decoration: InputDecoration(
-                            hintText: '输入书名，全网 12 组稳定书源并发打捞...',
-                            hintStyle: TextStyle(fontSize: 13.0, color: colors.textSecondary),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ),
-                      if (_searchController.text.isNotEmpty)
-                        GestureDetector(
-                          onTap: _clearSearch,
-                          child: Icon(Icons.cancel, size: 18.0, color: colors.textSecondary),
-                        ),
-                      const SizedBox(width: 8.0),
-                      GestureDetector(
-                        key: const ValueKey('discovery_search_btn'),
-                        onTap: () => _performSearch(_searchController.text),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                          decoration: BoxDecoration(
-                            color: colors.accent,
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          child: const Text(
-                            '搜索',
-                            style: TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            // 吸顶搜索输入框与横向分类标签栏 (长书单随时切分类、随时发起并发打捞)
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _DiscoverySearchHeaderDelegate(
+                colors: colors,
+                searchController: _searchController,
+                onSearch: _performSearch,
+                onClear: _clearSearch,
+                categories: _categories,
+                selectedCategoryIndex: _selectedCategoryIndex,
+                onCategorySelected: (idx) => setState(() => _selectedCategoryIndex = idx),
               ),
             ),
 
@@ -736,7 +703,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                   SoftButton(
                                     colors: colors,
                                     onPressed: () => _openBookFromResult(item),
-                                    isActive: true,
+                                    isFilled: true,
                                     padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
                                     child: const Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -760,47 +727,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                 ),
               ),
             ] else ...[
-              // 分类胶囊
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 48.0,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-                    itemCount: _categories.length,
-                    itemBuilder: (context, index) {
-                      final isSelected = _selectedCategoryIndex == index;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: GestureDetector(
-                          key: ValueKey('category_pill_$index'),
-                          onTap: () => setState(() => _selectedCategoryIndex = index),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
-                            decoration: BoxDecoration(
-                              color: isSelected ? colors.accent : colors.card,
-                              borderRadius: BorderRadius.circular(16.0),
-                              boxShadow: isSelected
-                                  ? SoftDecorations.softShadows(colors, elevation: 1.0)
-                                  : null,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              _categories[index],
-                              style: TextStyle(
-                                fontSize: 13.0,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? Colors.white : colors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
               // 实时热读书目标题
               SliverToBoxAdapter(
                 child: Padding(
@@ -917,5 +843,180 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         ),
       ),
     );
+  }
+}
+
+/// 发现页吸顶搜索框与横向分类标签栏 (SliverPersistentHeaderDelegate)
+/// 带通透毛玻璃背景、高光微边框，长列表浏览中随时切分类、随时发起并发打捞
+class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final SoftColors colors;
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearch;
+  final VoidCallback onClear;
+  final List<String> categories;
+  final int selectedCategoryIndex;
+  final ValueChanged<int> onCategorySelected;
+
+  const _DiscoverySearchHeaderDelegate({
+    required this.colors,
+    required this.searchController,
+    required this.onSearch,
+    required this.onClear,
+    required this.categories,
+    required this.selectedCategoryIndex,
+    required this.onCategorySelected,
+  });
+
+  @override
+  double get minExtent => 104.0;
+
+  @override
+  double get maxExtent => 104.0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final isDark = colors.isDark;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+        child: Container(
+          height: 104.0,
+          decoration: BoxDecoration(
+            color: (isDark ? colors.background : colors.surface).withValues(alpha: isDark ? 0.88 : 0.92),
+            border: Border(
+              bottom: BorderSide(
+                color: colors.border.withValues(alpha: (overlapsContent || shrinkOffset > 0) ? 0.6 : 0.25),
+                width: 0.8,
+              ),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 1. 搜索输入框
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Container(
+                  height: 44.0,
+                  decoration: BoxDecoration(
+                    color: colors.card,
+                    borderRadius: BorderRadius.circular(14.0),
+                    boxShadow: SoftDecorations.insetShadows(colors),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, size: 19.0, color: colors.textSecondary),
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: TextField(
+                          key: const ValueKey('discovery_search_input'),
+                          controller: searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: onSearch,
+                          style: TextStyle(fontSize: 13.5, color: colors.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: '输入书名，全网 12 组稳定书源并发打捞...',
+                            hintStyle: TextStyle(fontSize: 12.5, color: colors.textSecondary.withValues(alpha: 0.8)),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                      if (searchController.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: onClear,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: Icon(Icons.cancel, size: 17.0, color: colors.textSecondary),
+                          ),
+                        ),
+                      const SizedBox(width: 6.0),
+                      GestureDetector(
+                        key: const ValueKey('discovery_search_btn'),
+                        onTap: () => onSearch(searchController.text),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                          decoration: BoxDecoration(
+                            color: colors.accent,
+                            borderRadius: BorderRadius.circular(9.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colors.accent.withValues(alpha: 0.3),
+                                offset: const Offset(0, 2),
+                                blurRadius: 4.0,
+                              ),
+                            ],
+                          ),
+                          child: const Text(
+                            '搜索',
+                            style: TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8.0),
+
+              // 2. 横向分类标签胶囊栏
+              SizedBox(
+                height: 34.0,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final isSelected = selectedCategoryIndex == index;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: GestureDetector(
+                        key: ValueKey('category_pill_$index'),
+                        onTap: () => onCategorySelected(index),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 13.0, vertical: 6.0),
+                          decoration: BoxDecoration(
+                            color: isSelected ? colors.accent : colors.card,
+                            borderRadius: BorderRadius.circular(14.0),
+                            border: Border.all(
+                              color: isSelected ? colors.accent : colors.border.withValues(alpha: 0.5),
+                              width: 0.8,
+                            ),
+                            boxShadow: isSelected
+                                ? SoftDecorations.softShadows(colors, elevation: 0.8)
+                                : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            categories[index],
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected ? Colors.white : colors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _DiscoverySearchHeaderDelegate oldDelegate) {
+    return oldDelegate.selectedCategoryIndex != selectedCategoryIndex ||
+        oldDelegate.categories != categories ||
+        oldDelegate.colors != colors;
   }
 }

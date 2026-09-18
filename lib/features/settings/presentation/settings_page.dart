@@ -7,6 +7,8 @@ import '../../../core/theme/theme_provider.dart';
 import '../../local_books/presentation/wifi_transfer_dialog.dart';
 import '../../reader/data/storage_service.dart';
 import '../../sync/presentation/webdav_config_sheet.dart';
+import '../services/version_check_service.dart';
+import 'update_dialog.dart';
 
 /// 设置中心页面 (settings_page.dart)
 /// Modern Soft UI 风格：外观与主题、个人看板、物理音量翻页、WebDAV 云同步、WiFi 传书、缓存清理
@@ -19,11 +21,13 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final StorageService _storageService = StorageService();
+  final VersionCheckService _versionService = VersionCheckService();
 
   bool _volumeKeyPaging = true;
   bool _screenAwake = true;
   String _cacheSize = '0 B';
   bool _followSystem = false;
+  bool _isCheckingUpdate = false;
 
   @override
   void initState() {
@@ -58,6 +62,36 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _triggerWebDavSync() async {
     WebDavConfigSheet.show(context);
+  }
+
+  Future<void> _checkAppUpdate() async {
+    if (_isCheckingUpdate) return;
+    setState(() => _isCheckingUpdate = true);
+
+    try {
+      final latest = await _versionService.checkLatestVersion();
+      if (!mounted) return;
+      if (latest != null) {
+        UpdateDialog.show(context, latest);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('当前已是最新版本 (v${_versionService.currentVersionName})，尽享极速纯净体验'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('检查更新失败，请检查网络设置')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingUpdate = false);
+      }
+    }
   }
 
   void _clearCache() async {
@@ -372,10 +406,36 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   Divider(height: 1, color: colors.border),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('软件版本', style: TextStyle(color: colors.textPrimary)),
-                    trailing: Text('v1.0.0+1 (iOS / Android / 纯血鸿蒙)', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                  GestureDetector(
+                    key: const ValueKey('settings_check_update_tile'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _checkAppUpdate,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Text('🚀', style: TextStyle(fontSize: 20.0)),
+                      title: Text('检查新版本', style: TextStyle(color: colors.textPrimary)),
+                      subtitle: Text(
+                        '当前版本 v${_versionService.currentVersionName} (Android / iOS / 纯血鸿蒙)',
+                        style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                      ),
+                      trailing: _isCheckingUpdate
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2.0, color: colors.accent),
+                            )
+                          : ElevatedButton(
+                              key: const ValueKey('btn_check_version'),
+                              onPressed: _checkAppUpdate,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colors.accent,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                              ),
+                              child: const Text('检查更新', style: TextStyle(fontSize: 12.0)),
+                            ),
+                    ),
                   ),
                 ],
               ),

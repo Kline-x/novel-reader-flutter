@@ -93,64 +93,72 @@ class _SwipeRevealCardState extends State<SwipeRevealCard> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final absOffset = _dragOffset.abs();
+    final shouldRenderAction = absOffset > 0.5;
+    final actionOpacity = ((absOffset - 0.5) / 20.0).clamp(0.0, 1.0);
+
     return Stack(
       children: [
-        // 底层：优雅圆角移出按钮容器
-        Positioned.fill(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isRevealingLeft = _dragOffset > 0;
-              return Align(
-                alignment: isRevealingLeft ? Alignment.centerLeft : Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      _close();
-                      widget.onDelete();
-                    },
-                    child: Container(
-                      width: widget.maxActionWidth - 8.0,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626),
-                        borderRadius: BorderRadius.circular(16.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFDC2626).withValues(alpha: 0.35),
-                            offset: const Offset(0, 4),
-                            blurRadius: 10.0,
+        // 底层：优雅圆角移出按钮容器（绝对防漏光：仅在拖拽露出时渲染，带 Opacity 渐入）
+        if (shouldRenderAction)
+          Positioned.fill(
+            child: Opacity(
+              opacity: actionOpacity,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isRevealingLeft = _dragOffset > 0;
+                  return Align(
+                    alignment: isRevealingLeft ? Alignment.centerLeft : Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _close();
+                          widget.onDelete();
+                        },
+                        child: Container(
+                          width: widget.maxActionWidth - 8.0,
+                          height: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(16.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFDC2626).withValues(alpha: 0.35 * actionOpacity),
+                                offset: const Offset(0, 4),
+                                blurRadius: 10.0,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.white,
-                            size: 22.0,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.white,
+                                size: 22.0,
+                              ),
+                              const SizedBox(height: 3.0),
+                              Text(
+                                widget.deleteLabel,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 3.0),
-                          Text(
-                            widget.deleteLabel,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
-        ),
 
         // 表层：书籍主卡片，跟随手势平滑偏移
         Transform.translate(

@@ -85,3 +85,4 @@ migrate_working_dir/
 /docs/evidence/tmp/
 *.incomplete
 downloaded_apks/
+*.apk

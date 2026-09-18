@@ -4,7 +4,7 @@ import '../../features/shelf/presentation/discovery_page.dart';
 import '../../features/shelf/presentation/shelf_page.dart';
 import '../../features/settings/presentation/settings_page.dart';
 import '../theme/soft_theme.dart';
-import 'floating_dock.dart';
+import 'docked_bottom_bar.dart';
 
 /// 主屏脚手架 (main_scaffold.dart)
 /// 承载书架、发现、设置三大页面，底部悬浮毛玻璃三胶囊导航 Dock
@@ -124,8 +124,8 @@ class _MainScaffoldState extends State<MainScaffold> {
             ],
           ),
 
-          // 2. 底部悬浮毛玻璃三胶囊导航 Dock (62px)
-          FloatingDock(
+          // 2. Modern Soft UI 沉浸贴底毛玻璃底栏 (58px + safe area)
+          DockedBottomBar(
             currentIndex: _currentIndex,
             colors: colors,
             onTabSelected: (index) {

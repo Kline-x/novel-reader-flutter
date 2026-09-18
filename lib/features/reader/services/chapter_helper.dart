@@ -56,6 +56,21 @@ class ChapterHelper {
         '远游各方',
         '天道好还',
       ];
+    } else if (title.contains('emofaze') || title.contains('恶魔')) {
+      return const [
+        '伯爵的儿子',
+        '白痴',
+        '文不成武不就',
+        '魔法的道路',
+        '毒药师',
+        '不安分之心',
+        '长腿辣妹',
+        '瞬发术',
+        '若琳的色诱计划',
+        '谁人知',
+        '恶魔骑士团',
+        '传奇家族',
+      ];
     } else {
       return const [
         '绯红',
@@ -80,15 +95,30 @@ class ChapterHelper {
     return List.generate(names.length, (i) {
       return ChapterItem(
         index: i,
-        title: '第  章 ',
+        title: '第${i + 1}章 ${names[i]}',
         url: '',
         isCached: false,
       );
     });
   }
 
-  /// 获取指定书籍与章节索引的精美多页正文段落
-  static List<String> getParagraphsForBookAndChapter(String bookTitle, int chapterIndex) {
+  /// 判断当前书籍是否具备预置的离线保真精品段落
+  static bool hasPresetContent(String bookTitle) {
+    final title = cleanTitle(bookTitle).toLowerCase();
+    return title.contains('shiri') ||
+        title.contains('十日') ||
+        title.contains('daoti') ||
+        title.contains('道诡') ||
+        title.contains('jianlai') ||
+        title.contains('剑来') ||
+        title.contains('emofaze') ||
+        title.contains('恶魔') ||
+        title.contains('guimi') ||
+        title.contains('诡秘');
+  }
+
+  /// 获取预置书籍的专属精排正文段落；非预置书返回 null
+  static List<String>? getPresetParagraphs(String bookTitle, int chapterIndex) {
     final title = cleanTitle(bookTitle).toLowerCase();
     if (title.contains('shiri') || title.contains('十日')) {
       return [
@@ -118,7 +148,16 @@ class ChapterHelper {
         '少年陈平安不知道什么长生久视、什么大道通天，他只知道人活在世上，要讲道理，手里的刀要磨快，脚步要走稳。哪怕是这浩瀚天下神仙打架，只要自己脚踏实地走下去，也能走出一条顶天立地的大道。',
         '山风穿林，青衫猎猎。当少年的身影没入漫山遍野的青竹翠柏之中时，苍穹深处忽有一道浩然剑气横空而过，映照得整座骊珠洞天一片雪亮。',
       ];
-    } else {
+    } else if (title.contains('emofaze') || title.contains('恶魔')) {
+      return [
+        '罗林城堡的初秋，微风吹拂着郁金香平原的金黄麦浪。在城堡宽敞明亮的书房里，伯爵的长子杜维·罗林正静静地坐在厚重的橡木书桌前，翻看着一本帝国编年通史。',
+        '在外人甚至整座城堡仆人的眼中，这位出生在帝国最尊贵贵族门阀的伯爵长子，却是一个整整三年不哭不闹、甚至连一声“爸爸”都未曾喊过的“白痴”。',
+        '然而没有人知道，那副稚嫩幼小的身躯里，居住着一个来自另一个现代文明世界的成年人灵魂。穿越来到这个充满剑与魔法、神权与皇权交织的罗兰帝国，杜维选择了最谨慎的沉默。',
+        '“少爷，伯爵大人从帝都军团来信了。”老管家玛德恭敬地推门而入，轻手轻脚地将一杯温热的羊奶放在桌角，眼中带着几分掩饰不住的怜悯与疼惜。',
+        '杜维只是微微点了点头，目光依旧停留在羊皮纸书页上。关于这个世界的轮廓在他脑海中逐渐清晰：罗林家族，掌管帝国财政与东南私军的庞然大物，那飘扬的郁金香旗帜背后，藏着无数看不见的阴谋与暗流。',
+        '“白痴吗？”杜维嘴角勾起一抹若有若无的冷笑。在这个危机四伏的异世界，过早地展露锋芒只会招致致命的毒牙。既然命运将他推上了罗林家族继承人的位置，那么终有一天，这片大陆将为恶魔的法则而颤抖。',
+      ];
+    } else if (title.contains('guimi') || title.contains('诡秘')) {
       return [
         '痛！好痛！头好痛！绯红的月光透过窗帘的细密缝隙，斑驳地洒在深色书桌上。周明瑞只觉得脑袋里仿佛插了一根烧红的粗铁钎，并在不停地残酷搅动。',
         '他挣扎着想要坐起身，却发现四肢酸软无力，整个身体沉重得如同灌了铅一般。空气中弥漫着一股刺鼻的铁锈味与劣质火药燃烧后的硝烟气息。',
@@ -133,5 +172,11 @@ class ChapterHelper {
         '在这个蒸汽与机械轰鸣咆哮、神秘与非凡疯狂并存的诡异世界中，他深知，唯有保持极致的清醒与克制，才能穿越重重迷雾，揭开绯红之月背后的终极隐秘。',
       ];
     }
+    return null;
+  }
+
+  /// 获取指定书籍与章节索引的精美多页正文段落（仅对预置书生效，非预置书返回空列表，绝不盲目返回周明瑞）
+  static List<String> getParagraphsForBookAndChapter(String bookTitle, int chapterIndex) {
+    return getPresetParagraphs(bookTitle, chapterIndex) ?? const [];
   }
 }

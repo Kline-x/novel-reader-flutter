@@ -4,11 +4,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:novel_reader_flutter/features/sources/models/chapter_item.dart';
+import 'package:novel_reader_flutter/features/sources/models/source_rule.dart';
+import 'package:novel_reader_flutter/features/sources/services/source_parser.dart';
 import 'package:novel_reader_flutter/features/reader/data/storage_service.dart';
 import 'package:novel_reader_flutter/features/reader/services/download_service.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/download_sheet.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/reader_screen.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/catalog_drawer.dart';
+
+class FakeSuccessSourceParser extends SourceParser {
+  @override
+  Future<List<String>> fetchChapterContent(SourceRule rule, String chapterUrl) async {
+    return ['真实测试正文段落1', '真实测试正文段落2'];
+  }
+}
+
+class FakeFailingSourceParser extends SourceParser {
+  @override
+  Future<List<String>> fetchChapterContent(SourceRule rule, String chapterUrl) async {
+    return [];
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +37,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     tempDir = await Directory.systemTemp.createTemp('novel_reader_phase9_test_');
     storage = StorageService(customCacheDir: tempDir.path);
-    downloadService = DownloadService.withStorage(storage);
+    downloadService = DownloadService.withStorage(storage, parser: FakeSuccessSourceParser());
     DownloadService.setMockInstance(downloadService);
   });
 
@@ -99,6 +115,43 @@ void main() {
         expect(content, isNotNull);
         expect(content!.isNotEmpty, isTrue);
       }
+    });
+
+    test('DownloadService 核心铁律：正文抓取失败时绝不向沙盒写入假正文，记录失败并跳过', () async {
+      final failingService = DownloadService.withStorage(storage, parser: FakeFailingSourceParser());
+      const bookId = 'test_failing_batch_book';
+      const bookTitle = '《凡人修仙传》';
+      final chapters = [
+        const ChapterItem(
+          index: 0,
+          title: '第 1 章 山边小村',
+          url: 'https://example.com/fail/0',
+        ),
+        const ChapterItem(
+          index: 1,
+          title: '第 2 章 离家远行',
+          url: 'https://example.com/fail/1',
+        ),
+      ];
+
+      await failingService.startBatchDownload(
+        bookId: bookId,
+        bookTitle: bookTitle,
+        chapters: chapters,
+        startIndex: 0,
+        count: 2,
+      );
+
+      // 验证沙盒中绝对没有被污染写入任何章节
+      expect(await storage.getDownloadedChaptersCount(bookId), 0);
+      expect(await storage.getChapterContent(bookId, 0), isNull);
+      expect(await storage.getChapterContent(bookId, 1), isNull);
+
+      final p = failingService.getProgress(bookId);
+      expect(p, isNotNull);
+      expect(p!.failed, 2);
+      expect(p.completed, 0);
+      failingService.dispose();
     });
 
     testWidgets('DownloadSheet 离线下载调度中心弹窗挂载与操作测试', (tester) async {

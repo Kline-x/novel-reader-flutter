@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import '../data/storage_service.dart';
 import '../../sources/models/chapter_item.dart';
+import '../../sources/models/source_rule.dart';
 import '../../sources/services/source_parser.dart';
 import '../../sources/services/builtin_sources.dart';
 
@@ -83,15 +84,16 @@ class DownloadService {
     _instance = DownloadService._internal();
   }
 
-  DownloadService._internal({StorageService? storageService})
-      : _storage = storageService ?? StorageService();
+  DownloadService._internal({StorageService? storageService, SourceParser? parser})
+      : _storage = storageService ?? StorageService(),
+        _parser = parser ?? SourceParser();
 
-  factory DownloadService.withStorage(StorageService storage) {
-    return DownloadService._internal(storageService: storage);
+  factory DownloadService.withStorage(StorageService storage, {SourceParser? parser}) {
+    return DownloadService._internal(storageService: storage, parser: parser);
   }
 
   final StorageService _storage;
-  final SourceParser _parser = SourceParser();
+  final SourceParser _parser;
 
   final Map<String, DownloadProgress> _activeTasks = {};
   final Map<String, Queue<ChapterItem>> _taskQueues = {};
@@ -119,7 +121,8 @@ class DownloadService {
     String? sourceName,
     String? bookUrl,
   }) async {
-    final sName = sourceName ?? '笔趣阁ZWX';
+    final sName = sourceName ?? _taskSources[bookId] ?? '笔趣阁ZWX';
+    _taskSources[bookId] = sName;
     final cachedToc = await _storage.getBookToc(bookId);
     List<ChapterItem> chapters = [];
     if (cachedToc != null && cachedToc.isNotEmpty) {
@@ -159,9 +162,8 @@ class DownloadService {
       return;
     }
 
-    if (sourceName != null) {
-      _taskSources[bookId] = sourceName;
-    }
+    final sName = sourceName ?? _taskSources[bookId] ?? '笔趣阁ZWX';
+    _taskSources[bookId] = sName;
 
     _cancelFlags[bookId] = false;
     _pauseFlags[bookId] = false;
@@ -261,26 +263,40 @@ class DownloadService {
       final chapter = queue.removeFirst();
 
       try {
+        // 智能书源规则匹配：优先基于章节 URL 探测匹配书源规则，再基于任务绑定的 sourceName，最后兜底
+        SourceRule? rule = SourceParser.findRuleByUrl(chapter.url);
+        if (rule == null) {
+          final srcName = _taskSources[bookId];
+          if (srcName != null && srcName.isNotEmpty) {
+            rule = BuiltinSources.findByName(srcName);
+          }
+        }
+        rule ??= BuiltinSources.findByName('笔趣阁ZWX') ?? BuiltinSources.all.first;
+
         // 尝试从网络或书源抓取
         List<String>? paragraphs;
         if (chapter.url.isNotEmpty && chapter.url.startsWith('http')) {
           try {
-            final srcName = _taskSources[bookId] ?? '笔趣阁ZWX';
-            final rule = BuiltinSources.findByName(srcName) ??
-                BuiltinSources.findByName('笔趣阁ZWX') ??
-                BuiltinSources.all.first;
-            if (!chapter.url.contains('example.com')) {
-              paragraphs = await _parser.fetchChapterContent(rule, chapter.url);
-            }
+            paragraphs = await _parser.fetchChapterContent(rule, chapter.url);
           } catch (_) {}
         }
 
-        // 鲁棒降级机制：如果远程无法连接或为演示章节，生成保真内容落盘
+        // 核心铁律：如果远程抓取正文失败（paragraphs == null || paragraphs.isEmpty），
+        // 绝不能调用 _generateOfflineFallbackParagraphs 写入沙盒！
+        // 记录失败并跳过，严禁向沙盒写入“【离线缓存章节】...风声呼啸，长夜未央”假正文！
         if (paragraphs == null || paragraphs.isEmpty) {
-          paragraphs = _generateOfflineFallbackParagraphs(bookTitle, chapter.title, chapter.index);
+          final current = _activeTasks[bookId];
+          if (current != null) {
+            final updated = current.copyWith(
+              failed: current.failed + 1,
+            );
+            _activeTasks[bookId] = updated;
+            _progressController.add(updated);
+          }
+          continue;
         }
 
-        // 持久化保存至沙盒冷存储
+        // 只有远程抓取到的真实正文，才持久化保存至沙盒冷存储
         await _storage.saveChapterContent(bookId, chapter.index, paragraphs);
 
         final current = _activeTasks[bookId];
@@ -336,22 +352,6 @@ class DownloadService {
       _activeTasks.remove(bookId);
       _progressController.add(idle);
     }
-  }
-
-  /// 生成离线阅读保真降级段落（当离线断网或本地预载时）
-  static List<String> _generateOfflineFallbackParagraphs(
-    String bookTitle,
-    String chapterTitle,
-    int index,
-  ) {
-    return [
-      '【离线缓存章节】$chapterTitle',
-      '风声呼啸，长夜未央。天际浮现出一抹深邃的微光，仿佛古老画卷缓缓展开。',
-      '周围空气中弥漫着清凉的气息，草木在夜露的滋润下轻轻摇曳。四周寂静无声，唯有微弱的心跳在胸膛中沉稳跳动。',
-      '“修行之路，本就如逆水行舟，不进则退。”低语声在耳畔回响，带着岁月洗礼后的从容与坚毅。',
-      '他缓缓睁开双眼，目光如炬，扫过眼前的山川与虚空。不管前路有多少迷雾与未知，这一步既然已经迈出，便再无退缩的可能。',
-      '天地浩瀚，星河璀璨，真正的宏伟篇章才刚刚翻开第一页。',
-    ];
   }
 
   void dispose() {

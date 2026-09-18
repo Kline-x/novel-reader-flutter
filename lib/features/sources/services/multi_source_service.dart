@@ -145,7 +145,34 @@ class MultiSourceService {
       score += 30;
     }
 
-    // 7. 负向过滤：若书名与作者完全不含任何关键词字符，直接判为无关噪点
+    // 7. 书源信誉评分体系 (Source Reputation Score)
+    // 优质全本源加分，跳章缺章源重度惩罚，杜绝残次源霸占榜首
+    final sId = book.sourceId.toLowerCase();
+    final sName = book.sourceName.toLowerCase();
+    if (sId.contains('biquge7') || sName.contains('笔趣阁7')) {
+      score += 1000; // 笔趣阁7（全量708章真本）最高信誉加权
+    } else if (sId.contains('biqugezwx') || sName.contains('zwx')) {
+      score += 600;
+    } else if (sId.contains('yetian') || sName.contains('夜天')) {
+      score += 500;
+    } else if (sId.contains('situ') || sId.contains('sto66') || sName.contains('思兔')) {
+      score -= 4000; // 思兔阅读（严重跳章、缺几百章）执行惩罚性降权
+    }
+
+    // 8. 最新章节进度/完整度加权（通过提取章节名中的数字判定）
+    if (book.latestChapter != null) {
+      final match = RegExp(r'第\s*(\d+)\s*章').firstMatch(book.latestChapter!);
+      if (match != null) {
+        final chNum = int.tryParse(match.group(1)!) ?? 0;
+        if (chNum >= 700) {
+          score += 500;
+        } else if (chNum >= 500) {
+          score += 200;
+        }
+      }
+    }
+
+    // 9. 负向过滤：若书名与作者完全不含任何关键词字符，直接判为无关噪点
     final hasAnyChar = q.split('').any((char) => t.contains(char) || a.contains(char));
     if (!hasAnyChar) {
       score -= 50000;

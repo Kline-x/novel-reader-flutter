@@ -144,6 +144,34 @@ void main() {
       expect(await storage.getTotalCacheSize(), 0);
     });
 
+    test('冷数据：受污染离线假正文嗅探与自动物理自愈测试', () async {
+      const bookId = 'tainted_book';
+      final taintedParas1 = [
+        '【离线缓存章节】第一章 启程',
+        '风声呼啸，长夜未央。天际浮现出一抹深邃的微光...',
+      ];
+      final taintedParas2 = [
+        '风声呼啸，长夜未央。天际浮现出一抹深邃的微光...',
+        '周围空气中弥漫着清凉的气息...',
+      ];
+
+      // 写入受污染假缓存
+      await storage.saveChapterContent(bookId, 0, taintedParas1);
+      await storage.saveChapterContent(bookId, 1, taintedParas2);
+
+      expect(await storage.hasChapterCache(bookId, 0), isTrue);
+      expect(await storage.hasChapterCache(bookId, 1), isTrue);
+
+      // 读取时触发嗅探自愈：自动删除物理文件并返回 null
+      final result0 = await storage.getChapterContent(bookId, 0);
+      expect(result0, isNull);
+      expect(await storage.hasChapterCache(bookId, 0), isFalse);
+
+      final result1 = await storage.getChapterContent(bookId, 1);
+      expect(result1, isNull);
+      expect(await storage.hasChapterCache(bookId, 1), isFalse);
+    });
+
     test('ReaderSettings 排版设置持久化与读取', () async {
       final initial = await storage.getReaderSettings();
       expect(initial.fontSize, 18.0);

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:novel_reader_flutter/features/reader/services/chapter_helper.dart';
 import 'package:novel_reader_flutter/features/sources/models/chapter_item.dart';
 import 'package:novel_reader_flutter/features/sources/models/source_rule.dart';
 import 'package:novel_reader_flutter/features/sources/services/builtin_sources.dart';
@@ -130,6 +131,86 @@ void main() {
       expect(ordered[7].title, '第十六章 观众');
       expect(ordered[8].title, '第二十三章 太阳');
       expect(ordered.last.title, '1417. 尾声');
+    });
+
+    test('夜天连看与鬼吹灯书屋 toc 选择器不包含 :nth-of-type，且笔趣阁7配置完整', () {
+      final yetianlian = BuiltinSources.findByName('夜天连看')!;
+      expect(yetianlian.toc.item, '.listmain dd a');
+      expect(yetianlian.toc.item.contains(':nth-of-type'), isFalse);
+
+      final gdbzkz = BuiltinSources.findByName('鬼吹灯书屋')!;
+      expect(gdbzkz.toc.item, '.listmain dd a');
+      expect(gdbzkz.toc.item.contains(':nth-of-type'), isFalse);
+
+      final biquge7 = BuiltinSources.findByName('笔趣阁7')!;
+      expect(biquge7.enabled, isTrue);
+      expect(biquge7.baseUrl, 'https://www.biquge7.xyz');
+      expect(biquge7.toc.item, '.list ul li a');
+      expect(biquge7.chapter.content.selector, '.text');
+    });
+
+    test('SourceParser.findRuleByUrl 智能匹配已注册书源规则', () {
+      expect(SourceParser.findRuleByUrl('https://www.biquge7.xyz/book/123')?.name, '笔趣阁7');
+      expect(SourceParser.findRuleByUrl('http://www.yetianlian.info/s.php')?.name, '夜天连看');
+      expect(SourceParser.findRuleByUrl('http://gdbzkz.org/book/1')?.name, '鬼吹灯书屋');
+      expect(SourceParser.findRuleByUrl('cn.ttkan.co/novel/1')?.name, '天天看小说');
+      expect(SourceParser.findRuleByUrl('https://unknown-domain.com/1'), isNull);
+      expect(SourceParser.findRuleByUrl(''), isNull);
+    });
+
+    test('sanitizeAndOrderChapters 绝不因小说多卷章节序号重置而破坏连续章回顺序', () {
+      // 模拟多卷小说：第1卷第1-20章，第2卷第1-20章，第3卷第1-20章
+      final multiVolumeChapters = <ChapterItem>[];
+      int globalIdx = 0;
+      for (int vol = 1; vol <= 3; vol++) {
+        for (int ch = 1; ch <= 20; ch++) {
+          multiVolumeChapters.add(ChapterItem(
+            index: globalIdx++,
+            title: '第$ch章 第$vol卷之第$ch章',
+            url: 'https://site.com/book/ch_${vol}_$ch.html',
+          ));
+        }
+      }
+
+      final result = SourceParser.sanitizeAndOrderChapters(multiVolumeChapters);
+
+      // 总数保持 60 章
+      expect(result.length, 60);
+      // 第 0 章是第 1 卷第 1 章
+      expect(result[0].title, '第1章 第1卷之第1章');
+      // 第 20 章是第 2 卷第 1 章（绝不能被重排到最前！）
+      expect(result[20].title, '第1章 第2卷之第1章');
+      // 第 40 章是第 3 卷第 1 章（绝不能被重排到最前！）
+      expect(result[40].title, '第1章 第3卷之第1章');
+      // 整体索引单调连续 0..59
+      for (int i = 0; i < result.length; i++) {
+        expect(result[i].index, i);
+      }
+    });
+
+    test('ChapterHelper 修复第 83 行标题为空的问题，并完美支持《恶魔法则》', () {
+      // 1. 测试 getFallbackChapters 标题拼接正确（杜绝第  章没标题）
+      final fallbackEmo = ChapterHelper.getFallbackChapters('恶魔法则');
+      expect(fallbackEmo.length, 12);
+      expect(fallbackEmo[0].title, '第1章 伯爵的儿子');
+      expect(fallbackEmo[1].title, '第2章 白痴');
+      expect(fallbackEmo[2].title, '第3章 文不成武不就');
+      expect(fallbackEmo[11].title, '第12章 传奇家族');
+
+      // 2. 测试 getChapterNamesForBook 支持《恶魔法则》(emofaze / 恶魔)
+      final namesPinyin = ChapterHelper.getChapterNamesForBook('emofaze');
+      expect(namesPinyin.first, '伯爵的儿子');
+      expect(namesPinyin.last, '传奇家族');
+
+      // 3. 测试 getParagraphsForBookAndChapter 支持杜维·罗林真实背景，绝无周明瑞或齐夏
+      final paragraphs = ChapterHelper.getParagraphsForBookAndChapter('《恶魔法则》', 0);
+      expect(paragraphs.isNotEmpty, isTrue);
+      final combined = paragraphs.join();
+      expect(combined, contains('杜维·罗林'));
+      expect(combined, contains('罗林家族'));
+      expect(combined.contains('周明瑞'), isFalse);
+      expect(combined.contains('齐夏'), isFalse);
+      expect(combined.contains('李火旺'), isFalse);
     });
   });
 }

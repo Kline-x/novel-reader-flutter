@@ -530,7 +530,7 @@ class StorageService {
     file.writeAsStringSync(content, flush: true);
   }
 
-  /// 读取章节缓存正文段落（自动过滤旧版本残留的假数据）
+  /// 读取章节缓存正文段落（自动过滤旧版本残留的假数据与受污染沙盒假缓存自愈）
   Future<List<String>?> getChapterContent(String bookId, int chapterIndex) async {
     final file = await _getChapterFile(bookId, chapterIndex);
     if (!await file.exists()) return null;
@@ -538,12 +538,34 @@ class StorageService {
     try {
       final content = await file.readAsString();
       if (content.isEmpty) return [];
-      // 自动清除历史测试阶段产生的 mock 离线降级假文本（避免将单元测试的简短正文误杀）
+
+      // 自动清除历史测试阶段产生的 mock 离线降级假文本
       if (content.contains('欢迎阅读由 Modern Soft UI 渲染引擎驱动') || content.contains('开启你的探索之旅')) {
-        await file.delete();
+        try {
+          await file.delete();
+        } catch (_) {}
         return null;
       }
-      return content.split(RegExp(r'\r?\n'));
+
+      final lines = content.split(RegExp(r'\r?\n'));
+
+      // 假内容嗅探与自愈：
+      // 如果读取出来的本地文本段落第一行包含“【离线缓存章节】”或“风声呼啸，长夜未央”，
+      // 说明是之前遗留的受污染假缓存，直接将其本地文件删除并返回 null，促使阅读器重新抓取真实内容。
+      if (lines.isNotEmpty) {
+        final firstLine = lines.first;
+        final secondLine = lines.length > 1 ? lines[1] : '';
+        if (firstLine.contains('【离线缓存章节】') ||
+            firstLine.contains('风声呼啸，长夜未央') ||
+            secondLine.contains('风声呼啸，长夜未央')) {
+          try {
+            await file.delete();
+          } catch (_) {}
+          return null;
+        }
+      }
+
+      return lines;
     } catch (_) {
       return null;
     }

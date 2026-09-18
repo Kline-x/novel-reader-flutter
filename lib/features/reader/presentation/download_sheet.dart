@@ -15,6 +15,7 @@ class DownloadSheet extends StatefulWidget {
   final int currentChapterIndex;
   final VoidCallback? onCacheUpdated;
   final bool isDark;
+  final String? sourceName;
 
   const DownloadSheet({
     super.key,
@@ -24,6 +25,7 @@ class DownloadSheet extends StatefulWidget {
     required this.currentChapterIndex,
     this.onCacheUpdated,
     this.isDark = false,
+    this.sourceName,
   });
 
   static Future<void> show(
@@ -34,6 +36,7 @@ class DownloadSheet extends StatefulWidget {
     required int currentChapterIndex,
     VoidCallback? onCacheUpdated,
     bool isDark = false,
+    String? sourceName,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -46,6 +49,7 @@ class DownloadSheet extends StatefulWidget {
         currentChapterIndex: currentChapterIndex,
         onCacheUpdated: onCacheUpdated,
         isDark: isDark,
+        sourceName: sourceName,
       ),
     );
   }
@@ -108,6 +112,7 @@ class _DownloadSheetState extends State<DownloadSheet> {
       chapters: widget.chapters,
       startIndex: widget.currentChapterIndex,
       count: count,
+      sourceName: widget.sourceName,
     );
   }
 
@@ -118,6 +123,7 @@ class _DownloadSheetState extends State<DownloadSheet> {
       chapters: widget.chapters,
       startIndex: 0,
       count: widget.chapters.length,
+      sourceName: widget.sourceName,
     );
   }
 

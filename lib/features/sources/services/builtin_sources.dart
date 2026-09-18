@@ -120,7 +120,7 @@ class BuiltinSources {
         coverUrl: RuleSelector(selector: 'img', attr: 'src'),
       ),
       toc: TocRule(
-        item: '.listmain dl dt:nth-of-type(2) ~ dd a',
+        item: '.listmain dd a',
         title: RuleSelector(selector: '', attr: 'text'),
         url: RuleSelector(selector: '', attr: 'href'),
       ),
@@ -306,7 +306,7 @@ class BuiltinSources {
         coverUrl: RuleSelector(selector: 'img', attr: 'src'),
       ),
       toc: TocRule(
-        item: '.listmain dl dt:nth-of-type(2) ~ dd a',
+        item: '.listmain dd a',
         title: RuleSelector(selector: '', attr: 'text'),
         url: RuleSelector(selector: '', attr: 'href'),
       ),

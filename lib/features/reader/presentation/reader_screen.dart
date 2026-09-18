@@ -358,9 +358,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
       debugPrint('在线目录解析失败: $e');
     }
 
-    // 4. 网络异常且无缓存时的鲁棒降级目录（使用统一 12 章连贯精品目录）
-    _chapters = ChapterHelper.getFallbackChapters(widget.bookTitle);
-    await _storage.saveBookToc(widget.bookId, _chapters);
+    // 4. 网络异常且无缓存时的内存临时降级（绝不向本地沙盒写入12章假目录）
+    if (_chapters.isEmpty) {
+      _chapters = ChapterHelper.getFallbackChapters(widget.bookTitle);
+    }
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -415,6 +416,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           _currentChapterIndex = validIndex;
           _currentParagraphs = cached;
           _isLoading = false;
+          _hasError = false;
         });
       }
       await _storage.saveReadingProgress(
@@ -430,7 +432,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final chapter = _chapters[validIndex];
     if (chapter.url.isNotEmpty && chapter.url.startsWith('http')) {
       try {
-        final rule = BuiltinSources.findByName(_currentSourceName) ?? BuiltinSources.all.first;
+        final rule = SourceParser.findRuleByUrl(chapter.url) ??
+            BuiltinSources.findByName(_currentSourceName) ??
+            BuiltinSources.all.first;
         final fetchedParas = await _parser.fetchChapterContent(rule, chapter.url).timeout(const Duration(seconds: 8));
         if (fetchedParas.isNotEmpty) {
           await _storage.saveChapterContent(widget.bookId, validIndex, fetchedParas);
@@ -441,6 +445,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               _currentChapterIndex = validIndex;
               _currentParagraphs = fetchedParas;
               _isLoading = false;
+              _hasError = false;
             });
           }
           await _storage.saveReadingProgress(
@@ -456,13 +461,41 @@ class _ReaderScreenState extends State<ReaderScreen> {
       }
     }
 
-    // 鲁棒故事降级段落（纯多页排版优质文本，绝不生成假提示）
-    final fallback = ChapterHelper.getParagraphsForBookAndChapter(widget.bookTitle, validIndex);
+    // 在线拉取正文失败且没有沙盒缓存：
+    // 1. 如果是 4 本经典预置书，使用 ChapterHelper 匹配专属保真段落；
+    final presetParas = ChapterHelper.getPresetParagraphs(widget.bookTitle, validIndex);
+    if (presetParas != null && presetParas.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _currentChapterIndex = validIndex;
+          _currentParagraphs = presetParas;
+          _isLoading = false;
+          _hasError = false;
+        });
+      }
+      await _storage.saveReadingProgress(
+        widget.bookId,
+        chapterIndex: validIndex,
+        charOffset: _currentCharOffset,
+      );
+      await _loadAnnotations();
+      return;
+    }
+
+    // 2. 针对非预置书，绝不盲目返回《诡秘之主》周明瑞的正文！
+    // 提供高质感的“网络正文获取失败，点击重新尝试或切换书源”提示段落，并提供换源与重试入口
+    final failureNoticeParagraphs = [
+      '网络正文获取失败，点击重新尝试或切换书源。',
+      '抱歉，当前书源【$_currentSourceName】暂未能成功抓取到【${chapter.title}】的正文内容。这可能是由于书源站点临时维护、反爬策略拦截或网络连接不稳定导致。',
+      '您可以点击重试加载，或直接点击下方「立即换源」按钮平滑切换至全网其他可用书源继续阅读。',
+    ];
+
     if (mounted) {
       setState(() {
         _currentChapterIndex = validIndex;
-        _currentParagraphs = fallback;
+        _currentParagraphs = failureNoticeParagraphs;
         _isLoading = false;
+        _hasError = true;
       });
     }
     await _storage.saveReadingProgress(
@@ -733,37 +766,59 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       onTap: () async {
                         final chosenSource = source;
                         Navigator.of(sheetContext).pop();
-                        setState(() {
-                          _currentSourceName = chosenSource.name;
-                        });
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('已成功平滑切至书源【${chosenSource.name}】，章节进度与字符锚点已保持！'),
+                            content: Text('正在探活【${chosenSource.name}】全本目录收录情况...'),
                             behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 2),
+                            duration: const Duration(seconds: 1),
                           ),
                         );
                         try {
                           final cleanName = widget.bookTitle.replaceAll(RegExp(r'[《》【】\s]'), '');
-                          final searchRes = await _parser.searchBooks(chosenSource, cleanName).timeout(const Duration(seconds: 6));
+                          final searchRes = await _parser.searchBooks(chosenSource, cleanName).timeout(const Duration(seconds: 5));
                           if (searchRes.isNotEmpty) {
                             final match = searchRes.firstWhere(
                               (b) => b.title == cleanName || b.title.contains(cleanName),
                               orElse: () => searchRes.first,
                             );
-                            final newToc = await _parser.fetchToc(chosenSource, match.bookUrl).timeout(const Duration(seconds: 8));
+                            final newToc = await _parser.fetchToc(chosenSource, match.bookUrl).timeout(const Duration(seconds: 7));
                             if (newToc.isNotEmpty) {
-                              _chapters = newToc;
-                              _resolvedBookUrl = match.bookUrl;
+                              setState(() {
+                                _currentSourceName = chosenSource.name;
+                                _chapters = newToc;
+                                _resolvedBookUrl = match.bookUrl;
+                              });
                               await _storage.saveBookToc(widget.bookId, newToc);
                               if (_currentChapterIndex >= _chapters.length) {
                                 _currentChapterIndex = 0;
                               }
                               await _loadChapterContent(_currentChapterIndex);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('已成功平滑切至书源【${chosenSource.name}】，共获取 ${newToc.length} 章目录！'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                              return;
                             }
                           }
                         } catch (e) {
                           debugPrint('后台对齐新源目录失败: $e');
+                        }
+
+                        // 目标源未收录或解析失败时的安全保护
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('【${chosenSource.name}】暂未收录《${widget.bookTitle}》，已为您保留当前高可用源！'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
                         }
                       },
                     );
@@ -799,6 +854,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       currentChapterIndex: _currentChapterIndex,
       isDark: _theme.isDark,
       onCacheUpdated: _refreshCachedIndices,
+      sourceName: _currentSourceName,
     );
   }
 
