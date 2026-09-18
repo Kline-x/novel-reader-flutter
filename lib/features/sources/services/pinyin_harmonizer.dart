@@ -1,9 +1,24 @@
+import 'pinyin_rule_service.dart';
+
 /// 智能拼音转汉字还原自愈引擎 (pinyin_harmonizer.dart)
 /// 针对第三方书源文本中常见的拼音替换字词进行智能自愈还原，保障排版纯净通畅。
+/// 支持动态规则联动、云端热更规则、变异干扰符解混淆（Anti-Obfuscation）与汉字夹缝探测（Sandwich Probe）。
 class PinyinHarmonizer {
   PinyinHarmonizer._();
 
-  /// 常见拼音词组到标准汉字的高频映射字典
+  /// 动态临时扩展拼音词典（兼容历史接口）
+  static final Map<String, String> _dynamicMap = {};
+
+  /// 更新动态注入的拼音自愈映射规则
+  static void setDynamicRules(Map<String, String> rules) {
+    _dynamicMap.clear();
+    _dynamicMap.addAll(rules);
+  }
+
+  /// 获取当前全部动态规则快照
+  static Map<String, String> get dynamicRules => Map.unmodifiable(_dynamicMap);
+
+  /// 常见拼音词组到标准汉字的高频映射字典（核心保底）
   static const Map<String, String> _multiSyllableMap = {
     'zhengfu': '政府',
     'jingcha': '警察',
@@ -80,6 +95,21 @@ class PinyinHarmonizer {
     'zongjiao': '宗教',
   };
 
+  /// 常见单字拼音音节集合（用于变异解混淆中的单字归一化判定）
+  static const Set<String> _commonSyllables = {
+    'zheng', 'zhi', 'xing', 'rou', 'nai', 'bo', 'cao', 'she', 'da', 'xiong',
+    'tun', 'xia', 'mi', 'yin', 'kuai', 'bi', 'sha', 'si', 'du', 'qiang',
+    'hei', 'chuan', 'shen', 'jing', 'guo', 'dan', 'zi', 'fu', 'cha', 'jia',
+  };
+
+  /// 获取当前所有生效的精确字典映射（内置字典 + PinyinRuleService + 动态注入）
+  static Map<String, String> get _activeRulesMap {
+    final map = Map<String, String>.from(_multiSyllableMap);
+    map.addAll(PinyinRuleService().exactRulesMap);
+    map.addAll(_dynamicMap);
+    return map;
+  }
+
   /// 2. 语境单字/单音节混排正则映射表
   /// 必须与前后中文语境紧密绑定，杜绝在纯英文语境中误伤英文单词（如 he, me, to, can 等）
   static final List<_ContextualPinyinRule> _contextualRules = [
@@ -126,6 +156,34 @@ class PinyinHarmonizer {
     ),
 
     // 语境单字拼音自愈（需紧邻中文）
+    _ContextualPinyinRule(
+      pattern: RegExp(r'zheng\s*([府治策券商务纪规纲协企党署要门部策])', caseSensitive: false),
+      replacement: (m) => '政${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([党县市政乡省行廉执新辅朝亲宪暴涉垂])\s*zheng', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}政',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'jing\s*([察界兵笛告服徽犬力报惕民卫醒鸣衔局署厅])', caseSensitive: false),
+      replacement: (m) => '警${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([民巡特干交火网预女法刑协骑武片备狱示告提防预机])\s*jing', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}警',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'guo\s*([家民防境库度旗徽歌土界难戚界政主事都])', caseSensitive: false),
+      replacement: (m) => '国${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([中外各全大敌爱列多跨建举祖诸异邦敌列本我该])\s*guo', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}国',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'guan\s*([僚员邸场局吏印司署职阶位任商绅家相爵])', caseSensitive: false),
+      replacement: (m) => '官${m.group(1)}',
+    ),
     _ContextualPinyinRule(
       pattern: RegExp(r'xing\s*([欲感性格命交伴奴爱])', caseSensitive: false),
       replacement: (m) => '性${m.group(1)}',
@@ -233,9 +291,20 @@ class PinyinHarmonizer {
   ];
 
   /// 预编译多音节拼音匹配的复合正则
-  /// 匹配类似：[zhengfu]、(jingcha)、【sharen】或独立的单词边界 \bzhengfu\b
+  /// 匹配类似：[zhengfu]、(jingcha)、【sharen】或独立的单词边界
   static final RegExp _wrappedPattern = RegExp(
     r'''[\[\(\<\{【（《\*]([a-zA-Z]{3,20})[\]\)\>\}】）》\*]''',
+  );
+
+  /// 变异干扰符解混淆模式：匹配包含 - _ . * · / 等混淆字符的字母片段
+  /// 例如：z-h-e-n-g-f-u、z_h_e_n_g、s.h.a.r.e.n、z*h*e*n*g、s·h·a·r·e·n
+  static final RegExp _obfuscatedPattern = RegExp(
+    r'''(?<![a-zA-Z0-9])([a-zA-Z]+(?:[\-_.\*·/][a-zA-Z]+)+)(?![a-zA-Z0-9])''',
+  );
+
+  /// 汉字夹缝拼音探测模式：匹配紧贴汉字的前后夹缝纯小写字母片段
+  static final RegExp _sandwichPinyinPattern = RegExp(
+    r'''(?<=[\u4e00-\u9fa5])([a-z]{2,20})(?=[\u4e00-\u9fa5])''',
   );
 
   /// 智能对单行小说正文执行拼音和谐脱敏自愈
@@ -248,32 +317,75 @@ class PinyinHarmonizer {
     }
 
     var result = text;
+    final activeMap = _activeRulesMap;
 
     // 阶段一：解包形如 [zhengfu]、(jingcha)、【sharen】、*guojia* 等被符号包围的拼音
     result = result.replaceAllMapped(_wrappedPattern, (match) {
       final inner = match.group(1)?.toLowerCase() ?? '';
-      final replacement = _multiSyllableMap[inner];
+      final replacement = activeMap[inner];
       if (replacement != null) {
         return replacement;
       }
       return match.group(0)!;
     });
 
-    // 阶段二：处理无歧义的多音节拼音词（全词边界匹配或前后紧邻中文/标点）
-    // 采用字典遍历匹配，由于只有数十个高频词，耗时微秒级
-    for (final entry in _multiSyllableMap.entries) {
+    // 阶段二：变异干扰符解混淆（Anti-Obfuscation）
+    // 识别形如 z-h-e-n-g-f-u、z_h_e_n_g、s.h.a.r.e.n、s·h·a·r·e·n 等被符号插入的拼音
+    result = result.replaceAllMapped(_obfuscatedPattern, (match) {
+      final rawToken = match.group(1)!;
+      final stripped = rawToken.replaceAll(RegExp(r'[\-_.\*·/]'), '');
+      final lowerStripped = stripped.toLowerCase();
+
+      // 1. 若剥离后直接命中字典，直接还原为汉字
+      final replacement = activeMap[lowerStripped];
+      if (replacement != null) {
+        return replacement;
+      }
+
+      // 2. 若剥离后属于常见单字拼音音节，归一化为纯拼音以供后续阶段三/五自愈
+      if (_commonSyllables.contains(lowerStripped)) {
+        return lowerStripped;
+      }
+
+      // 3. 否则保留原样，避免误伤普通英文连字符词（如 self-driving）
+      return match.group(0)!;
+    });
+
+    // 阶段三：汉字夹缝拼音探测（Sandwich Pinyin Probe）
+    // 探测被中文字符紧密包围的小写拼音词汇（杜绝误伤全大写英文代号如 FBI, BOSS, NPC）
+    result = result.replaceAllMapped(_sandwichPinyinPattern, (match) {
+      final pinyin = match.group(1)!;
+      final replacement = activeMap[pinyin];
+      if (replacement != null) {
+        return replacement;
+      }
+      return pinyin;
+    });
+
+    // 阶段四：处理无歧义的多音节拼音词（全词边界匹配或前后紧邻中文/标点）
+    // 动态规则优先匹配
+    for (final entry in activeMap.entries) {
       final pinyin = entry.key;
       final hanzi = entry.value;
 
-      // 严格词边界或前后紧邻汉字标点，绝不误伤形如 "teaching" 或 "amazing" 的长单词
-      // 允许前后为：字符串首尾、非字母字符（包括中文、标点、空白等）
+      // 严格词边界或前后紧邻汉字标点，绝不误伤形如 "teaching" 或 "level" 的长单词
       final regex = RegExp('(?<![a-zA-Z])$pinyin(?![a-zA-Z])', caseSensitive: false);
       if (regex.hasMatch(result)) {
         result = result.replaceAll(regex, hanzi);
       }
     }
 
-    // 阶段三：语境单字/单音节混排规则自愈（如“第yi章”、“xing欲”、“rou体”）
+    // 阶段五：执行动态自定义正则规则
+    for (final rule in PinyinRuleService().allRules) {
+      if (rule.isRegex && rule.isEnabled) {
+        try {
+          final regex = RegExp(rule.pattern, caseSensitive: false);
+          result = result.replaceAll(regex, rule.replacement);
+        } catch (_) {}
+      }
+    }
+
+    // 阶段六：语境单字/单音节混排规则自愈（如“第yi章”、“xing欲”、“rou体”）
     for (final rule in _contextualRules) {
       result = result.replaceAllMapped(rule.pattern, rule.replacement);
     }

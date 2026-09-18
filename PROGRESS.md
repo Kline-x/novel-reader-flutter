@@ -596,5 +596,33 @@
 - **全量自动化验证存证**：
   - `flutter analyze`：**0 issues found!**（全工程无任何 warning/error）；
   - `flutter test`：**136/136 个测试用例 100% 全部通过**（全量绿灯无跳过）；
-  - Release APK 编译成功：`novel-reader-release.apk` (61.8MB)，已归档至根目录并推送远程仓库 `main` 分支。
+  - Release APK 编译成功：`novel-reader-release.apk` 已归档至根目录并推送远程仓库 `main` 分支。
+
+---
+
+### 阶段 18：智能拼音自愈与净化系统三层架构演进（云端热更新 + 自定义规则管理 + 变异解混淆）
+- **当前状态**：✅ **已全量交付销项，全工程 161/161 自动化测试 100% 通过**
+- **当前负责人**：Antigravity (多 Agent 并行攻坚协作交付)
+- **本阶段攻坚成果与交付清单**：
+  - [x] **1. 变异干扰符智能解混淆引擎升级 (`PinyinHarmonizer`)**：
+    - 针对第三方网络书源中添加干扰符规避审查的拼音词汇，实现抗干扰解混淆（Anti-Obfuscation）算法，精准识别并剥离 `-`、`_`、`.`、`*`、`·` 等变异干扰符号；
+    - 新增汉字夹缝探测（Sandwich Probe），在前后中文字符紧密包围时精准捕获拼音片段；
+    - 强化零误伤保护体系，纯英文句子日常词汇（level, check, system 等）与专业技术专有名词（FBI, BOSS, NPC, DNA 等）绝对安全放行。
+  - [x] **2. 动态规则服务与高可用云端热更新体系 (`PinyinRuleService`)**：
+    - 数据实体 `PinyinRule` 采用不可变设计并支持灵活格式映射；
+    - `PinyinRuleService` 支持国内高速代理镜像、jsDelivr CDN 与 GitHub raw 多节点轮询同步，网络异常时安全降级不崩溃；
+    - 支持规则版本比对与增量更新，完整保留用户在本地对每条规则的启停偏好；
+    - 根目录标准源文件 `pinyin_rules.json` 独立维护，支持远端热更新无需重新发版。
+  - [x] **3. 用户端 Modern Soft UI 规则管理抽屉 (`PinyinRulesSheet`) 与设置中心联动**：
+    - 在「设置中心 - 阅读与偏好设置」新增「智能拼音自愈与净化」入口卡片；
+    - 半屏毛玻璃抽屉面板展示云端与自定义规则统计，支持一键触发云端同步；
+    - 支持用户添加自定义规则、即时启用/停用开关以及垃圾桶删除；
+    - 支持基于系统剪贴板的 JSON 格式一键批量导入与导出，规则变动毫秒级即时注入排版引擎生效。
+  - [x] **4. 21.4MB 极客瘦身安装包生成与归档**：
+    - 采用 `--split-per-abi` 编译生成 arm64-v8a 生产安装包，体积从 61.8MB 锐减至 **21.4 MB**；
+    - 产物覆盖更新至根目录 [`novel-reader-release.apk`](novel-reader-release.apk)。
+- **全量质量门禁与测试存证**：
+  - `flutter analyze`：**0 issues found! (No issues found!)**；
+  - `flutter test`：**全量 161/161 个测试用例 100% 全部通过（0 失败 0 错误）**。
+
 

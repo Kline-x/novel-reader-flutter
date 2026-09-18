@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "rules": [
+    {"pattern": "zhengfu", "replacement": "政府", "isRegex": false},
+    {"pattern": "jingcha", "replacement": "警察", "isRegex": false},
+    {"pattern": "guojia", "replacement": "国家", "isRegex": false},
+    {"pattern": "sharen", "replacement": "杀人", "isRegex": false},
+    {"pattern": "siwang", "replacement": "死亡", "isRegex": false},
+    {"pattern": "shouqiang", "replacement": "手枪", "isRegex": false},
+    {"pattern": "zidan", "replacement": "子弹", "isRegex": false},
+    {"pattern": "baozha", "replacement": "爆炸", "isRegex": false},
+    {"pattern": "dupin", "replacement": "毒品", "isRegex": false},
+    {"pattern": "gaochao", "replacement": "高潮", "isRegex": false},
+    {"pattern": "luoti", "replacement": "裸体", "isRegex": false},
+    {"pattern": "chiluoluo", "replacement": "赤裸裸", "isRegex": false},
+    {"pattern": "youhuo", "replacement": "诱惑", "isRegex": false},
+    {"pattern": "chuanxi", "replacement": "喘息", "isRegex": false},
+    {"pattern": "shenyin", "replacement": "呻吟", "isRegex": false},
+    {"pattern": "xinggan", "replacement": "性感", "isRegex": false},
+    {"pattern": "xingyu", "replacement": "性欲", "isRegex": false},
+    {"pattern": "routi", "replacement": "肉体", "isRegex": false},
+    {"pattern": "naizi", "replacement": "奶子", "isRegex": false},
+    {"pattern": "datui", "replacement": "大腿", "isRegex": false},
+    {"pattern": "xiongbu", "replacement": "胸部", "isRegex": false},
+    {"pattern": "kuaigan", "replacement": "快感", "isRegex": false}
+  ]
+}

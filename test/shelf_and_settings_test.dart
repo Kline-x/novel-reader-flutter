@@ -64,7 +64,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tab_settings')));
       await tester.pumpAndSettle();
       expect(find.text('个人与设置'), findsOneWidget);
-      expect(find.text('阅读控制'), findsOneWidget);
+      expect(find.text('阅读与偏好设置'), findsOneWidget);
       expect(find.text('物理音量键翻页'), findsOneWidget);
 
       // 3. 切换回书架页

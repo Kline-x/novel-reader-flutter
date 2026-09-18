@@ -8,6 +8,8 @@ import '../../local_books/presentation/wifi_transfer_dialog.dart';
 import '../../reader/data/storage_service.dart';
 import '../../sync/presentation/webdav_config_sheet.dart';
 import '../services/version_check_service.dart';
+import '../../sources/services/pinyin_rule_service.dart';
+import 'pinyin_rules_sheet.dart';
 import 'update_dialog.dart';
 
 /// 设置中心页面 (settings_page.dart)
@@ -33,6 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadSettings();
+    PinyinRuleService().init();
   }
 
   Future<void> _loadSettings() async {
@@ -297,8 +300,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16.0),
 
-            // 3. 阅读体验控制
-            _buildSectionHeader('阅读控制', colors),
+            // 3. 阅读体验与自愈控制
+            _buildSectionHeader('阅读与偏好设置', colors),
             SoftCard(
               colors: colors,
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
@@ -330,6 +333,29 @@ class _SettingsPageState extends State<SettingsPage> {
                         setState(() => _screenAwake = val);
                         await _storageService.setKeepScreenAwake(val);
                       },
+                    ),
+                  ),
+                  Divider(height: 1, color: colors.border),
+                  GestureDetector(
+                    key: const ValueKey('settings_pinyin_rules_tile'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => PinyinRulesSheet.show(context),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(6.0),
+                        decoration: BoxDecoration(
+                          color: colors.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Icon(Icons.spellcheck_rounded, color: colors.accent, size: 20.0),
+                      ),
+                      title: Text('智能拼音自愈与净化', style: TextStyle(color: colors.textPrimary)),
+                      subtitle: Text(
+                        '自愈第三方书源中的拼音谐音 · 支持云端热更新与自定义',
+                        style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14.0, color: colors.textSecondary),
                     ),
                   ),
                 ],
