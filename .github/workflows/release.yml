@@ -138,6 +138,20 @@ jobs:
           git commit -m "chore(release): 回填 ${{ github.event.inputs.version_tag || github.ref_name }} 的下载地址与 sha256 校验和"
           git push origin HEAD:main
 
+      # 发布说明直接取 version_manifest.json 里的 releaseNotes，
+      # 与用户在 App 内「发现新版本」弹窗看到的文案是同一份，避免两处各写一套。
+      - name: Compose Release Body
+        run: |
+          {
+            echo "## 藏书阁 (Novel Reader) $(jq -r .versionName version_manifest.json)"
+            echo
+            jq -r .releaseNotes version_manifest.json
+            echo
+            echo "安装包按 ABI 分发，arm64-v8a 适用于绝大多数机型；"
+            echo "各包的 sha256 见 SHA256SUMS.txt，App 内更新时会自动校验。"
+          } > RELEASE_BODY.md
+          cat RELEASE_BODY.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
@@ -155,12 +169,4 @@ jobs:
             release-artifacts/novel-reader-web.zip
             release-artifacts/SHA256SUMS.txt
             version_manifest.json
-          body: |
-            ## 藏书阁 (Novel Reader) 生产正式发版
-
-            ### 💎 核心亮点
-            - **全量 14 阶段完整落地**：从排版引擎到全网换源、离线并发、大文件分章、自然语音听书、WebDAV 云漫游到纯血鸿蒙 NEXT 对等支持；
-            - **出版级 CJK 排版引擎**：整数行截断、字符锚点追踪、四种翻页动效，彻底告别半行切割；
-            - **Modern Soft UI 视觉设计**：连续曲率 Squircle、双层微阴影与 62px 悬浮毛玻璃胶囊 Dock；
-            - **极客瘦身架构**：R8 代码混淆优化 + 资源修剪，单架构 APK 体积仅 ~22MB（较 Debug 瘦身 85%+）；
-            - **全平台多端对等**：Android、iOS、OpenHarmony NEXT (纯血鸿蒙)、Web (WASM)。
+          body_path: RELEASE_BODY.md
