@@ -8,6 +8,43 @@ class ChapterHelper {
     return title.replaceAll(RegExp(r'[《》【】\s]'), '').trim();
   }
 
+  /// 剥离正文开头与章节标题重复的行
+  ///
+  /// 多数书源抓回来的正文第一行就是章节标题本身，
+  /// 而阅读器又会单独渲染一个章节大标题，于是屏幕上出现两遍
+  /// 「第9章 黑太岁 / 第9章 黑太岁」。
+  static List<String> stripDuplicateTitle(
+      List<String> paragraphs, String chapterTitle) {
+    if (paragraphs.isEmpty) return paragraphs;
+
+    String normalize(String s) =>
+        s.replaceAll(RegExp(r'[\s　《》【】：:，,。.、!！?？—\-_]'), '');
+
+    final target = normalize(chapterTitle);
+    if (target.isEmpty) return paragraphs;
+
+    final result = List<String>.from(paragraphs);
+    // 最多剥掉开头两段（有的源会把"卷名 + 章名"各占一行）
+    var stripped = 0;
+    while (result.isNotEmpty && stripped < 2) {
+      final head = normalize(result.first);
+      if (head.isEmpty) {
+        result.removeAt(0);
+        continue;
+      }
+      // 完全相同，或正文首行被标题包含 / 包含标题且长度接近，都判为重复标题
+      final isDuplicate = head == target ||
+          (head.length <= target.length + 6 &&
+              (target.contains(head) || head.contains(target)));
+      if (!isDuplicate) break;
+      result.removeAt(0);
+      stripped++;
+    }
+
+    // 全被剥光说明判断过激，退回原样
+    return result.isEmpty ? paragraphs : result;
+  }
+
   /// 获取某本书的精品 12 章章节名称（支持拼音及中文匹配）
   static List<String> getChapterNamesForBook(String bookTitle) {
     final title = cleanTitle(bookTitle).toLowerCase();

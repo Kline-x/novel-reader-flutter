@@ -136,6 +136,37 @@ void main() {
     });
   });
 
+  group('正文首行与章节标题重复时必须剥离', () {
+    test('完全相同的首行被剥掉', () {
+      final out = ChapterHelper.stripDuplicateTitle(
+        ['第9章 黑太岁', '「太岁，黑太岁。」丹阳子那冷冰冰的声音在不大的料房内响起。'],
+        '第9章 黑太岁',
+      );
+      expect(out.length, 1);
+      expect(out.first.startsWith('「太岁'), isTrue);
+    });
+
+    test('标点/空格差异也算重复', () {
+      final out = ChapterHelper.stripDuplicateTitle(
+        ['第五节：人祖三蛊，希望开窍', '　　霎时间，周围一静。'],
+        '第五节:人祖三蛊 希望开窍',
+      );
+      expect(out.length, 1);
+    });
+
+    test('正常正文首行绝不能被误删', () {
+      final paras = ['　　周明瑞猛地睁开眼睛，绯红的月光洒在书桌上。', '　　他挣扎着坐起身。'];
+      final out = ChapterHelper.stripDuplicateTitle(paras, '第2章 情况');
+      expect(out.length, 2);
+      expect(out.first, paras.first);
+    });
+
+    test('全部被判为重复时退回原样，不返回空正文', () {
+      final out = ChapterHelper.stripDuplicateTitle(['第1章'], '第1章');
+      expect(out, isNotEmpty);
+    });
+  });
+
   group('ISSUE-08 预置正文只对第一章生效', () {
     test('第 0 章返回保真段落，其余章节一律返回 null', () {
       expect(ChapterHelper.getPresetParagraphs('诡秘之主', 0), isNotNull);

@@ -982,8 +982,14 @@ class _ReaderViewportState extends State<ReaderViewport>
         extent <= 0 ? 0.0 : (metrics.pixels / extent).clamp(0.0, 1.0);
     final offset = (total * fraction).round().clamp(0, total);
 
+    final changed = _activeCharOffset != offset;
     _activeCharOffset = offset;
     widget.onProgressChanged?.call(offset);
+    // 菜单展开时底部的「本章已读 N%」依赖 _activeCharOffset，
+    // 不 setState 的话文案会一直停在 0%
+    if (changed && _showMenu && mounted) {
+      setState(() {});
+    }
   }
 
   /// 垂直连续流式阅读 (ScrollTurner)

@@ -447,7 +447,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
       if (mounted) {
         setState(() {
           _currentChapterIndex = validIndex;
-          _currentParagraphs = cached;
+          _currentParagraphs = ChapterHelper.stripDuplicateTitle(
+              cached, _chapters[validIndex].title);
           _isLoading = false;
           _hasError = false;
         });
@@ -480,7 +481,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
           if (mounted) {
             setState(() {
               _currentChapterIndex = validIndex;
-              _currentParagraphs = fetchedParas;
+              _currentParagraphs =
+                  ChapterHelper.stripDuplicateTitle(fetchedParas, chapter.title);
               _isLoading = false;
               _hasError = false;
             });
