@@ -113,30 +113,15 @@ jobs:
           cat SHA256SUMS.txt
           cd ..
 
-      # 把三个 ABI 包的真实下载地址、sha256 与体积回填进 version_manifest.json，
-      # 并提交回 main —— 客户端就是从 main 拉这份清单的。
+      # 把三个 ABI 包的真实下载地址、sha256 与体积回填进 version_manifest.json。
       # 不回填的话：客户端的完整性校验会拦下自家的包，
       # 且 armeabi-v7a 设备会下到 arm64 包而 INSTALL_FAILED_NO_MATCHING_ABIS。
       - name: Fill Version Manifest (URLs / sha256 / fileSize)
         run: |
           TAG="${{ github.event.inputs.version_tag || github.ref_name }}"
-          dart run tool/sync_version_manifest.dart --write --tag "$TAG" \
-            --apk arm64-v8a=release-artifacts/apk/novel-reader-arm64-v8a.apk \
-            --apk armeabi-v7a=release-artifacts/apk/novel-reader-armeabi-v7a.apk \
-            --apk x86_64=release-artifacts/apk/novel-reader-x86_64.apk
+          dart run tool/sync_version_manifest.dart --write --tag "$TAG"             --apk arm64-v8a=release-artifacts/apk/novel-reader-arm64-v8a.apk             --apk armeabi-v7a=release-artifacts/apk/novel-reader-armeabi-v7a.apk             --apk x86_64=release-artifacts/apk/novel-reader-x86_64.apk
           cat version_manifest.json
-
-      - name: Commit Manifest Back to main
-        run: |
-          if git diff --quiet version_manifest.json; then
-            echo "清单无变化，跳过提交"
-            exit 0
-          fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add version_manifest.json
-          git commit -m "chore(release): 回填 ${{ github.event.inputs.version_tag || github.ref_name }} 的下载地址与 sha256 校验和"
-          git push origin HEAD:main
+          cp version_manifest.json /tmp/version_manifest.filled.json
 
       # 发布说明直接取 version_manifest.json 里的 releaseNotes，
       # 与用户在 App 内「发现新版本」弹窗看到的文案是同一份，避免两处各写一套。
@@ -149,8 +134,8 @@ jobs:
             echo
             echo "安装包按 ABI 分发，arm64-v8a 适用于绝大多数机型；"
             echo "各包的 sha256 见 SHA256SUMS.txt，App 内更新时会自动校验。"
-          } > RELEASE_BODY.md
-          cat RELEASE_BODY.md
+          } > /tmp/RELEASE_BODY.md
+          cat /tmp/RELEASE_BODY.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -169,4 +154,32 @@ jobs:
             release-artifacts/novel-reader-web.zip
             release-artifacts/SHA256SUMS.txt
             version_manifest.json
-          body_path: RELEASE_BODY.md
+          body_path: /tmp/RELEASE_BODY.md
+
+      # 客户端就是从 main 拉这份清单的，所以放在 Release 建好之后再提交 ——
+      # 否则清单先指向还不存在的 Release，用户会下到 404。
+      # 流水线跑的是 tag（detached HEAD），期间 main 可能已落新提交，
+      # 直接 push 会被 non-fast-forward 拒掉（v1.0.6 首发就栽在这），
+      # 因此每次都基于最新的 origin/main 重新落这份清单并重试。
+      - name: Commit Manifest Back to main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3; do
+            git fetch --depth=1 origin main
+            git checkout -f -B release-manifest FETCH_HEAD
+            cp /tmp/version_manifest.filled.json version_manifest.json
+            git add version_manifest.json
+            if git diff --cached --quiet; then
+              echo "清单与 main 上已一致，跳过提交"
+              exit 0
+            fi
+            git commit -m "chore(release): 回填 ${{ github.event.inputs.version_tag || github.ref_name }} 的下载地址与 sha256 校验和"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "推送被拒（main 期间有新提交），重试 $i/3"
+            sleep 5
+          done
+          echo "::error::清单回填提交推送 main 失败，请手动同步 version_manifest.json"
+          exit 1
