@@ -9,6 +9,38 @@
 
 ---
 
+## 〇-补、分包 versionCode 偏移（发版链路致命项，已修并复验）
+
+真机装包被系统拒绝才暴露：
+
+```
+INSTALL_FAILED_VERSION_DOWNGRADE: Update version code 4003 is older than current 6003
+```
+
+`--split-per-abi` 会把每个包的 versionCode 重写为 `abiCode * 1000 + base`。**实测**：
+
+| ABI | 实测 versionCode | 偏移 |
+| :--- | ---: | ---: |
+| armeabi-v7a | 5003 | +1000 |
+| arm64-v8a | 6003 | +2000 |
+| x86_64 | **8003** | **+4000**（abiCode 是 4，不是 3——3 留给了 x86） |
+
+而 `version_manifest.json` 写的是 pubspec 的基础号 4003，客户端拿自己的真实 6003 去比，
+`4003 > 6003` 恒为假 → **所有用户永远收到「已是最新」，新版本再也推不出去**。
+与用户最初反馈的更新问题同根，只是换了形态。**偏移不能靠猜**。
+
+**修复**：
+1. `tool/sync_version_manifest.dart` 改为用 **aapt2 从 APK 读真实 versionCode**
+   （自动定位 `ANDROID_HOME/build-tools`），读不到才按公式推算并告警；
+2. CI 门禁改为按 base 取模校验，识别分包号；
+3. 客户端 `AppVersionInfo.effectiveVersionCodeFor(abis)`，按本机 ABI 取号比较。
+
+**真机复验**：机上 arm64 包 6003、清单 arm64 变体 6003 →
+设置页点「检查更新」正确提示「当前已是最新版本 (v1.0.2)」，不再误报。
+（该次截图含用户微信通知横幅，已删除未归档。）
+
+---
+
 ## 〇、二轮真机复验结果（2026-09-18 16:27~16:44，版本 1.0.2+4003）
 
 修复后重新上机逐项复验，**14 项确认通过**：
