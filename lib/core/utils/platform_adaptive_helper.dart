@@ -92,7 +92,8 @@ class PlatformAdaptiveHelper {
 
   /// 计算阅读器多端自适应安全内边距
   /// 综合考量灵动岛、挖孔屏、刘海屏顶部遮挡及底部手势指示条 (Home Indicator)
-  EdgeInsets getAdaptiveReaderPadding(BuildContext context, {
+  EdgeInsets getAdaptiveReaderPadding(
+    BuildContext context, {
     double baseHorizontal = 18.0,
     double baseVertical = 12.0,
   }) {
@@ -100,9 +101,11 @@ class PlatformAdaptiveHelper {
     final viewPadding = mediaQuery.padding;
 
     // 针对挖孔、灵动岛或状态栏做优雅下压
-    final topPadding = (viewPadding.top > 0 ? viewPadding.top : 24.0) + baseVertical;
+    final topPadding =
+        (viewPadding.top > 0 ? viewPadding.top : 24.0) + baseVertical;
     // 针对底部手势小白条做优雅安全避让
-    final bottomPadding = (viewPadding.bottom > 0 ? viewPadding.bottom : 16.0) + baseVertical;
+    final bottomPadding =
+        (viewPadding.bottom > 0 ? viewPadding.bottom : 16.0) + baseVertical;
     // 横屏或大屏时的侧边留白
     final horizontalPadding = (viewPadding.left + viewPadding.right > 0)
         ? (viewPadding.left + viewPadding.right) / 2 + baseHorizontal

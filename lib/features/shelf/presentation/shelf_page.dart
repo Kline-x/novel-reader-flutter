@@ -182,70 +182,88 @@ class _ShelfPageState extends State<ShelfPage> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
           clipBehavior: Clip.antiAlias,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+            padding:
+                const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-              Text(
-                '《${book.title}》',
-                style: TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold, color: colors.textPrimary),
-              ),
-              const SizedBox(height: 12.0),
-              ListTile(
-                leading: Icon(Icons.info_outline_rounded, color: colors.accent),
-                title: Text('查看书籍详情', style: TextStyle(color: colors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openDetail(book);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.menu_book_rounded, color: colors.accent),
-                title: Text('立即开始阅读', style: TextStyle(color: colors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openReader(book);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.download_for_offline_rounded, color: colors.accent),
-                title: Text('离线下载全本', style: TextStyle(color: colors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(context);
-                  DownloadService().startDownload(
-                    bookId: book.id,
-                    bookTitle: book.title,
-                    totalChapters: book.totalChapters,
-                    sourceName: book.sourceName,
-                    bookUrl: book.bookUrl,
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('已将《${book.title}》加入后台下载队列'), behavior: SnackBarBehavior.floating),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(book.isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded, color: colors.accent),
-                title: Text(book.isPinned ? '取消置顶' : '置顶此书', style: TextStyle(color: colors.textPrimary)),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await _storageService.toggleBookPinned(book.id);
-                  await _loadBooksFromStorage();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                title: const Text('从书架移出', style: TextStyle(color: Colors.redAccent)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmRemoveBook(book, colors);
-                },
-              ),
-            ],
+                Text(
+                  '《${book.title}》',
+                  style: TextStyle(
+                      fontSize: 17.0,
+                      fontWeight: FontWeight.bold,
+                      color: colors.textPrimary),
+                ),
+                const SizedBox(height: 12.0),
+                ListTile(
+                  leading:
+                      Icon(Icons.info_outline_rounded, color: colors.accent),
+                  title: Text('查看书籍详情',
+                      style: TextStyle(color: colors.textPrimary)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openDetail(book);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.menu_book_rounded, color: colors.accent),
+                  title: Text('立即开始阅读',
+                      style: TextStyle(color: colors.textPrimary)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openReader(book);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.download_for_offline_rounded,
+                      color: colors.accent),
+                  title: Text('离线下载全本',
+                      style: TextStyle(color: colors.textPrimary)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    DownloadService().startDownload(
+                      bookId: book.id,
+                      bookTitle: book.title,
+                      totalChapters: book.totalChapters,
+                      sourceName: book.sourceName,
+                      bookUrl: book.bookUrl,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('已将《${book.title}》加入后台下载队列'),
+                          behavior: SnackBarBehavior.floating),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                      book.isPinned
+                          ? Icons.push_pin_outlined
+                          : Icons.push_pin_rounded,
+                      color: colors.accent),
+                  title: Text(book.isPinned ? '取消置顶' : '置顶此书',
+                      style: TextStyle(color: colors.textPrimary)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _storageService.toggleBookPinned(book.id);
+                    await _loadBooksFromStorage();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_outline_rounded,
+                      color: Colors.redAccent),
+                  title: const Text('从书架移出',
+                      style: TextStyle(color: Colors.redAccent)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmRemoveBook(book, colors);
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
+        );
+      },
     );
   }
 
@@ -296,7 +314,8 @@ class _ShelfPageState extends State<ShelfPage> {
               ),
               decoration: BoxDecoration(
                 color: colors.card,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(28.0)),
                 boxShadow: SoftDecorations.softShadows(colors, elevation: 2.0),
               ),
               child: Column(
@@ -322,7 +341,8 @@ class _ShelfPageState extends State<ShelfPage> {
                           color: colors.accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12.0),
                         ),
-                        child: Icon(Icons.file_upload_outlined, color: colors.accent, size: 22.0),
+                        child: Icon(Icons.file_upload_outlined,
+                            color: colors.accent, size: 22.0),
                       ),
                       const SizedBox(width: 10.0),
                       Text(
@@ -335,7 +355,8 @@ class _ShelfPageState extends State<ShelfPage> {
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: Icon(Icons.close_rounded, color: colors.textSecondary),
+                        icon: Icon(Icons.close_rounded,
+                            color: colors.textSecondary),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -343,7 +364,10 @@ class _ShelfPageState extends State<ShelfPage> {
                   const SizedBox(height: 8.0),
                   Text(
                     '支持导入 .txt（智能正则分章）与 .epub（标准排版），导入后可离线极速畅读。',
-                    style: TextStyle(fontSize: 12.0, color: colors.textSecondary, height: 1.4),
+                    style: TextStyle(
+                        fontSize: 12.0,
+                        color: colors.textSecondary,
+                        height: 1.4),
                   ),
                   const SizedBox(height: 16.0),
                   TextField(
@@ -352,10 +376,12 @@ class _ShelfPageState extends State<ShelfPage> {
                     style: TextStyle(fontSize: 13.0, color: colors.textPrimary),
                     decoration: InputDecoration(
                       hintText: '输入或粘贴文件绝对路径 (.txt / .epub)',
-                      hintStyle: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                      hintStyle: TextStyle(
+                          fontSize: 12.0, color: colors.textSecondary),
                       filled: true,
                       fillColor: colors.surface,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14.0, vertical: 10.0),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                         borderSide: BorderSide(color: colors.border),
@@ -373,11 +399,15 @@ class _ShelfPageState extends State<ShelfPage> {
                         child: OutlinedButton.icon(
                           key: const ValueKey('btn_scan_local_books'),
                           onPressed: () async {
-                            final docDir = await getApplicationDocumentsDirectory();
+                            final docDir =
+                                await getApplicationDocumentsDirectory();
                             final files = <File>[];
                             try {
-                              await for (final f in docDir.list(recursive: true)) {
-                                if (f is File && (f.path.endsWith('.txt') || f.path.endsWith('.epub'))) {
+                              await for (final f
+                                  in docDir.list(recursive: true)) {
+                                if (f is File &&
+                                    (f.path.endsWith('.txt') ||
+                                        f.path.endsWith('.epub'))) {
                                   files.add(f);
                                 }
                               }
@@ -387,7 +417,8 @@ class _ShelfPageState extends State<ShelfPage> {
                               if (ctx.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('沙盒文档目录中暂无图书，请填入路径或使用 WiFi 传书'),
+                                    content:
+                                        Text('沙盒文档目录中暂无图书，请填入路径或使用 WiFi 传书'),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
@@ -398,12 +429,14 @@ class _ShelfPageState extends State<ShelfPage> {
                               setSheetState(() {});
                             }
                           },
-                          icon: const Icon(Icons.folder_open_rounded, size: 16.0),
+                          icon:
+                              const Icon(Icons.folder_open_rounded, size: 16.0),
                           label: const Text('扫描沙盒图书'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: colors.textPrimary,
                             side: BorderSide(color: colors.border),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.0)),
                             padding: const EdgeInsets.symmetric(vertical: 12.0),
                           ),
                         ),
@@ -431,7 +464,8 @@ class _ShelfPageState extends State<ShelfPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: colors.accent,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.0)),
                             padding: const EdgeInsets.symmetric(vertical: 12.0),
                           ),
                         ),
@@ -446,22 +480,26 @@ class _ShelfPageState extends State<ShelfPage> {
                       WifiTransferDialog.show(context);
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14.0, vertical: 10.0),
                       decoration: BoxDecoration(
                         color: colors.surface,
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.wifi_tethering_rounded, size: 18.0, color: colors.accent),
+                          Icon(Icons.wifi_tethering_rounded,
+                              size: 18.0, color: colors.accent),
                           const SizedBox(width: 8.0),
                           Expanded(
                             child: Text(
                               '局域网电脑无线秒传？点击开启 WiFi 传书',
-                              style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                              style: TextStyle(
+                                  fontSize: 12.0, color: colors.textSecondary),
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios_rounded, size: 12.0, color: colors.textSecondary),
+                          Icon(Icons.arrow_forward_ios_rounded,
+                              size: 12.0, color: colors.textSecondary),
                         ],
                       ),
                     ),
@@ -483,14 +521,16 @@ class _ShelfPageState extends State<ShelfPage> {
     final kw = _searchKeyword.toLowerCase();
     var filteredBooks = _books.where((b) {
       if (kw.isEmpty) return true;
-      if (b.title.toLowerCase().contains(kw) || b.author.toLowerCase().contains(kw)) {
+      if (b.title.toLowerCase().contains(kw) ||
+          b.author.toLowerCase().contains(kw)) {
         return true;
       }
       if (b.pinyin.toLowerCase().contains(kw)) {
         return true;
       }
       try {
-        final initials = PinyinHelper.getShortPinyin(b.cleanTitle).toLowerCase();
+        final initials =
+            PinyinHelper.getShortPinyin(b.cleanTitle).toLowerCase();
         if (initials.contains(kw)) {
           return true;
         }
@@ -531,7 +571,8 @@ class _ShelfPageState extends State<ShelfPage> {
             // 2. Bento 个人数据看板
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
                 child: _buildBentoDashboard(colors),
               ),
             ),
@@ -539,7 +580,8 @@ class _ShelfPageState extends State<ShelfPage> {
             // 3. 搜索过滤栏
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0, vertical: 10.0),
                 child: Container(
                   height: 44.0,
                   decoration: BoxDecoration(
@@ -550,21 +592,25 @@ class _ShelfPageState extends State<ShelfPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 14.0),
                   child: Row(
                     children: [
-                      Icon(Icons.search, size: 18.0, color: colors.textSecondary),
+                      Icon(Icons.search,
+                          size: 18.0, color: colors.textSecondary),
                       const SizedBox(width: 8.0),
                       Expanded(
                         child: TextField(
                           key: const ValueKey('shelf_search_input'),
                           controller: _searchController,
-                          style: TextStyle(fontSize: 14.0, color: colors.textPrimary),
+                          style: TextStyle(
+                              fontSize: 14.0, color: colors.textPrimary),
                           decoration: InputDecoration(
                             hintText: '搜索书架上的作品或作者...',
-                            hintStyle: TextStyle(fontSize: 13.0, color: colors.textSecondary),
+                            hintStyle: TextStyle(
+                                fontSize: 13.0, color: colors.textSecondary),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                           ),
-                          onChanged: (val) => setState(() => _searchKeyword = val.trim()),
+                          onChanged: (val) =>
+                              setState(() => _searchKeyword = val.trim()),
                         ),
                       ),
                       if (_searchKeyword.isNotEmpty)
@@ -574,7 +620,8 @@ class _ShelfPageState extends State<ShelfPage> {
                             _searchController.clear();
                             setState(() => _searchKeyword = '');
                           },
-                          child: Icon(Icons.clear, size: 16.0, color: colors.textSecondary),
+                          child: Icon(Icons.clear,
+                              size: 16.0, color: colors.textSecondary),
                         ),
                     ],
                   ),
@@ -619,7 +666,8 @@ class _ShelfPageState extends State<ShelfPage> {
                     const SizedBox(width: 6.0),
                     Text(
                       '今日阅读',
-                      style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 12.0, color: colors.textSecondary),
                     ),
                   ],
                 ),
@@ -637,7 +685,8 @@ class _ShelfPageState extends State<ShelfPage> {
                       ),
                       TextSpan(
                         text: ' 分钟',
-                        style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary),
                       ),
                     ],
                   ),
@@ -662,7 +711,8 @@ class _ShelfPageState extends State<ShelfPage> {
                     const SizedBox(width: 6.0),
                     Text(
                       '在读藏书',
-                      style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 12.0, color: colors.textSecondary),
                     ),
                   ],
                 ),
@@ -688,9 +738,13 @@ class _ShelfPageState extends State<ShelfPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
-        title: Text('移出书架', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold)),
-        content: Text('确定要将《${book.title}》从书架中移除吗？', style: TextStyle(color: colors.textSecondary)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
+        title: Text('移出书架',
+            style: TextStyle(
+                color: colors.textPrimary, fontWeight: FontWeight.bold)),
+        content: Text('确定要将《${book.title}》从书架中移除吗？',
+            style: TextStyle(color: colors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -700,7 +754,8 @@ class _ShelfPageState extends State<ShelfPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.0)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('删除'),
@@ -804,22 +859,34 @@ class _ShelfPageState extends State<ShelfPage> {
                                 if (book.isPinned) ...[
                                   Container(
                                     margin: const EdgeInsets.only(right: 6.0),
-                                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5.0, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: colors.isDark ? Colors.amber.withValues(alpha: 0.22) : Colors.amber.withValues(alpha: 0.15),
+                                      color: colors.isDark
+                                          ? Colors.amber.withValues(alpha: 0.22)
+                                          : Colors.amber
+                                              .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4.0),
-                                      border: Border.all(color: colors.isDark ? const Color(0xFFFFC107) : Colors.amber.shade700, width: 0.6),
+                                      border: Border.all(
+                                          color: colors.isDark
+                                              ? const Color(0xFFFFC107)
+                                              : Colors.amber.shade700,
+                                          width: 0.6),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.push_pin_rounded, size: 10.0, color: Color(0xFFFFC107)),
+                                        const Icon(Icons.push_pin_rounded,
+                                            size: 10.0,
+                                            color: Color(0xFFFFC107)),
                                         const SizedBox(width: 2.0),
                                         Text(
                                           '置顶',
                                           style: TextStyle(
                                             fontSize: 9.0,
-                                            color: colors.isDark ? const Color(0xFFFFD54F) : Colors.amber.shade900,
+                                            color: colors.isDark
+                                                ? const Color(0xFFFFD54F)
+                                                : Colors.amber.shade900,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -842,43 +909,57 @@ class _ShelfPageState extends State<ShelfPage> {
                                 if (book.isLocal) ...[
                                   const SizedBox(width: 6.0),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5.0, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: colors.accent.withValues(alpha: 0.12),
+                                      color:
+                                          colors.accent.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(4.0),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
+                                          book.isEpub
+                                              ? Icons.menu_book_rounded
+                                              : Icons.description_rounded,
                                           size: 10.0,
                                           color: colors.accent,
                                         ),
                                         const SizedBox(width: 2.0),
                                         Text(
                                           book.isEpub ? '本地EPUB' : '本地TXT',
-                                          style: TextStyle(fontSize: 9.0, color: colors.accent, fontWeight: FontWeight.bold),
+                                          style: TextStyle(
+                                              fontSize: 9.0,
+                                              color: colors.accent,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ] else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0) ...[
+                                ] else if (_cachedCountMap[book.id] != null &&
+                                    _cachedCountMap[book.id]! > 0) ...[
                                   const SizedBox(width: 6.0),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5.0, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withValues(alpha: 0.12),
+                                      color:
+                                          Colors.green.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(4.0),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.download_done_rounded, size: 10.0, color: Colors.green),
+                                        const Icon(Icons.download_done_rounded,
+                                            size: 10.0, color: Colors.green),
                                         const SizedBox(width: 2.0),
                                         Text(
                                           '${_cachedCountMap[book.id]}章离线',
-                                          style: const TextStyle(fontSize: 9.0, color: Colors.green, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(
+                                              fontSize: 9.0,
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
@@ -889,14 +970,16 @@ class _ShelfPageState extends State<ShelfPage> {
                             const SizedBox(height: 4.0),
                             Text(
                               book.author,
-                              style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                              style: TextStyle(
+                                  fontSize: 12.0, color: colors.textSecondary),
                             ),
                             const SizedBox(height: 6.0),
                             Text(
                               book.lastChapter,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                              style: TextStyle(
+                                  fontSize: 11.0, color: colors.textSecondary),
                             ),
                             const SizedBox(height: 8.0),
                             // 进度条
@@ -906,7 +989,8 @@ class _ShelfPageState extends State<ShelfPage> {
                                 value: book.progress,
                                 minHeight: 4.0,
                                 backgroundColor: colors.surface,
-                                valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    colors.accent),
                               ),
                             ),
                           ],
@@ -928,7 +1012,8 @@ class _ShelfPageState extends State<ShelfPage> {
                           GestureDetector(
                             onTap: () => _openDetail(book),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0, vertical: 4.0),
                               decoration: BoxDecoration(
                                 color: colors.surface,
                                 borderRadius: BorderRadius.circular(8.0),
@@ -936,7 +1021,10 @@ class _ShelfPageState extends State<ShelfPage> {
                               ),
                               child: Text(
                                 '详情',
-                                style: TextStyle(fontSize: 11.0, color: colors.textSecondary, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                    fontSize: 11.0,
+                                    color: colors.textSecondary,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -960,7 +1048,8 @@ class _ShelfPageState extends State<ShelfPage> {
       padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 0.0),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: PlatformAdaptiveHelper.instance.getShelfGridColumnCount(context),
+          crossAxisCount:
+              PlatformAdaptiveHelper.instance.getShelfGridColumnCount(context),
           mainAxisSpacing: 16.0,
           crossAxisSpacing: 14.0,
           childAspectRatio: 0.58,
@@ -991,16 +1080,20 @@ class _ShelfPageState extends State<ShelfPage> {
                             top: 6.0,
                             right: 6.0,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5.0, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF14161B).withValues(alpha: 0.85),
+                                color: const Color(0xFF14161B)
+                                    .withValues(alpha: 0.85),
                                 borderRadius: BorderRadius.circular(6.0),
-                                border: Border.all(color: const Color(0xFFFFC107), width: 0.8),
+                                border: Border.all(
+                                    color: const Color(0xFFFFC107), width: 0.8),
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.push_pin_rounded, size: 10.0, color: Color(0xFFFFC107)),
+                                  Icon(Icons.push_pin_rounded,
+                                      size: 10.0, color: Color(0xFFFFC107)),
                                   SizedBox(width: 2.0),
                                   Text(
                                     '置顶',
@@ -1020,48 +1113,67 @@ class _ShelfPageState extends State<ShelfPage> {
                             top: 6.0,
                             left: 6.0,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5.0, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF14161B).withValues(alpha: 0.85),
+                                color: const Color(0xFF14161B)
+                                    .withValues(alpha: 0.85),
                                 borderRadius: BorderRadius.circular(6.0),
-                                border: Border.all(color: colors.accent.withValues(alpha: 0.8), width: 0.6),
+                                border: Border.all(
+                                    color: colors.accent.withValues(alpha: 0.8),
+                                    width: 0.6),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    book.isEpub ? Icons.menu_book_rounded : Icons.description_rounded,
+                                    book.isEpub
+                                        ? Icons.menu_book_rounded
+                                        : Icons.description_rounded,
                                     size: 10.0,
                                     color: colors.accent,
                                   ),
                                   const SizedBox(width: 2.0),
                                   Text(
                                     book.isEpub ? 'EPUB' : 'TXT',
-                                    style: TextStyle(fontSize: 9.0, color: colors.accent, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                        fontSize: 9.0,
+                                        color: colors.accent,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
                             ),
                           )
-                        else if (_cachedCountMap[book.id] != null && _cachedCountMap[book.id]! > 0)
+                        else if (_cachedCountMap[book.id] != null &&
+                            _cachedCountMap[book.id]! > 0)
                           Positioned(
                             top: 6.0,
                             left: 6.0,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.5),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5.0, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF14161B).withValues(alpha: 0.85),
+                                color: const Color(0xFF14161B)
+                                    .withValues(alpha: 0.85),
                                 borderRadius: BorderRadius.circular(6.0),
-                                border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.8), width: 0.6),
+                                border: Border.all(
+                                    color: Colors.greenAccent
+                                        .withValues(alpha: 0.8),
+                                    width: 0.6),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.download_done_rounded, size: 10.0, color: Colors.greenAccent),
+                                  const Icon(Icons.download_done_rounded,
+                                      size: 10.0, color: Colors.greenAccent),
                                   const SizedBox(width: 2.0),
                                   Text(
                                     '${_cachedCountMap[book.id]}章',
-                                    style: const TextStyle(fontSize: 9.0, color: Colors.white, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                        fontSize: 9.0,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -1096,7 +1208,8 @@ class _ShelfPageState extends State<ShelfPage> {
                   // 独立阅读进度（彻底解耦）
                   Text(
                     '${(book.progress * 100).toInt()}% 已读',
-                    style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                    style:
+                        TextStyle(fontSize: 11.0, color: colors.textSecondary),
                   ),
                 ],
               ),
@@ -1116,15 +1229,21 @@ class _ShelfPageState extends State<ShelfPage> {
       child: Center(
         child: Column(
           children: [
-            Text(isSearching ? '🔍' : '📖', style: const TextStyle(fontSize: 48.0)),
+            Text(isSearching ? '🔍' : '📖',
+                style: const TextStyle(fontSize: 48.0)),
             const SizedBox(height: 12.0),
             Text(
               '书架空空如也',
-              style: TextStyle(fontSize: 16.0, color: colors.textPrimary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 16.0,
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6.0),
             Text(
-              isSearching ? '未在书架中找到 "$_searchKeyword"，可清空或去全网搜索' : '快去挑选几本心仪的好书充实书架吧',
+              isSearching
+                  ? '未在书架中找到 "$_searchKeyword"，可清空或去全网搜索'
+                  : '快去挑选几本心仪的好书充实书架吧',
               style: TextStyle(fontSize: 13.0, color: colors.textSecondary),
             ),
             const SizedBox(height: 18.0),
@@ -1140,8 +1259,10 @@ class _ShelfPageState extends State<ShelfPage> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colors.textPrimary,
                       side: BorderSide(color: colors.border),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-                      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 10.0),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.0)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18.0, vertical: 10.0),
                     ),
                     child: const Text('清空检索'),
                   ),
@@ -1159,8 +1280,10 @@ class _ShelfPageState extends State<ShelfPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colors.accent,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-                    padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 10.0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22.0, vertical: 10.0),
                   ),
                   child: Text(isSearching ? '去全网搜索' : '去海量书库挑选好书'),
                 ),
@@ -1197,7 +1320,8 @@ class _ShelfHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => 56.0;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     final isDark = colors.isDark;
     final hasScrolled = shrinkOffset > 0 || overlapsContent;
 
@@ -1207,10 +1331,12 @@ class _ShelfHeaderDelegate extends SliverPersistentHeaderDelegate {
         child: Container(
           height: 56.0,
           decoration: BoxDecoration(
-            color: (isDark ? colors.background : colors.surface).withValues(alpha: isDark ? 0.82 : 0.88),
+            color: (isDark ? colors.background : colors.surface)
+                .withValues(alpha: isDark ? 0.82 : 0.88),
             border: Border(
               bottom: BorderSide(
-                color: colors.border.withValues(alpha: hasScrolled ? 0.55 : 0.0),
+                color:
+                    colors.border.withValues(alpha: hasScrolled ? 0.55 : 0.0),
                 width: 0.8,
               ),
             ),
@@ -1234,11 +1360,13 @@ class _ShelfHeaderDelegate extends SliverPersistentHeaderDelegate {
                 behavior: HitTestBehavior.opaque,
                 onTap: onLocalImport,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.5),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 6.5),
                   decoration: BoxDecoration(
                     color: colors.card,
                     borderRadius: BorderRadius.circular(12.0),
-                    boxShadow: SoftDecorations.softShadows(colors, elevation: 0.8),
+                    boxShadow:
+                        SoftDecorations.softShadows(colors, elevation: 0.8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1268,11 +1396,13 @@ class _ShelfHeaderDelegate extends SliverPersistentHeaderDelegate {
                 behavior: HitTestBehavior.opaque,
                 onTap: onWifiTransfer,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.5),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 6.5),
                   decoration: BoxDecoration(
                     color: colors.card,
                     borderRadius: BorderRadius.circular(12.0),
-                    boxShadow: SoftDecorations.softShadows(colors, elevation: 0.8),
+                    boxShadow:
+                        SoftDecorations.softShadows(colors, elevation: 0.8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1306,10 +1436,13 @@ class _ShelfHeaderDelegate extends SliverPersistentHeaderDelegate {
                   decoration: BoxDecoration(
                     color: colors.card,
                     borderRadius: BorderRadius.circular(12.0),
-                    boxShadow: SoftDecorations.softShadows(colors, elevation: 0.8),
+                    boxShadow:
+                        SoftDecorations.softShadows(colors, elevation: 0.8),
                   ),
                   child: Icon(
-                    isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+                    isGridView
+                        ? Icons.view_list_rounded
+                        : Icons.grid_view_rounded,
                     color: colors.textSecondary,
                     size: 19.0,
                   ),

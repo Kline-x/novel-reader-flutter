@@ -18,14 +18,15 @@ class NetworkClient {
                 headers: {
                   'User-Agent':
                       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
-                      'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+                          'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
                   'Accept':
                       'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
                 },
                 followRedirects: true,
                 maxRedirects: 5,
-                validateStatus: (status) => status != null && status >= 200 && status < 400,
+                validateStatus: (status) =>
+                    status != null && status >= 200 && status < 400,
               ),
             );
 
@@ -83,11 +84,13 @@ class NetworkClient {
     if (bytes.isNotEmpty) {
       final headLength = bytes.length < 2048 ? bytes.length : 2048;
       // 以 Latin-1 / ASCII 方式快速转换为小写字符串扫描元标签
-      final headString = String.fromCharCodes(bytes.sublist(0, headLength)).toLowerCase();
+      final headString =
+          String.fromCharCodes(bytes.sublist(0, headLength)).toLowerCase();
 
       // <meta charset="gbk">
-      final metaCharsetMatch = RegExp(r'<meta[^>]+charset=["' "'" r']?([a-zA-Z0-9_\-]+)')
-          .firstMatch(headString);
+      final metaCharsetMatch =
+          RegExp(r'<meta[^>]+charset=["' "'" r']?([a-zA-Z0-9_\-]+)')
+              .firstMatch(headString);
       if (metaCharsetMatch != null) {
         final charset = metaCharsetMatch.group(1);
         if (charset != null) {
@@ -96,8 +99,9 @@ class NetworkClient {
       }
 
       // <meta http-equiv="Content-Type" content="text/html; charset=gb2312">
-      final httpEquivMatch = RegExp(r'content=["' "'" r'][^"' "'" r']*charset=([a-zA-Z0-9_\-]+)')
-          .firstMatch(headString);
+      final httpEquivMatch =
+          RegExp(r'content=["' "'" r'][^"' "'" r']*charset=([a-zA-Z0-9_\-]+)')
+              .firstMatch(headString);
       if (httpEquivMatch != null) {
         final charset = httpEquivMatch.group(1);
         if (charset != null) {
@@ -123,14 +127,17 @@ class NetworkClient {
   /// 标准化字符集名称
   static String _normalizeCharset(String charset) {
     final lower = charset.toLowerCase().trim();
-    if (lower.contains('gbk') || lower.contains('gb2312') || lower.contains('gb18030')) {
+    if (lower.contains('gbk') ||
+        lower.contains('gb2312') ||
+        lower.contains('gb18030')) {
       return 'gbk';
     }
     return 'utf-8';
   }
 
   static String? _extractCharset(String text) {
-    final match = RegExp(r'charset=([a-zA-Z0-9_\-]+)', caseSensitive: false).firstMatch(text);
+    final match = RegExp(r'charset=([a-zA-Z0-9_\-]+)', caseSensitive: false)
+        .firstMatch(text);
     return match?.group(1);
   }
 
@@ -189,7 +196,8 @@ class NetworkClient {
   }
 
   /// 测速测通：测试 URL 响应延迟（毫秒），失败返回 null
-  Future<int?> measureLatency(String url, {Duration timeout = const Duration(seconds: 5)}) async {
+  Future<int?> measureLatency(String url,
+      {Duration timeout = const Duration(seconds: 5)}) async {
     final sw = Stopwatch()..start();
     try {
       final response = await _dio.request<dynamic>(
@@ -202,7 +210,9 @@ class NetworkClient {
         ),
       );
       sw.stop();
-      if (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 400) {
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 400) {
         return sw.elapsedMilliseconds;
       }
       return null;

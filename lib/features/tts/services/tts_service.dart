@@ -27,7 +27,7 @@ class TtsService {
 
   // 语速与音调
   double _speechRate = 1.0; // 0.5 ~ 2.0，展示值；传给 flutter_tts 需适配平台倍率
-  double _pitch = 1.0;      // 0.5 ~ 1.5
+  double _pitch = 1.0; // 0.5 ~ 1.5
 
   // 睡眠定时器
   TtsTimerOption _timerOption = TtsTimerOption.none;
@@ -148,7 +148,8 @@ class TtsService {
     _chapterIndex = chapterIndex;
     _chapterTitle = chapterTitle;
     _sentences = TtsSentenceSplitter.split(content);
-    _currentSentenceIndex = startSentenceIndex.clamp(0, _sentences.isEmpty ? 0 : _sentences.length - 1);
+    _currentSentenceIndex = startSentenceIndex.clamp(
+        0, _sentences.isEmpty ? 0 : _sentences.length - 1);
 
     if (_sentences.isEmpty) {
       debugPrint('[TtsService] Content is empty, cannot play.');

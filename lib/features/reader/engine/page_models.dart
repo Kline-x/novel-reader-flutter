@@ -86,7 +86,8 @@ class PagingConfig {
   double get availWidth => (viewportWidth - hPad * 2).clamp(100.0, 4000.0);
 
   /// 纯净可用内容高度（普通正文页）
-  double get availHeight => (viewportHeight - padTop - padBottom).clamp(lineHeight, 4000.0);
+  double get availHeight =>
+      (viewportHeight - padTop - padBottom).clamp(lineHeight, 4000.0);
 
   /// 纯净可用内容高度（首张带大标题页）
   double get firstPageAvailHeight =>
@@ -112,5 +113,6 @@ class ReadingAnchor {
   });
 
   @override
-  String toString() => 'ReadingAnchor(ch: $chapterIndex, offset: $charOffset, percent: ${(chapterPercent * 100).toStringAsFixed(1)}%)';
+  String toString() =>
+      'ReadingAnchor(ch: $chapterIndex, offset: $charOffset, percent: ${(chapterPercent * 100).toStringAsFixed(1)}%)';
 }

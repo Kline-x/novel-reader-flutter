@@ -62,7 +62,8 @@ void main() {
 
     test('【专项六】零误伤保护（合法英文句子与专业术语绝不破坏）', () {
       // 纯英文句子中的日常词汇（he, me, to, can, no, so）绝不被单字拼音误伤
-      const englishSentence = 'He asked me to check the level of the system and report it to the BOSS.';
+      const englishSentence =
+          'He asked me to check the level of the system and report it to the BOSS.';
       final englishClean = PinyinHarmonizer.restorePinyin(englishSentence);
       expect(englishClean, englishSentence);
 

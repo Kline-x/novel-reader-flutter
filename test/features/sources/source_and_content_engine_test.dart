@@ -55,9 +55,11 @@ void main() {
         sourceName: '普通源',
       );
 
-      final scoreBiquge7 = MultiSourceService.calculateRelevance(biquge7Book, '恶魔法则');
+      final scoreBiquge7 =
+          MultiSourceService.calculateRelevance(biquge7Book, '恶魔法则');
       final scoreSitu = MultiSourceService.calculateRelevance(situBook, '恶魔法则');
-      final scoreNormal = MultiSourceService.calculateRelevance(normalBook, '恶魔法则');
+      final scoreNormal =
+          MultiSourceService.calculateRelevance(normalBook, '恶魔法则');
 
       // 笔趣阁7 比 普通源 高 1000 分
       expect(scoreBiquge7 - scoreNormal, 1000);
@@ -144,7 +146,8 @@ void main() {
         latencyMs: 15,
       );
 
-      final ranked = MultiSourceService.rankResults([situ, biqugezwx, biquge7], '恶魔法则');
+      final ranked =
+          MultiSourceService.rankResults([situ, biqugezwx, biquge7], '恶魔法则');
 
       // 验证：尽管思兔阅读延迟仅 15ms，但因信誉惩罚被彻底打入谷底
       expect(ranked.first.sourceName, '笔趣阁7');
@@ -173,7 +176,8 @@ void main() {
         latencyMs: 260,
       );
 
-      final ranked = MultiSourceService.rankResults([slowBook, fastBook], '诡秘之主');
+      final ranked =
+          MultiSourceService.rankResults([slowBook, fastBook], '诡秘之主');
       expect(ranked.first.latencyMs, 45);
       expect(ranked.last.latencyMs, 260);
     });
@@ -206,10 +210,14 @@ void main() {
 
     test('>320 字超长段落按句末标点（。”、！”、？）语义智能断段', () {
       // 构造超过 380 字的无换行小说单段长文本
-      const sentence1 = '周明瑞揉了揉胀痛欲裂的太阳穴，只觉得脑袋沉重得像是灌了铅一般，脑海深处大量零碎混乱的记忆碎片在疯狂冲撞，那是属于克莱恩·莫雷蒂的短暂一生，充斥着贫困、窘迫与对神秘学知识的致命好奇，窗外的绯红月光正无声地照耀着这间逼仄阴暗的简陋房间。”'; // ~120字
-      const sentence2 = '他猛地从那张破旧的硬木椅子上站了起来，不可置信地看着书桌上的那面破碎黄铜镜子，镜子里映出一张年轻而苍白的脸庞，黑色头发，深褐色眼眸，左侧太阳穴处还赫然凝固着一个恐怖狰狞的贯穿弹孔，这怎么可能？难道我已经死过一次了？！”'; // ~120字
-      const sentence3 = '空气中弥漫着刺鼻的火药味与淡淡的血腥味，煤气路灯的微弱光芒在昏黄中摇曳不定，门外走廊传来了沉重而急促的脚步声，似乎有某种不可名状的恐怖存在正在黑暗中悄然逼近，这绝不是正常的现实世界，必须立刻找到自保的方法！'; // ~113字
-      const sentence4 = '他颤抖着伸出右手，摸向了抽屉深处的那柄左轮手枪与几枚黄铜子弹，冰冷的金属触感终于让他稍微找回了一丝安全感。'; // ~60字
+      const sentence1 =
+          '周明瑞揉了揉胀痛欲裂的太阳穴，只觉得脑袋沉重得像是灌了铅一般，脑海深处大量零碎混乱的记忆碎片在疯狂冲撞，那是属于克莱恩·莫雷蒂的短暂一生，充斥着贫困、窘迫与对神秘学知识的致命好奇，窗外的绯红月光正无声地照耀着这间逼仄阴暗的简陋房间。”'; // ~120字
+      const sentence2 =
+          '他猛地从那张破旧的硬木椅子上站了起来，不可置信地看着书桌上的那面破碎黄铜镜子，镜子里映出一张年轻而苍白的脸庞，黑色头发，深褐色眼眸，左侧太阳穴处还赫然凝固着一个恐怖狰狞的贯穿弹孔，这怎么可能？难道我已经死过一次了？！”'; // ~120字
+      const sentence3 =
+          '空气中弥漫着刺鼻的火药味与淡淡的血腥味，煤气路灯的微弱光芒在昏黄中摇曳不定，门外走廊传来了沉重而急促的脚步声，似乎有某种不可名状的恐怖存在正在黑暗中悄然逼近，这绝不是正常的现实世界，必须立刻找到自保的方法！'; // ~113字
+      const sentence4 =
+          '他颤抖着伸出右手，摸向了抽屉深处的那柄左轮手枪与几枚黄铜子弹，冰冷的金属触感终于让他稍微找回了一丝安全感。'; // ~60字
 
       const longText = '$sentence1$sentence2$sentence3$sentence4';
       expect(longText.length, greaterThan(320));
@@ -252,7 +260,8 @@ void main() {
         '“这就成功了？”克莱恩低声自语。',
       ];
 
-      final paragraphs = SourceParser.cleanAndFilterParagraphs(dirtyLines.join('\n'));
+      final paragraphs =
+          SourceParser.cleanAndFilterParagraphs(dirtyLines.join('\n'));
 
       // 纯广告行必须被彻底清除
       expect(paragraphs.any((p) => p.contains('书城')), isFalse);
@@ -353,7 +362,10 @@ void main() {
       // 模拟当前已有完整目录（708 章）
       final originalChapters = List.generate(
         708,
-        (i) => ChapterItem(index: i, title: '第${i + 1}章 标题$i', url: 'https://source1.com/ch/$i'),
+        (i) => ChapterItem(
+            index: i,
+            title: '第${i + 1}章 标题$i',
+            url: 'https://source1.com/ch/$i'),
       );
 
       var currentChapters = List<ChapterItem>.from(originalChapters);

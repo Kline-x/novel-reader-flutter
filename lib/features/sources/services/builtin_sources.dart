@@ -11,10 +11,12 @@ class BuiltinSources {
       baseUrl: 'https://www.biquge.company',
       charset: 'utf-8',
       search: SearchRule(
-        urlTemplate: 'https://www.biquge.company/modules/article/search.php?searchkey={key}',
+        urlTemplate:
+            'https://www.biquge.company/modules/article/search.php?searchkey={key}',
         item: 'div.bookbox',
         title: RuleSelector(selector: 'h4.bookname a', attr: 'text'),
-        author: RuleSelector(selector: 'div.author', attr: 'text', regex: r'^作者：'),
+        author:
+            RuleSelector(selector: 'div.author', attr: 'text', regex: r'^作者：'),
         detailUrl: RuleSelector(selector: 'h4.bookname a', attr: 'href'),
         coverUrl: RuleSelector(selector: 'img', attr: 'src'),
       ),
@@ -35,10 +37,12 @@ class BuiltinSources {
       baseUrl: 'https://www.biqugezwx.com',
       charset: 'utf-8',
       search: SearchRule(
-        urlTemplate: 'https://www.biqugezwx.com/modules/article/search.php?searchkey={key}',
+        urlTemplate:
+            'https://www.biqugezwx.com/modules/article/search.php?searchkey={key}',
         item: 'div.item',
         title: RuleSelector(selector: 'h1 a', attr: 'text'),
-        author: RuleSelector(selector: 'a[href*=authorarticle]', attr: 'text', regex: r'^作者：'),
+        author: RuleSelector(
+            selector: 'a[href*=authorarticle]', attr: 'text', regex: r'^作者：'),
         detailUrl: RuleSelector(selector: 'h1 a', attr: 'href'),
         coverUrl: RuleSelector(selector: 'img', attr: 'src'),
       ),
@@ -62,14 +66,16 @@ class BuiltinSources {
         urlTemplate: 'https://www.sto66.com/search/{key}.html',
         item: 'div.bookbox',
         title: RuleSelector(selector: 'h2 a', attr: 'text'),
-        author: RuleSelector(selector: 'div.author', attr: 'text', regex: r'^作者：'),
+        author:
+            RuleSelector(selector: 'div.author', attr: 'text', regex: r'^作者：'),
         detailUrl: RuleSelector(selector: 'h2 a', attr: 'href'),
         coverUrl: RuleSelector(selector: 'img.thumbnail', attr: 'src'),
       ),
       detail: DetailRule(
         title: RuleSelector(selector: 'h1', attr: 'text'),
         author: RuleSelector(selector: 'p.booktag a.red', attr: 'text'),
-        tocUrl: RuleSelector(selector: '#allchapter dl dd:last-child a', attr: 'href'),
+        tocUrl: RuleSelector(
+            selector: '#allchapter dl dd:last-child a', attr: 'href'),
       ),
       toc: TocRule(
         item: '#allchapter a',
@@ -156,7 +162,8 @@ class BuiltinSources {
         content: RuleSelector(
           selector: '#acontent',
           attr: 'html',
-          regex: r'^[\s\S]*?\(穿越小说 www\.kk169\.la\)|穿越小说 www\.kk169\.la[\s\S]*$',
+          regex:
+              r'^[\s\S]*?\(穿越小说 www\.kk169\.la\)|穿越小说 www\.kk169\.la[\s\S]*$',
         ),
       ),
     ),
@@ -192,7 +199,8 @@ class BuiltinSources {
       baseUrl: 'http://www.qudushu.org',
       charset: 'gbk',
       search: SearchRule(
-        urlTemplate: 'http://www.qudushu.org/modules/article/search.php?q={key}',
+        urlTemplate:
+            'http://www.qudushu.org/modules/article/search.php?q={key}',
         item: 'div.c_row',
         title: RuleSelector(selector: '.c_subject a', attr: 'text'),
         author: RuleSelector(selector: '.c_author', attr: 'text'),
@@ -220,7 +228,8 @@ class BuiltinSources {
       baseUrl: 'http://www.aixiawx.com',
       charset: 'gbk',
       search: SearchRule(
-        urlTemplate: 'http://www.aixiawx.com/modules/article/search.php?searchkey={key}',
+        urlTemplate:
+            'http://www.aixiawx.com/modules/article/search.php?searchkey={key}',
         item: 'table.grid tr',
         title: RuleSelector(selector: 'a', attr: 'text'),
         author: RuleSelector(selector: 'td:nth-child(3)', attr: 'text'),
@@ -249,7 +258,8 @@ class BuiltinSources {
       charset: 'gbk',
       enabled: false,
       search: SearchRule(
-        urlTemplate: 'http://www.xbiquge.la/modules/article/waps.php?searchkey={key}',
+        urlTemplate:
+            'http://www.xbiquge.la/modules/article/waps.php?searchkey={key}',
         item: 'table.grid tr',
         title: RuleSelector(selector: 'a', attr: 'text'),
         author: RuleSelector(selector: 'td:nth-child(3)', attr: 'text'),
@@ -274,7 +284,8 @@ class BuiltinSources {
       charset: 'utf-8',
       enabled: false,
       search: SearchRule(
-        urlTemplate: 'http://www.zzs5.info/index.php?m=search&c=index&a=init&typeid=2&siteid=1&q={key}',
+        urlTemplate:
+            'http://www.zzs5.info/index.php?m=search&c=index&a=init&typeid=2&siteid=1&q={key}',
         item: '.pages_table tr',
         title: RuleSelector(selector: 'a', attr: 'text'),
         author: RuleSelector(selector: 'td:nth-child(2)', attr: 'text'),

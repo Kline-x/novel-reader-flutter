@@ -87,7 +87,8 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType> {
   }
 }
 
-final themeProvider = StateNotifierProvider<ThemeNotifier, SoftPaletteType>((ref) {
+final themeProvider =
+    StateNotifierProvider<ThemeNotifier, SoftPaletteType>((ref) {
   return ThemeNotifier();
 });
 

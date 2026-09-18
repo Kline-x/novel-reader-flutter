@@ -100,13 +100,15 @@ class WifiTransferServer {
 
       _server!.listen(_handleRequest, onError: (e) {
         _status = WifiServerStatus.error;
-        _eventController.add(WifiServerEvent(status: _status, message: e.toString()));
+        _eventController
+            .add(WifiServerEvent(status: _status, message: e.toString()));
       });
 
       return true;
     } catch (e) {
       _status = WifiServerStatus.error;
-      _eventController.add(WifiServerEvent(status: _status, message: '启动失败: $e'));
+      _eventController
+          .add(WifiServerEvent(status: _status, message: '启动失败: $e'));
       return false;
     }
   }
@@ -124,8 +126,10 @@ class WifiTransferServer {
   void _handleRequest(HttpRequest request) async {
     // 跨域支持
     request.response.headers.add('Access-Control-Allow-Origin', '*');
-    request.response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    request.response.headers.add('Access-Control-Allow-Headers', 'Content-Type');
+    request.response.headers
+        .add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    request.response.headers
+        .add('Access-Control-Allow-Headers', 'Content-Type');
 
     if (request.method == 'OPTIONS') {
       request.response.statusCode = HttpStatus.ok;
@@ -190,7 +194,8 @@ class WifiTransferServer {
           throw Exception('Missing multipart boundary');
         }
 
-        final bytes = await request.fold<List<int>>([], (prev, element) => prev..addAll(element));
+        final bytes = await request
+            .fold<List<int>>([], (prev, element) => prev..addAll(element));
         final fileData = _extractMultipartFile(bytes, boundary);
         if (fileData != null) {
           if (fileData.filename != null) {
@@ -276,9 +281,12 @@ class WifiTransferServer {
 
     if (bodyStart == -1) return null;
 
-    final headerText = utf8.decode(bytes.sublist(headerStart, bodyStart - 4), allowMalformed: true);
+    final headerText = utf8.decode(bytes.sublist(headerStart, bodyStart - 4),
+        allowMalformed: true);
     String? filename;
-    final fnMatch = RegExp(r'filename\s*=\s*["' "'" r']?([^"' "'" r';\r\n]+)', caseSensitive: false).firstMatch(headerText);
+    final fnMatch = RegExp(r'filename\s*=\s*["' "'" r']?([^"' "'" r';\r\n]+)',
+            caseSensitive: false)
+        .firstMatch(headerText);
     if (fnMatch != null) {
       final rawName = fnMatch.group(1)!.trim();
       try {
@@ -306,7 +314,8 @@ class WifiTransferServer {
 
     if (bodyEnd < bodyStart) bodyEnd = bodyStart;
     final fileBytes = bytes.sublist(bodyStart, bodyEnd);
-    return _MultipartResult(filename: filename, bytes: Uint8List.fromList(fileBytes));
+    return _MultipartResult(
+        filename: filename, bytes: Uint8List.fromList(fileBytes));
   }
 
   void _serveWebPage(HttpRequest request) {

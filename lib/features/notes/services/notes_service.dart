@@ -37,7 +37,9 @@ class NotesService {
     if (raw == null || raw.isEmpty) return [];
     try {
       final list = jsonDecode(raw) as List<dynamic>;
-      return list.map((e) => Bookmark.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => Bookmark.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }
@@ -73,10 +75,12 @@ class NotesService {
   }
 
   /// 检查某位置是否已存在书签
-  Future<bool> isBookmarked(String bookId, int chapterIndex, int charOffset) async {
+  Future<bool> isBookmarked(
+      String bookId, int chapterIndex, int charOffset) async {
     final bookmarks = await getBookmarks(bookId);
     return bookmarks.any((b) =>
-        b.chapterIndex == chapterIndex && (b.charOffset - charOffset).abs() < 100);
+        b.chapterIndex == chapterIndex &&
+        (b.charOffset - charOffset).abs() < 100);
   }
 
   /// 批量覆盖保存书签（供云同步使用）
@@ -100,14 +104,17 @@ class NotesService {
     if (raw == null || raw.isEmpty) return [];
     try {
       final list = jsonDecode(raw) as List<dynamic>;
-      return list.map((e) => Annotation.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => Annotation.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }
   }
 
   /// 获取单本书的所有划线批注
-  Future<List<Annotation>> getAnnotations(String bookId, {int? chapterIndex}) async {
+  Future<List<Annotation>> getAnnotations(String bookId,
+      {int? chapterIndex}) async {
     final all = await getAllAnnotations();
     var filtered = all.where((a) => a.bookId == bookId).toList();
     if (chapterIndex != null) {

@@ -97,9 +97,36 @@ class PinyinHarmonizer {
 
   /// 常见单字拼音音节集合（用于变异解混淆中的单字归一化判定）
   static const Set<String> _commonSyllables = {
-    'zheng', 'zhi', 'xing', 'rou', 'nai', 'bo', 'cao', 'she', 'da', 'xiong',
-    'tun', 'xia', 'mi', 'yin', 'kuai', 'bi', 'sha', 'si', 'du', 'qiang',
-    'hei', 'chuan', 'shen', 'jing', 'guo', 'dan', 'zi', 'fu', 'cha', 'jia',
+    'zheng',
+    'zhi',
+    'xing',
+    'rou',
+    'nai',
+    'bo',
+    'cao',
+    'she',
+    'da',
+    'xiong',
+    'tun',
+    'xia',
+    'mi',
+    'yin',
+    'kuai',
+    'bi',
+    'sha',
+    'si',
+    'du',
+    'qiang',
+    'hei',
+    'chuan',
+    'shen',
+    'jing',
+    'guo',
+    'dan',
+    'zi',
+    'fu',
+    'cha',
+    'jia',
   };
 
   /// 获取当前所有生效的精确字典映射（内置字典 + PinyinRuleService + 动态注入）
@@ -169,7 +196,8 @@ class PinyinHarmonizer {
       replacement: (m) => '警${m.group(1)}',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'([民巡特干交火网预女法刑协骑武片备狱示告提防预机])\s*jing', caseSensitive: false),
+      pattern:
+          RegExp(r'([民巡特干交火网预女法刑协骑武片备狱示告提防预机])\s*jing', caseSensitive: false),
       replacement: (m) => '${m.group(1)}警',
     ),
     _ContextualPinyinRule(
@@ -369,7 +397,8 @@ class PinyinHarmonizer {
       final hanzi = entry.value;
 
       // 严格词边界或前后紧邻汉字标点，绝不误伤形如 "teaching" 或 "level" 的长单词
-      final regex = RegExp('(?<![a-zA-Z])$pinyin(?![a-zA-Z])', caseSensitive: false);
+      final regex =
+          RegExp('(?<![a-zA-Z])$pinyin(?![a-zA-Z])', caseSensitive: false);
       if (regex.hasMatch(result)) {
         result = result.replaceAll(regex, hanzi);
       }

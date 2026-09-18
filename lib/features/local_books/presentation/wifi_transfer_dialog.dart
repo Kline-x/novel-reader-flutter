@@ -125,7 +125,8 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                   color: colors.accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.wifi_tethering_rounded, color: colors.accent, size: 24),
+                child: Icon(Icons.wifi_tethering_rounded,
+                    color: colors.accent, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -148,7 +149,9 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                           height: 8,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _isRunning ? const Color(0xFF4CAF50) : colors.textSecondary,
+                            color: _isRunning
+                                ? const Color(0xFF4CAF50)
+                                : colors.textSecondary,
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -156,7 +159,9 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                           _isRunning ? '服务运行中' : '服务已停止',
                           style: TextStyle(
                             fontSize: 12,
-                            color: _isRunning ? const Color(0xFF388E3C) : colors.textSecondary,
+                            color: _isRunning
+                                ? const Color(0xFF388E3C)
+                                : colors.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -206,10 +211,12 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                       isActive: _isRunning,
                       onPressed: _isRunning
                           ? () {
-                              Clipboard.setData(ClipboardData(text: _serverUrl));
+                              Clipboard.setData(
+                                  ClipboardData(text: _serverUrl));
                               _copiedTimer?.cancel();
                               setState(() => _isCopied = true);
-                              _copiedTimer = Timer(const Duration(milliseconds: 1500), () {
+                              _copiedTimer =
+                                  Timer(const Duration(milliseconds: 1500), () {
                                 if (mounted) {
                                   setState(() => _isCopied = false);
                                 }
@@ -220,9 +227,13 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _isCopied ? Icons.check_rounded : Icons.copy_rounded,
+                            _isCopied
+                                ? Icons.check_rounded
+                                : Icons.copy_rounded,
                             size: 14.0,
-                            color: _isRunning ? Colors.white : colors.textSecondary,
+                            color: _isRunning
+                                ? Colors.white
+                                : colors.textSecondary,
                           ),
                           const SizedBox(width: 4.0),
                           Text(
@@ -230,7 +241,9 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                             style: TextStyle(
                               fontSize: 13.0,
                               fontWeight: FontWeight.w600,
-                              color: _isRunning ? Colors.white : colors.textSecondary,
+                              color: _isRunning
+                                  ? Colors.white
+                                  : colors.textSecondary,
                             ),
                           ),
                         ],
@@ -244,9 +257,16 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(_isRunning ? Icons.stop_rounded : Icons.play_arrow_rounded, size: 16.0, color: colors.textPrimary),
+                          Icon(
+                              _isRunning
+                                  ? Icons.stop_rounded
+                                  : Icons.play_arrow_rounded,
+                              size: 16.0,
+                              color: colors.textPrimary),
                           const SizedBox(width: 4.0),
-                          Text(_isRunning ? '停止服务' : '启动服务', style: TextStyle(fontSize: 13.0, color: colors.textPrimary)),
+                          Text(_isRunning ? '停止服务' : '启动服务',
+                              style: TextStyle(
+                                  fontSize: 13.0, color: colors.textPrimary)),
                         ],
                       ),
                     ),
@@ -261,10 +281,12 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
           SoftCard(
             colors: colors,
             radius: 16.0,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, size: 18, color: colors.accent),
+                Icon(Icons.info_outline_rounded,
+                    size: 18, color: colors.accent),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -303,25 +325,31 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                 separatorBuilder: (_, __) => const SizedBox(height: 6),
                 itemBuilder: (context, index) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle_rounded, color: Color(0xFF4CAF50), size: 16),
+                        const Icon(Icons.check_circle_rounded,
+                            color: Color(0xFF4CAF50), size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _receivedFiles[index],
-                            style: TextStyle(fontSize: 13, color: colors.textPrimary),
+                            style: TextStyle(
+                                fontSize: 13, color: colors.textPrimary),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Text(
                           '已入架',
-                          style: TextStyle(fontSize: 11, color: colors.accent, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: colors.accent,
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),

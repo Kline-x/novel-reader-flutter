@@ -132,17 +132,20 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
               ),
               if (remainingSecs > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 3.0),
                   margin: const EdgeInsets.only(right: 8.0),
                   decoration: BoxDecoration(
                     color: colors.card,
                     borderRadius: BorderRadius.circular(10.0),
-                    border: Border.all(color: colors.accent.withValues(alpha: 0.3)),
+                    border:
+                        Border.all(color: colors.accent.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.timer_outlined, size: 12.0, color: colors.accent),
+                      Icon(Icons.timer_outlined,
+                          size: 12.0, color: colors.accent),
                       const SizedBox(width: 4.0),
                       Text(
                         '${(remainingSecs ~/ 60).toString().padLeft(2, '0')}:${(remainingSecs % 60).toString().padLeft(2, '0')}',
@@ -162,9 +165,11 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
                   decoration: BoxDecoration(
                     color: colors.card,
                     shape: BoxShape.circle,
-                    boxShadow: SoftDecorations.softShadows(colors, elevation: 0.5),
+                    boxShadow:
+                        SoftDecorations.softShadows(colors, elevation: 0.5),
                   ),
-                  child: Icon(Icons.close_rounded, size: 18.0, color: colors.textSecondary),
+                  child: Icon(Icons.close_rounded,
+                      size: 18.0, color: colors.textSecondary),
                 ),
               ),
             ],
@@ -225,8 +230,10 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
                 inactiveTrackColor: colors.accent.withValues(alpha: 0.15),
                 thumbColor: colors.accent,
                 trackHeight: 3.5,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                thumbShape:
+                    const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                overlayShape:
+                    const RoundSliderOverlayShape(overlayRadius: 12.0),
               ),
               child: Slider(
                 value: curIdx.toDouble().clamp(0.0, (total - 1).toDouble()),
@@ -325,29 +332,37 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
                       behavior: HitTestBehavior.opaque,
                       onTap: () => _ttsService.setSpeechRate(rate),
                       child: Container(
-                        constraints: const BoxConstraints(minHeight: 48.0, minWidth: 44.0),
+                        constraints: const BoxConstraints(
+                            minHeight: 48.0, minWidth: 44.0),
                         alignment: Alignment.center,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10.0, vertical: 6.0),
                           decoration: BoxDecoration(
                             color: isSelected ? colors.accent : colors.card,
                             borderRadius: BorderRadius.circular(10.0),
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: colors.accent.withValues(alpha: 0.3),
+                                      color:
+                                          colors.accent.withValues(alpha: 0.3),
                                       blurRadius: 4.0,
                                       offset: const Offset(0, 2),
                                     ),
                                   ]
-                                : SoftDecorations.softShadows(colors, elevation: 0.5),
+                                : SoftDecorations.softShadows(colors,
+                                    elevation: 0.5),
                           ),
                           child: Text(
                             '${rate}x',
                             style: TextStyle(
                               fontSize: 11.0,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.white : colors.textPrimary,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? Colors.white
+                                  : colors.textPrimary,
                             ),
                           ),
                         ),
@@ -382,29 +397,37 @@ class _TtsControlSheetState extends State<TtsControlSheet> {
                       behavior: HitTestBehavior.opaque,
                       onTap: () => _ttsService.setTimer(opt),
                       child: Container(
-                        constraints: const BoxConstraints(minHeight: 48.0, minWidth: 40.0),
+                        constraints: const BoxConstraints(
+                            minHeight: 48.0, minWidth: 40.0),
                         alignment: Alignment.center,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0, vertical: 6.0),
                           decoration: BoxDecoration(
                             color: isSelected ? colors.accent : colors.card,
                             borderRadius: BorderRadius.circular(10.0),
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: colors.accent.withValues(alpha: 0.3),
+                                      color:
+                                          colors.accent.withValues(alpha: 0.3),
                                       blurRadius: 4.0,
                                       offset: const Offset(0, 2),
                                     ),
                                   ]
-                                : SoftDecorations.softShadows(colors, elevation: 0.5),
+                                : SoftDecorations.softShadows(colors,
+                                    elevation: 0.5),
                           ),
                           child: Text(
                             opt.label,
                             style: TextStyle(
                               fontSize: 10.5,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.white : colors.textPrimary,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: isSelected
+                                  ? Colors.white
+                                  : colors.textPrimary,
                             ),
                           ),
                         ),

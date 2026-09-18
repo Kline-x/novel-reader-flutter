@@ -11,7 +11,10 @@ void main() {
       // 必须包含对 Flutter 引擎的白名单保护
       expect(content, contains('-keep class io.flutter.** { *; }'));
       // 必须包含对包名主代码的保护
-      expect(content, contains('-keep class com.kline.novelreader.novel_reader_flutter.** { *; }'));
+      expect(
+          content,
+          contains(
+              '-keep class com.kline.novelreader.novel_reader_flutter.** { *; }'));
       // 必须包含第三方平台插件
       expect(content, contains('fluttertts'));
       expect(content, contains('sharedpreferences'));
@@ -33,12 +36,14 @@ void main() {
     });
 
     test('生产包体积瘦身率校验 (Release vs Debug)', () {
-      final releaseArm64 = File('build/app/outputs/flutter-apk/app-arm64-v8a-release.apk');
+      final releaseArm64 =
+          File('build/app/outputs/flutter-apk/app-arm64-v8a-release.apk');
       if (releaseArm64.existsSync()) {
         final bytes = releaseArm64.lengthSync();
         final mb = bytes / (1024 * 1024);
         // 单架构 release 包应当小于 30MB（远小于 149MB 的 debug 通用包）
-        expect(mb, lessThan(30.0), reason: 'arm64-v8a 发布包体积应小于 30MB，当前为 ${mb.toStringAsFixed(1)}MB');
+        expect(mb, lessThan(30.0),
+            reason: 'arm64-v8a 发布包体积应小于 30MB，当前为 ${mb.toStringAsFixed(1)}MB');
       }
     });
   });

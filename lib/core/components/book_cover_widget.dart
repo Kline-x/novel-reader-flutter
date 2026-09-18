@@ -60,8 +60,9 @@ class BookCoverWidget extends StatelessWidget {
     final pIdx = paletteIndex ?? hashTitleToPalette(cleanTitle);
     final palette = coverPalettes[pIdx.clamp(0, coverPalettes.length - 1)];
 
-    final bool hasValidNetworkCover =
-        coverUrl != null && coverUrl!.isNotEmpty && coverUrl!.startsWith('http');
+    final bool hasValidNetworkCover = coverUrl != null &&
+        coverUrl!.isNotEmpty &&
+        coverUrl!.startsWith('http');
 
     return Container(
       width: width.isFinite ? width : null,
@@ -84,7 +85,8 @@ class BookCoverWidget extends StatelessWidget {
             ? Image.network(
                 coverUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildStylizedCover(cleanTitle, palette),
+                errorBuilder: (_, __, ___) =>
+                    _buildStylizedCover(cleanTitle, palette),
               )
             : _buildStylizedCover(cleanTitle, palette),
       ),
@@ -94,13 +96,19 @@ class BookCoverWidget extends StatelessWidget {
   Widget _buildStylizedCover(String cleanTitle, List<Color> palette) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final w = constraints.maxWidth.isFinite ? constraints.maxWidth : (width.isFinite ? width : 52.0);
-        final h = constraints.maxHeight.isFinite ? constraints.maxHeight : (height.isFinite ? height : 72.0);
+        final w = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : (width.isFinite ? width : 52.0);
+        final h = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : (height.isFinite ? height : 72.0);
 
         // 竖排字符（最多展示 5 个字）
         final verticalChars = cleanTitle.characters.take(5).toList();
         final isCompact = h < 80.0;
-        final titleFontSize = isCompact ? (w * 0.22).clamp(10.0, 13.0) : (w * 0.17).clamp(13.0, 18.0);
+        final titleFontSize = isCompact
+            ? (w * 0.22).clamp(10.0, 13.0)
+            : (w * 0.17).clamp(13.0, 18.0);
         final authorFontSize = isCompact ? 8.0 : 9.5;
 
         return Stack(
@@ -152,110 +160,111 @@ class BookCoverWidget extends StatelessWidget {
               ),
             ),
 
-        // 4. 顶部光泽斜切高光 (Sheen)
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                stops: const [0.0, 0.4, 0.7],
-                colors: [
-                  Colors.white.withValues(alpha: 0.28),
-                  Colors.white.withValues(alpha: 0.06),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // 5. 顶部标签（如有）
-        if (badgeText != null && badgeText!.isNotEmpty && !isCompact)
-          Positioned(
-            top: 5.0,
-            left: 5.0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.28),
-                borderRadius: BorderRadius.circular(99.0),
-              ),
-              child: Text(
-                badgeText!,
-                style: const TextStyle(
-                  fontSize: 7.5,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+            // 4. 顶部光泽斜切高光 (Sheen)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    stops: const [0.0, 0.4, 0.7],
+                    colors: [
+                      Colors.white.withValues(alpha: 0.28),
+                      Colors.white.withValues(alpha: 0.06),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-        // 6. 纵向中文书名 (Vertical Chinese Typography)
-        Center(
-          child: Padding(
-            padding: EdgeInsets.only(
-              top: isCompact ? 3.0 : 8.0,
-              bottom: isCompact ? 12.0 : 20.0,
-            ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final char in verticalChars)
-                    Text(
-                      char,
-                      style: TextStyle(
-                        fontSize: titleFontSize,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        height: 1.05,
-                        letterSpacing: 1.0,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            offset: const Offset(0, 1.5),
-                            blurRadius: 4.0,
-                          ),
-                        ],
-                      ),
+            // 5. 顶部标签（如有）
+            if (badgeText != null && badgeText!.isNotEmpty && !isCompact)
+              Positioned(
+                top: 5.0,
+                left: 5.0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 5.0, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(99.0),
+                  ),
+                  child: Text(
+                    badgeText!,
+                    style: const TextStyle(
+                      fontSize: 7.5,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                ],
+                  ),
+                ),
+              ),
+
+            // 6. 纵向中文书名 (Vertical Chinese Typography)
+            Center(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: isCompact ? 3.0 : 8.0,
+                  bottom: isCompact ? 12.0 : 20.0,
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final char in verticalChars)
+                        Text(
+                          char,
+                          style: TextStyle(
+                            fontSize: titleFontSize,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            height: 1.05,
+                            letterSpacing: 1.0,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                offset: const Offset(0, 1.5),
+                                blurRadius: 4.0,
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
 
-        // 7. 底部作者姓名居中
-        Positioned(
-          left: 3.0,
-          right: 3.0,
-          bottom: isCompact ? 3.5 : 6.0,
-          child: Text(
-            author.isNotEmpty ? author : '网络文学',
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: authorFontSize,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.92),
-              letterSpacing: 0.4,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  offset: const Offset(0, 1),
-                  blurRadius: 2.0,
+            // 7. 底部作者姓名居中
+            Positioned(
+              left: 3.0,
+              right: 3.0,
+              bottom: isCompact ? 3.5 : 6.0,
+              child: Text(
+                author.isNotEmpty ? author : '网络文学',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: authorFontSize,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.92),
+                  letterSpacing: 0.4,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      offset: const Offset(0, 1),
+                      blurRadius: 2.0,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
-    );
+          ],
+        );
       },
     );
   }

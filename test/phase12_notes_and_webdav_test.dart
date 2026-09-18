@@ -101,7 +101,8 @@ void main() {
         createdAt: now,
       ));
 
-      final md = await notesService.exportNotesAsMarkdown('book_fanren', '凡人修仙传');
+      final md =
+          await notesService.exportNotesAsMarkdown('book_fanren', '凡人修仙传');
       expect(md, contains('# 《凡人修仙传》读书笔记与摘录'));
       expect(md, contains('数十名少年需要在一个时辰内登上峰顶。'));
       expect(md, contains('主角韩立的心性从这里展现'));
@@ -372,8 +373,10 @@ void main() {
       expect(find.byKey(const ValueKey('btn_sync_now')), findsOneWidget);
 
       // 输入配置
-      await tester.enterText(find.byKey(const ValueKey('input_webdav_user')), 'test_user');
-      await tester.enterText(find.byKey(const ValueKey('input_webdav_pwd')), 'test_pwd');
+      await tester.enterText(
+          find.byKey(const ValueKey('input_webdav_user')), 'test_user');
+      await tester.enterText(
+          find.byKey(const ValueKey('input_webdav_pwd')), 'test_pwd');
       await tester.pumpAndSettle();
 
       // 点击测试连接

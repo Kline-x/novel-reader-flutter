@@ -64,7 +64,8 @@ void main() {
       expect(shelf.any((b) => b.title == '诡秘之主'), isTrue);
 
       // 更新某本书的阅读进度
-      await storage.saveReadingProgress('book_1', chapterIndex: 12, charOffset: 80);
+      await storage.saveReadingProgress('book_1',
+          chapterIndex: 12, charOffset: 80);
       shelf = await storage.getBookshelf();
       final updatedBook1 = shelf.firstWhere((b) => b.bookId == 'book_1');
       expect(updatedBook1.currentChapterIndex, 12);

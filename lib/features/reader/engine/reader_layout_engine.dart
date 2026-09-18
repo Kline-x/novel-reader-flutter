@@ -1,4 +1,3 @@
-
 import 'cjk_punctuation.dart';
 import 'page_models.dart';
 
@@ -14,7 +13,8 @@ class ReaderLayoutEngine {
   /// 估算单个字符的宽度（单位：px）
   /// CJK 汉字与全角标点：1.0 em = fontSize + letterSpacing
   /// ASCII 半角：0.35em ~ 0.85em
-  static double measureChar(String char, double fontSize, double letterSpacing) {
+  static double measureChar(
+      String char, double fontSize, double letterSpacing) {
     if (char == ' ') return fontSize * 0.33 + letterSpacing;
     if (char == '\u3000') return fontSize + letterSpacing;
 
@@ -77,12 +77,15 @@ class ReaderLayoutEngine {
           ));
           lineStartOffset = curCharOffset - 2;
           currentLine = lastChar + char;
-          currentLineWidth = measureChar(lastChar, fontSize, letterSpacing) + charW;
+          currentLineWidth =
+              measureChar(lastChar, fontSize, letterSpacing) + charW;
           continue;
         }
 
         // 2. 避尾禁则：当前行末尾字符是前置标点（如左书名号《、前引号“）
-        final lastChar = currentLine.isNotEmpty ? currentLine.substring(currentLine.length - 1) : '';
+        final lastChar = currentLine.isNotEmpty
+            ? currentLine.substring(currentLine.length - 1)
+            : '';
         if (CjkPunctuation.isForbiddenEnd(lastChar) && currentLine.length > 1) {
           currentLine = currentLine.substring(0, currentLine.length - 1);
           lines.add(PageLineItem(
@@ -96,7 +99,8 @@ class ReaderLayoutEngine {
           ));
           lineStartOffset = curCharOffset - 2;
           currentLine = lastChar + char;
-          currentLineWidth = measureChar(lastChar, fontSize, letterSpacing) + charW;
+          currentLineWidth =
+              measureChar(lastChar, fontSize, letterSpacing) + charW;
           continue;
         }
 
@@ -191,15 +195,19 @@ class ReaderLayoutEngine {
 
     for (int i = 0; i < allLines.length; i++) {
       final line = allLines[i];
-      final targetAvailH = isFirstPage ? config.firstPageAvailHeight : config.availHeight;
-      final maxLines = isFirstPage ? config.firstPageMaxLines : config.maxLinesPerPage;
+      final targetAvailH =
+          isFirstPage ? config.firstPageAvailHeight : config.availHeight;
+      final maxLines =
+          isFirstPage ? config.firstPageMaxLines : config.maxLinesPerPage;
 
       // 段落末尾行增加段间距
-      final lineCost = config.lineHeight + (line.isLastLineOfPara ? config.paragraphGap : 0.0);
+      final lineCost = config.lineHeight +
+          (line.isLastLineOfPara ? config.paragraphGap : 0.0);
       final isLastLineOfChapter = i == allLines.length - 1;
       final extraBottom = isLastLineOfChapter ? config.endMarkHeight : 0.0;
 
-      final fitsHeight = (currentHeight + lineCost + extraBottom) <= targetAvailH;
+      final fitsHeight =
+          (currentHeight + lineCost + extraBottom) <= targetAvailH;
       final fitsLines = currentLines.length < maxLines;
 
       if ((fitsHeight && fitsLines) || currentLines.isEmpty) {

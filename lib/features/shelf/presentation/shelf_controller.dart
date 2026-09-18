@@ -220,7 +220,8 @@ class ShelfNotifier extends StateNotifier<ShelfState> {
   void addBook(BookItem book) {
     final exists = state.books.any((b) => b.id == book.id);
     if (exists) {
-      final updated = state.books.map((b) => b.id == book.id ? book : b).toList();
+      final updated =
+          state.books.map((b) => b.id == book.id ? book : b).toList();
       state = state.copyWith(books: updated);
     } else {
       state = state.copyWith(books: [book, ...state.books]);

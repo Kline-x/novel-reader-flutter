@@ -176,7 +176,8 @@ class ChapterHelper {
   }
 
   /// 获取指定书籍与章节索引的精美多页正文段落（仅对预置书生效，非预置书返回空列表，绝不盲目返回周明瑞）
-  static List<String> getParagraphsForBookAndChapter(String bookTitle, int chapterIndex) {
+  static List<String> getParagraphsForBookAndChapter(
+      String bookTitle, int chapterIndex) {
     return getPresetParagraphs(bookTitle, chapterIndex) ?? const [];
   }
 }

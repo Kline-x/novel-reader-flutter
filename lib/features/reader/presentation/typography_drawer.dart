@@ -60,7 +60,9 @@ class TypographyDrawer extends StatelessWidget {
               width: 36.0,
               height: 4.0,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.4),
+                color: isDark
+                    ? Colors.white24
+                    : Colors.grey.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2.0),
               ),
             ),
@@ -70,7 +72,11 @@ class TypographyDrawer extends StatelessWidget {
           // 1. 字号调节 (A- / A+ 滑块)
           Row(
             children: [
-              Text('字号', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600, color: textColor)),
+              Text('字号',
+                  style: TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                      color: textColor)),
               const SizedBox(width: 16.0),
               _buildRoundButton(
                 icon: Icons.text_decrease,
@@ -106,7 +112,8 @@ class TypographyDrawer extends StatelessWidget {
                 child: Text(
                   '${fontSize.toInt()}',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, color: textColor),
                 ),
               ),
             ],
@@ -116,13 +123,32 @@ class TypographyDrawer extends StatelessWidget {
           // 2. 行距调节
           Row(
             children: [
-              Text('行距', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600, color: textColor)),
+              Text('行距',
+                  style: TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                      color: textColor)),
               const SizedBox(width: 24.0),
-              _buildLineSpacingChip(label: '紧凑', value: fontSize * 1.4, current: lineHeight, subTextColor: subTextColor, isDark: isDark),
+              _buildLineSpacingChip(
+                  label: '紧凑',
+                  value: fontSize * 1.4,
+                  current: lineHeight,
+                  subTextColor: subTextColor,
+                  isDark: isDark),
               const SizedBox(width: 12.0),
-              _buildLineSpacingChip(label: '舒适', value: fontSize * 1.7, current: lineHeight, subTextColor: subTextColor, isDark: isDark),
+              _buildLineSpacingChip(
+                  label: '舒适',
+                  value: fontSize * 1.7,
+                  current: lineHeight,
+                  subTextColor: subTextColor,
+                  isDark: isDark),
               const SizedBox(width: 12.0),
-              _buildLineSpacingChip(label: '宽松', value: fontSize * 2.0, current: lineHeight, subTextColor: subTextColor, isDark: isDark),
+              _buildLineSpacingChip(
+                  label: '宽松',
+                  value: fontSize * 2.0,
+                  current: lineHeight,
+                  subTextColor: subTextColor,
+                  isDark: isDark),
             ],
           ),
           const SizedBox(height: 16.0),
@@ -130,7 +156,11 @@ class TypographyDrawer extends StatelessWidget {
           // 3. 翻页模式选择（四等分自适应圆角胶囊，拒绝单行横向截断）
           Row(
             children: [
-              Text('翻页', style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.w600, color: textColor)),
+              Text('翻页',
+                  style: TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                      color: textColor)),
               const SizedBox(width: 16.0),
               Expanded(
                 child: Row(
@@ -148,7 +178,9 @@ class TypographyDrawer extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? const Color(0xFF5B7FFF)
-                                  : (isDark ? Colors.white10 : const Color(0xFFEBECEE)),
+                                  : (isDark
+                                      ? Colors.white10
+                                      : const Color(0xFFEBECEE)),
                               borderRadius: BorderRadius.circular(10.0),
                             ),
                             child: Center(
@@ -156,10 +188,14 @@ class TypographyDrawer extends StatelessWidget {
                                 shortTitle,
                                 style: TextStyle(
                                   fontSize: 12.0,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                   color: isSelected
                                       ? Colors.white
-                                      : (isDark ? Colors.white70 : const Color(0xFF333333)),
+                                      : (isDark
+                                          ? Colors.white70
+                                          : const Color(0xFF333333)),
                                 ),
                               ),
                             ),
@@ -188,7 +224,9 @@ class TypographyDrawer extends StatelessWidget {
                     color: theme.background,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? const Color(0xFF5B7FFF) : Colors.grey.withValues(alpha: 0.3),
+                      color: isSelected
+                          ? const Color(0xFF5B7FFF)
+                          : Colors.grey.withValues(alpha: 0.3),
                       width: isSelected ? 2.5 : 1.0,
                     ),
                     boxShadow: [
@@ -249,7 +287,11 @@ class TypographyDrawer extends StatelessWidget {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(16.0),
           border: Border.all(
-            color: isSelected ? const Color(0xFF5B7FFF) : (isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3)),
+            color: isSelected
+                ? const Color(0xFF5B7FFF)
+                : (isDark
+                    ? Colors.white24
+                    : Colors.grey.withValues(alpha: 0.3)),
           ),
         ),
         child: Text(

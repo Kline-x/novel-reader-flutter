@@ -64,9 +64,16 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
   @override
   Widget build(BuildContext context) {
     final isDark = widget.theme?.isDark ?? widget.isDark;
-    final primaryTextColor = isDark ? Colors.white : (Theme.of(context).textTheme.titleLarge?.color ?? const Color(0xFF1F2329));
-    final secondaryTextColor = isDark ? Colors.white54 : (Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF8F959E));
-    final accentColor = isDark ? const Color(0xFF7098FF) : const Color(0xFF5B7FFF);
+    final primaryTextColor = isDark
+        ? Colors.white
+        : (Theme.of(context).textTheme.titleLarge?.color ??
+            const Color(0xFF1F2329));
+    final secondaryTextColor = isDark
+        ? Colors.white54
+        : (Theme.of(context).textTheme.bodySmall?.color ??
+            const Color(0xFF8F959E));
+    final accentColor =
+        isDark ? const Color(0xFF7098FF) : const Color(0xFF5B7FFF);
 
     var displayList = widget.chapters.where((c) {
       if (_filterKeyword.isEmpty) return true;
@@ -79,13 +86,16 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
 
     return Container(
       width: MediaQuery.of(context).size.width * 0.85,
-      color: isDark ? const Color(0xFF1E2022) : Theme.of(context).scaffoldBackgroundColor,
+      color: isDark
+          ? const Color(0xFF1E2022)
+          : Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
         child: Column(
           children: [
             // 抽屉头部
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Row(
                 children: [
                   RichText(
@@ -116,8 +126,10 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                         Navigator.of(context).pop();
                         widget.onOpenNotes!();
                       },
-                      icon: Icon(Icons.rate_review_rounded, size: 14, color: accentColor),
-                      label: Text('笔记', style: TextStyle(fontSize: 12, color: accentColor)),
+                      icon: Icon(Icons.rate_review_rounded,
+                          size: 14, color: accentColor),
+                      label: Text('笔记',
+                          style: TextStyle(fontSize: 12, color: accentColor)),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         visualDensity: VisualDensity.compact,
@@ -132,8 +144,10 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                         Navigator.of(context).pop();
                         widget.onOpenDownload!();
                       },
-                      icon: Icon(Icons.download_rounded, size: 14, color: accentColor),
-                      label: Text('缓存', style: TextStyle(fontSize: 12, color: accentColor)),
+                      icon: Icon(Icons.download_rounded,
+                          size: 14, color: accentColor),
+                      label: Text('缓存',
+                          style: TextStyle(fontSize: 12, color: accentColor)),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         visualDensity: VisualDensity.compact,
@@ -144,9 +158,16 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                   ],
                   // 正倒序切换按钮
                   TextButton.icon(
-                    onPressed: () => setState(() => _isAscending = !_isAscending),
-                    icon: Icon(_isAscending ? Icons.arrow_downward : Icons.arrow_upward, size: 14, color: accentColor),
-                    label: Text(_isAscending ? '倒序' : '正序', style: TextStyle(fontSize: 12, color: accentColor)),
+                    onPressed: () =>
+                        setState(() => _isAscending = !_isAscending),
+                    icon: Icon(
+                        _isAscending
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
+                        size: 14,
+                        color: accentColor),
+                    label: Text(_isAscending ? '倒序' : '正序',
+                        style: TextStyle(fontSize: 12, color: accentColor)),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 4.0),
                       visualDensity: VisualDensity.compact,
@@ -159,11 +180,14 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
 
             // 搜索过滤输入框
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: Container(
                 height: 40.0,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF282A2D) : Theme.of(context).dividerColor.withValues(alpha: 0.08),
+                  color: isDark
+                      ? const Color(0xFF282A2D)
+                      : Theme.of(context).dividerColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12.0),
                   border: Border.all(
                     color: isDark ? Colors.white12 : Colors.transparent,
@@ -175,7 +199,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                     Icon(
                       Icons.search,
                       size: 18,
-                      color: isDark ? Colors.white54 : Theme.of(context).hintColor,
+                      color:
+                          isDark ? Colors.white54 : Theme.of(context).hintColor,
                     ),
                     const SizedBox(width: 8.0),
                     Expanded(
@@ -189,13 +214,16 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                           hintText: '搜索章节名...',
                           hintStyle: TextStyle(
                             fontSize: 13.0,
-                            color: isDark ? Colors.white38 : Theme.of(context).hintColor,
+                            color: isDark
+                                ? Colors.white38
+                                : Theme.of(context).hintColor,
                           ),
                           border: InputBorder.none,
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
-                        onChanged: (val) => setState(() => _filterKeyword = val.trim()),
+                        onChanged: (val) =>
+                            setState(() => _filterKeyword = val.trim()),
                       ),
                     ),
                     if (_filterKeyword.isNotEmpty)
@@ -204,7 +232,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                           _searchController.clear();
                           setState(() => _filterKeyword = '');
                         },
-                        child: Icon(Icons.clear, size: 16, color: isDark ? Colors.white54 : null),
+                        child: Icon(Icons.clear,
+                            size: 16, color: isDark ? Colors.white54 : null),
                       ),
                   ],
                 ),
@@ -214,7 +243,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
             // 搜索命中计数提示
             if (_filterKeyword.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -249,7 +279,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       alignment: Alignment.centerLeft,
                       color: isCurrent
-                          ? const Color(0xFF5B7FFF).withValues(alpha: isDark ? 0.22 : 0.12)
+                          ? const Color(0xFF5B7FFF)
+                              .withValues(alpha: isDark ? 0.22 : 0.12)
                           : Colors.transparent,
                       child: Row(
                         children: [
@@ -264,7 +295,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                           if (chapter.isCached)
                             const Padding(
                               padding: EdgeInsets.only(left: 6.0),
-                              child: Icon(Icons.download_done_rounded, size: 14, color: Colors.green),
+                              child: Icon(Icons.download_done_rounded,
+                                  size: 14, color: Colors.green),
                             ),
                         ],
                       ),
@@ -286,9 +318,12 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
     required bool isDark,
     required Color accentColor,
   }) {
-    final defaultColor = isCurrent ? const Color(0xFF5B7FFF) : (isDark ? Colors.white70 : const Color(0xFF1F2329));
+    final defaultColor = isCurrent
+        ? const Color(0xFF5B7FFF)
+        : (isDark ? Colors.white70 : const Color(0xFF1F2329));
 
-    if (_filterKeyword.isEmpty || !title.toLowerCase().contains(_filterKeyword.toLowerCase())) {
+    if (_filterKeyword.isEmpty ||
+        !title.toLowerCase().contains(_filterKeyword.toLowerCase())) {
       return Text(
         title,
         maxLines: 1,

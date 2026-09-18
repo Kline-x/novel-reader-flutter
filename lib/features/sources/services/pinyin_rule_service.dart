@@ -77,8 +77,10 @@ class PinyinRule {
       };
 
   factory PinyinRule.fromJson(Map<String, dynamic> json) {
-    final pattern = (json['pattern'] as String?) ?? (json['pinyin'] as String?) ?? '';
-    final replacement = (json['replacement'] as String?) ?? (json['hanzi'] as String?) ?? '';
+    final pattern =
+        (json['pattern'] as String?) ?? (json['pinyin'] as String?) ?? '';
+    final replacement =
+        (json['replacement'] as String?) ?? (json['hanzi'] as String?) ?? '';
     return PinyinRule(
       id: json['id'] as String? ?? '',
       pattern: pattern,
@@ -102,7 +104,8 @@ class PinyinRule {
           isCustom == other.isCustom;
 
   @override
-  int get hashCode => Object.hash(id, pattern, replacement, isRegex, isEnabled, isCustom);
+  int get hashCode =>
+      Object.hash(id, pattern, replacement, isRegex, isEnabled, isCustom);
 
   @override
   String toString() =>
@@ -198,10 +201,12 @@ class PinyinRuleService extends ChangeNotifier {
     }
     // 自定义规则优先于云端相同 pattern 的规则
     final customEnabled = _customRules.where((r) => r.isEnabled).toList();
-    final customPatterns = customEnabled.map((r) => r.pattern.toLowerCase()).toSet();
+    final customPatterns =
+        customEnabled.map((r) => r.pattern.toLowerCase()).toSet();
 
     final remoteEnabled = _remoteRules
-        .where((r) => r.isEnabled && !customPatterns.contains(r.pattern.toLowerCase()))
+        .where((r) =>
+            r.isEnabled && !customPatterns.contains(r.pattern.toLowerCase()))
         .toList();
 
     return [...customEnabled, ...remoteEnabled];
@@ -298,7 +303,8 @@ class PinyinRuleService extends ChangeNotifier {
 
     for (final url in remoteEndpoints) {
       try {
-        final content = await netClient.fetchHtml(url, timeout: const Duration(seconds: 4));
+        final content =
+            await netClient.fetchHtml(url, timeout: const Duration(seconds: 4));
         if (content.isEmpty || !content.contains('"rules"')) {
           continue;
         }
@@ -410,7 +416,8 @@ class PinyinRuleService extends ChangeNotifier {
     // 优先在自定义规则中查找
     final customIdx = _customRules.indexWhere((r) => r.id == id);
     if (customIdx >= 0) {
-      _customRules[customIdx] = _customRules[customIdx].copyWith(isEnabled: isEnabled);
+      _customRules[customIdx] =
+          _customRules[customIdx].copyWith(isEnabled: isEnabled);
       await _persistCustomRules();
       _syncToHarmonizer();
       notifyListeners();
@@ -420,7 +427,8 @@ class PinyinRuleService extends ChangeNotifier {
     // 次选在云端规则中查找
     final remoteIdx = _remoteRules.indexWhere((r) => r.id == id);
     if (remoteIdx >= 0) {
-      _remoteRules[remoteIdx] = _remoteRules[remoteIdx].copyWith(isEnabled: isEnabled);
+      _remoteRules[remoteIdx] =
+          _remoteRules[remoteIdx].copyWith(isEnabled: isEnabled);
       await _persistRemoteRules();
       _syncToHarmonizer();
       notifyListeners();
@@ -454,8 +462,11 @@ class PinyinRuleService extends ChangeNotifier {
       int count = 0;
       for (final item in list) {
         if (item is! Map<String, dynamic>) continue;
-        final pattern = (item['pattern'] as String?) ?? (item['pinyin'] as String?) ?? '';
-        final replacement = (item['replacement'] as String?) ?? (item['hanzi'] as String?) ?? '';
+        final pattern =
+            (item['pattern'] as String?) ?? (item['pinyin'] as String?) ?? '';
+        final replacement = (item['replacement'] as String?) ??
+            (item['hanzi'] as String?) ??
+            '';
         final isRegex = item['isRegex'] as bool? ?? false;
         final isEnabled = item['isEnabled'] as bool? ?? true;
 

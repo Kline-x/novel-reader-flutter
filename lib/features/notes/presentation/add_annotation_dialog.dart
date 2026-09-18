@@ -138,7 +138,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
             const SizedBox(height: 14.0),
 
             // 4色高亮选择器
-            Text('高亮色彩', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+            Text('高亮色彩',
+                style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
             const SizedBox(height: 8.0),
             Row(
               children: List.generate(Annotation.highlightColors.length, (i) {
@@ -155,7 +156,9 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
                       color: c,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isSelected ? colors.textPrimary : Colors.transparent,
+                        color: isSelected
+                            ? colors.textPrimary
+                            : Colors.transparent,
                         width: 2.5,
                       ),
                       boxShadow: [
@@ -166,7 +169,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
                       ],
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check, size: 16.0, color: Colors.black87)
+                        ? const Icon(Icons.check,
+                            size: 16.0, color: Colors.black87)
                         : null,
                   ),
                 );
@@ -182,7 +186,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
               style: TextStyle(fontSize: 13.0, color: colors.textPrimary),
               decoration: InputDecoration(
                 hintText: '写下你的读书感想或批注（选填）...',
-                hintStyle: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                hintStyle:
+                    TextStyle(fontSize: 12.0, color: colors.textSecondary),
                 filled: true,
                 fillColor: colors.surface,
                 border: OutlineInputBorder(
@@ -204,7 +209,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: Text('取消', style: TextStyle(color: colors.textSecondary)),
+                  child:
+                      Text('取消', style: TextStyle(color: colors.textSecondary)),
                 ),
                 const SizedBox(width: 8.0),
                 SoftButton(

@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 
 enum SoftPaletteType {
   parchment, // 暖阳羊皮纸 (经典护眼)
-  paper,     // 极简水墨白
+  paper, // 极简水墨白
   beanGreen, // 清润豆沙青 (深度护眼)
-  night,     // 深空暗夜 OLED (低功耗)
+  night, // 深空暗夜 OLED (低功耗)
 }
 
 class SoftColors {
@@ -101,7 +101,8 @@ class SoftColors {
 
 class SoftDecorations {
   /// 经典 Modern Soft UI 双层环境光软阴影 (对齐原型 --sh-card: 0 2px 10px rgba(20,22,27,.05), 0 8px 24px rgba(20,22,27,.05))
-  static List<BoxShadow> softShadows(SoftColors colors, {double elevation = 1.0}) {
+  static List<BoxShadow> softShadows(SoftColors colors,
+      {double elevation = 1.0}) {
     if (colors.isDark) {
       return [
         BoxShadow(
@@ -206,4 +207,3 @@ class SoftTheme extends InheritedWidget {
   @override
   bool updateShouldNotify(SoftTheme oldWidget) => colors != oldWidget.colors;
 }
-

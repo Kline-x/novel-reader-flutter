@@ -45,5 +45,6 @@ class ChapterItem {
   }
 
   @override
-  String toString() => 'ChapterItem(index: $index, title: $title, cached: $isCached)';
+  String toString() =>
+      'ChapterItem(index: $index, title: $title, cached: $isCached)';
 }

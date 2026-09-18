@@ -53,5 +53,6 @@ class TtsPlaybackInfo {
   bool get isStopped => state == TtsPlayState.stopped;
   bool get isActive => state != TtsPlayState.stopped;
 
-  double get progress => totalSentences > 0 ? (sentenceIndex + 1) / totalSentences : 0.0;
+  double get progress =>
+      totalSentences > 0 ? (sentenceIndex + 1) / totalSentences : 0.0;
 }

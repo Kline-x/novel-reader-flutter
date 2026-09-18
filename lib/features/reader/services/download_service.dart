@@ -84,11 +84,13 @@ class DownloadService {
     _instance = DownloadService._internal();
   }
 
-  DownloadService._internal({StorageService? storageService, SourceParser? parser})
+  DownloadService._internal(
+      {StorageService? storageService, SourceParser? parser})
       : _storage = storageService ?? StorageService(),
         _parser = parser ?? SourceParser();
 
-  factory DownloadService.withStorage(StorageService storage, {SourceParser? parser}) {
+  factory DownloadService.withStorage(StorageService storage,
+      {SourceParser? parser}) {
     return DownloadService._internal(storageService: storage, parser: parser);
   }
 
@@ -129,16 +131,19 @@ class DownloadService {
       chapters = cachedToc.map((e) => ChapterItem.fromJson(e)).toList();
     }
     if (chapters.isEmpty && bookUrl != null && bookUrl.isNotEmpty) {
-      final rule = BuiltinSources.findByName(sName) ?? BuiltinSources.findByName('笔趣阁ZWX');
+      final rule = BuiltinSources.findByName(sName) ??
+          BuiltinSources.findByName('笔趣阁ZWX');
       if (rule != null) {
         try {
           chapters = await _parser.fetchToc(rule, bookUrl);
-          await _storage.saveBookToc(bookId, chapters.map((e) => e.toJson()).toList());
+          await _storage.saveBookToc(
+              bookId, chapters.map((e) => e.toJson()).toList());
         } catch (_) {}
       }
     }
     if (chapters.isEmpty) {
-      chapters = List.generate(totalChapters, (i) => ChapterItem(index: i, title: '第${i + 1}章', url: ''));
+      chapters = List.generate(totalChapters,
+          (i) => ChapterItem(index: i, title: '第${i + 1}章', url: ''));
     }
     await startBatchDownload(
       bookId: bookId,
@@ -194,14 +199,19 @@ class DownloadService {
 
     // 过滤掉已经缓存的章节
     final cachedIndices = await _storage.getDownloadedChapterIndices(bookId);
-    final pendingChapters = targetChapters.where((ch) => !cachedIndices.contains(ch.index)).toList();
+    final pendingChapters = targetChapters
+        .where((ch) => !cachedIndices.contains(ch.index))
+        .toList();
     final alreadyCachedCount = totalTarget - pendingChapters.length;
 
     progress = progress.copyWith(
       completed: alreadyCachedCount,
       progress: totalTarget > 0 ? alreadyCachedCount / totalTarget : 1.0,
-      currentChapterTitle: pendingChapters.isNotEmpty ? pendingChapters.first.title : '已全部下载',
-      status: pendingChapters.isEmpty ? DownloadStatus.completed : DownloadStatus.downloading,
+      currentChapterTitle:
+          pendingChapters.isNotEmpty ? pendingChapters.first.title : '已全部下载',
+      status: pendingChapters.isEmpty
+          ? DownloadStatus.completed
+          : DownloadStatus.downloading,
     );
     _activeTasks[bookId] = progress;
     _progressController.add(progress);
@@ -223,13 +233,15 @@ class DownloadService {
     await Future.wait(workers);
 
     if (_cancelFlags[bookId] == true) {
-      final finalP = _activeTasks[bookId]?.copyWith(status: DownloadStatus.idle);
+      final finalP =
+          _activeTasks[bookId]?.copyWith(status: DownloadStatus.idle);
       if (finalP != null) {
         _activeTasks.remove(bookId);
         _progressController.add(finalP);
       }
     } else if (_pauseFlags[bookId] == true) {
-      final finalP = _activeTasks[bookId]?.copyWith(status: DownloadStatus.paused);
+      final finalP =
+          _activeTasks[bookId]?.copyWith(status: DownloadStatus.paused);
       if (finalP != null) {
         _activeTasks[bookId] = finalP;
         _progressController.add(finalP);
@@ -249,7 +261,8 @@ class DownloadService {
   }
 
   /// 单个 Worker 循环处理队列中的章节
-  Future<void> _runWorker(String bookId, String bookTitle, int totalTarget) async {
+  Future<void> _runWorker(
+      String bookId, String bookTitle, int totalTarget) async {
     final queue = _taskQueues[bookId];
     if (queue == null) return;
 
@@ -271,7 +284,8 @@ class DownloadService {
             rule = BuiltinSources.findByName(srcName);
           }
         }
-        rule ??= BuiltinSources.findByName('笔趣阁ZWX') ?? BuiltinSources.all.first;
+        rule ??=
+            BuiltinSources.findByName('笔趣阁ZWX') ?? BuiltinSources.all.first;
 
         // 尝试从网络或书源抓取
         List<String>? paragraphs;
@@ -304,7 +318,9 @@ class DownloadService {
           final newCompleted = current.completed + 1;
           final p = (newCompleted / totalTarget).clamp(0.0, 1.0);
           final elapsedSec = stopwatch.elapsedMilliseconds / 1000.0;
-          final speed = elapsedSec > 0 ? (newCompleted / elapsedSec).toStringAsFixed(1) : '0';
+          final speed = elapsedSec > 0
+              ? (newCompleted / elapsedSec).toStringAsFixed(1)
+              : '0';
 
           final updated = current.copyWith(
             completed: newCompleted,

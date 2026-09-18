@@ -38,7 +38,8 @@ class LocalBookService {
     }
 
     final bookId = 'local_${DateTime.now().millisecondsSinceEpoch}';
-    String title = fileName.replaceAll(RegExp(r'\.(txt|epub)$', caseSensitive: false), '');
+    String title =
+        fileName.replaceAll(RegExp(r'\.(txt|epub)$', caseSensitive: false), '');
     String author = '本地导入';
     String? coverUrl;
     List<LocalChapter> chapters = [];
@@ -110,16 +111,20 @@ class LocalBookService {
     try {
       final content = await tocFile.readAsString();
       final list = jsonDecode(content) as List<dynamic>;
-      return list.map((e) => LocalChapter.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => LocalChapter.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }
   }
 
   /// 读取指定章节正文段落
-  Future<List<String>> getChapterContent(String bookId, int chapterIndex) async {
+  Future<List<String>> getChapterContent(
+      String bookId, int chapterIndex) async {
     final docDir = await getApplicationDocumentsDirectory();
-    final metaFile = File('${docDir.path}/local_books/meta/${bookId}_meta.json');
+    final metaFile =
+        File('${docDir.path}/local_books/meta/${bookId}_meta.json');
     if (!await metaFile.exists()) return [];
 
     try {

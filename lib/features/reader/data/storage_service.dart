@@ -143,7 +143,8 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_keySettings);
       if (raw != null) {
-        currentSettings = ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+        currentSettings =
+            ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
       }
     } catch (_) {}
   }
@@ -156,7 +157,8 @@ class StorageService {
   /// 获取今日累计阅读分钟数（初次冷启动为0）
   Future<int> getTodayReadingMinutes() async {
     final prefs = await _getPrefs();
-    final sec = prefs.getInt('$_prefixReadingSeconds${_getTodayDateKey()}') ?? 0;
+    final sec =
+        prefs.getInt('$_prefixReadingSeconds${_getTodayDateKey()}') ?? 0;
     return (sec / 60).floor();
   }
 
@@ -169,7 +171,8 @@ class StorageService {
     await prefs.setInt(key, current + seconds);
   }
 
-  static final StreamController<void> _shelfUpdateController = StreamController<void>.broadcast();
+  static final StreamController<void> _shelfUpdateController =
+      StreamController<void>.broadcast();
   static Stream<void> get shelfUpdateStream => _shelfUpdateController.stream;
 
   StorageService({
@@ -198,7 +201,8 @@ class StorageService {
         Platform.script.path.contains('flutter_tester') ||
         Platform.environment.values.any((v) => v.contains('flutter_tools'));
     if (isTest) {
-      final fallbackDir = Directory('${Directory.systemTemp.path}/novel_reader_test_chapters');
+      final fallbackDir =
+          Directory('${Directory.systemTemp.path}/novel_reader_test_chapters');
       if (!fallbackDir.existsSync()) {
         fallbackDir.createSync(recursive: true);
       }
@@ -213,7 +217,8 @@ class StorageService {
       }
       return cacheDir;
     } catch (_) {
-      final fallbackDir = Directory('${Directory.systemTemp.path}/novel_reader_fallback_chapters');
+      final fallbackDir = Directory(
+          '${Directory.systemTemp.path}/novel_reader_fallback_chapters');
       if (!fallbackDir.existsSync()) {
         fallbackDir.createSync(recursive: true);
       }
@@ -367,7 +372,8 @@ class StorageService {
       return currentSettings;
     }
     try {
-      currentSettings = ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      currentSettings =
+          ReaderSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
       return currentSettings;
     } catch (_) {
       currentSettings = const ReaderSettings();
@@ -390,7 +396,8 @@ class StorageService {
   /// 添加书籍至书架（若已存在则更新元数据）
   Future<void> addToBookshelf(ShelfBook book) async {
     final list = await getBookshelf();
-    final idx = list.indexWhere((b) => b.bookId == book.bookId || b.title == book.title);
+    final idx = list
+        .indexWhere((b) => b.bookId == book.bookId || b.title == book.title);
     if (idx >= 0) {
       list[idx] = book;
     } else {
@@ -418,7 +425,8 @@ class StorageService {
   }
 
   Future<void> addBookToShelf(ShelfBook book) => addToBookshelf(book);
-  Future<void> removeBookFromShelf(String bookId, {String? title}) => removeFromBookshelf(bookId, title: title);
+  Future<void> removeBookFromShelf(String bookId, {String? title}) =>
+      removeFromBookshelf(bookId, title: title);
 
   /// 检查书籍是否已在书架中
   Future<bool> isBookInShelf(String bookId, {String? title}) async {
@@ -428,7 +436,9 @@ class StorageService {
       if (b.bookId == bookId) return true;
       if (cleanT != null && cleanT.isNotEmpty) {
         final bTitle = b.title.replaceAll(RegExp(r'[《》\s]'), '');
-        if (bTitle == cleanT || bTitle.contains(cleanT) || cleanT.contains(bTitle)) {
+        if (bTitle == cleanT ||
+            bTitle.contains(cleanT) ||
+            cleanT.contains(bTitle)) {
           return true;
         }
       }
@@ -532,7 +542,8 @@ class StorageService {
   }
 
   /// 读取章节缓存正文段落（自动过滤旧版本残留的假数据与受污染沙盒假缓存自愈）
-  Future<List<String>?> getChapterContent(String bookId, int chapterIndex) async {
+  Future<List<String>?> getChapterContent(
+      String bookId, int chapterIndex) async {
     final file = await _getChapterFile(bookId, chapterIndex);
     if (!await file.exists()) return null;
 
@@ -541,7 +552,8 @@ class StorageService {
       if (content.isEmpty) return [];
 
       // 自动清除历史测试阶段产生的 mock 离线降级假文本
-      if (content.contains('欢迎阅读由 Modern Soft UI 渲染引擎驱动') || content.contains('开启你的探索之旅')) {
+      if (content.contains('欢迎阅读由 Modern Soft UI 渲染引擎驱动') ||
+          content.contains('开启你的探索之旅')) {
         try {
           await file.delete();
         } catch (_) {}
@@ -599,8 +611,10 @@ class StorageService {
     try {
       final str = await file.readAsString();
       final decoded = jsonDecode(str) as List<dynamic>;
-      final list = decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-      if (list.length < 20 || list.every((c) => (c['url'] ?? '').toString().isEmpty)) {
+      final list =
+          decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      if (list.length < 20 ||
+          list.every((c) => (c['url'] ?? '').toString().isEmpty)) {
         await file.delete();
         return null;
       }
@@ -738,11 +752,11 @@ class ReaderSettings {
   });
 
   Map<String, dynamic> toJson() => {
-    'fontSize': fontSize,
-    'lineHeight': lineHeight,
-    'themeIndex': themeIndex,
-    'turnMode': turnMode,
-  };
+        'fontSize': fontSize,
+        'lineHeight': lineHeight,
+        'themeIndex': themeIndex,
+        'turnMode': turnMode,
+      };
 
   factory ReaderSettings.fromJson(Map<String, dynamic> json) {
     return ReaderSettings(
@@ -753,4 +767,3 @@ class ReaderSettings {
     );
   }
 }
-

@@ -79,7 +79,8 @@ class _SettingsPageState extends State<SettingsPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('当前已是最新版本 (v${_versionService.currentVersionName})，尽享极速纯净体验'),
+            content: Text(
+                '当前已是最新版本 (v${_versionService.currentVersionName})，尽享极速纯净体验'),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
@@ -105,7 +106,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return AlertDialog(
           backgroundColor: colors.card,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(SoftDecorations.squircleCardRadius),
+            borderRadius:
+                BorderRadius.circular(SoftDecorations.squircleCardRadius),
           ),
           title: Text(
             '清空离线缓存',
@@ -136,7 +138,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   );
                 }
               },
-              child: const Text('确认清空', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              child: const Text('确认清空',
+                  style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -201,7 +205,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         const SizedBox(height: 4.0),
                         Text(
                           '已累计阅读 38.5 小时 · 读完 3 本',
-                          style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                          style: TextStyle(
+                              fontSize: 12.0, color: colors.textSecondary),
                         ),
                       ],
                     ),
@@ -215,14 +220,19 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionHeader('外观与主题', colors),
             SoftCard(
               colors: colors,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('跟随系统深色模式', style: TextStyle(color: colors.textPrimary, fontSize: 14.0)),
-                    subtitle: Text('开启后将自动匹配系统深浅色切换', style: TextStyle(fontSize: 11.5, color: colors.textSecondary)),
+                    title: Text('跟随系统深色模式',
+                        style: TextStyle(
+                            color: colors.textPrimary, fontSize: 14.0)),
+                    subtitle: Text('开启后将自动匹配系统深浅色切换',
+                        style: TextStyle(
+                            fontSize: 11.5, color: colors.textSecondary)),
                     trailing: SoftSwitch(
                       key: const ValueKey('switch_follow_system_theme'),
                       value: _followSystem,
@@ -231,17 +241,20 @@ class _SettingsPageState extends State<SettingsPage> {
                         setState(() {
                           _followSystem = val;
                         });
-                        final platformBrightness = MediaQuery.of(context).platformBrightness;
+                        final platformBrightness =
+                            MediaQuery.of(context).platformBrightness;
                         if (val) {
                           await _storageService.setGlobalTheme('system');
                         } else {
-                          await _storageService.setGlobalTheme(ThemeNotifier.paletteToString(colors.type));
+                          await _storageService.setGlobalTheme(
+                              ThemeNotifier.paletteToString(colors.type));
                         }
                         if (!mounted) return;
                         try {
                           ProviderScope.containerOf(this.context, listen: false)
                               .read(themeProvider.notifier)
-                              .setFollowSystem(val, currentBrightness: platformBrightness);
+                              .setFollowSystem(val,
+                                  currentBrightness: platformBrightness);
                         } catch (_) {}
                       },
                     ),
@@ -249,7 +262,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   Divider(height: 16.0, color: colors.border),
                   Text(
                     '主题配色风格',
-                    style: TextStyle(fontSize: 12.0, color: colors.textSecondary, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        fontSize: 12.0,
+                        color: colors.textSecondary,
+                        fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 10.0),
                   Row(
@@ -260,7 +276,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         palette: SoftPaletteType.paper,
                         previewBg: const Color(0xFFF7F7F7),
                         previewBorder: const Color(0xFFE0E0E0),
-                        isSelected: !_followSystem && currentTheme == SoftPaletteType.paper,
+                        isSelected: !_followSystem &&
+                            currentTheme == SoftPaletteType.paper,
                         colors: colors,
                       ),
                       const SizedBox(width: 8.0),
@@ -270,7 +287,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         palette: SoftPaletteType.parchment,
                         previewBg: const Color(0xFFF5F4F1),
                         previewBorder: const Color(0xFFDCD8CF),
-                        isSelected: !_followSystem && currentTheme == SoftPaletteType.parchment,
+                        isSelected: !_followSystem &&
+                            currentTheme == SoftPaletteType.parchment,
                         colors: colors,
                       ),
                       const SizedBox(width: 8.0),
@@ -280,7 +298,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         palette: SoftPaletteType.beanGreen,
                         previewBg: const Color(0xFFEDF4ED),
                         previewBorder: const Color(0xFFCDE0CD),
-                        isSelected: !_followSystem && currentTheme == SoftPaletteType.beanGreen,
+                        isSelected: !_followSystem &&
+                            currentTheme == SoftPaletteType.beanGreen,
                         colors: colors,
                       ),
                       const SizedBox(width: 8.0),
@@ -290,7 +309,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         palette: SoftPaletteType.night,
                         previewBg: const Color(0xFF1F1F28),
                         previewBorder: const Color(0xFF38384A),
-                        isSelected: !_followSystem && currentTheme == SoftPaletteType.night,
+                        isSelected: !_followSystem &&
+                            currentTheme == SoftPaletteType.night,
                         colors: colors,
                       ),
                     ],
@@ -304,13 +324,17 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionHeader('阅读与偏好设置', colors),
             SoftCard(
               colors: colors,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: Column(
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('物理音量键翻页', style: TextStyle(color: colors.textPrimary)),
-                    subtitle: Text('支持长篇阅读时免触屏快速下翻', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                    title: Text('物理音量键翻页',
+                        style: TextStyle(color: colors.textPrimary)),
+                    subtitle: Text('支持长篇阅读时免触屏快速下翻',
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary)),
                     trailing: SoftSwitch(
                       key: const ValueKey('switch_volume_paging'),
                       value: _volumeKeyPaging,
@@ -324,7 +348,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   Divider(height: 1, color: colors.border),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('阅读时保持屏幕常亮', style: TextStyle(color: colors.textPrimary)),
+                    title: Text('阅读时保持屏幕常亮',
+                        style: TextStyle(color: colors.textPrimary)),
                     trailing: SoftSwitch(
                       key: const ValueKey('switch_screen_awake'),
                       value: _screenAwake,
@@ -348,14 +373,18 @@ class _SettingsPageState extends State<SettingsPage> {
                           color: colors.accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8.0),
                         ),
-                        child: Icon(Icons.spellcheck_rounded, color: colors.accent, size: 20.0),
+                        child: Icon(Icons.spellcheck_rounded,
+                            color: colors.accent, size: 20.0),
                       ),
-                      title: Text('智能拼音自愈与净化', style: TextStyle(color: colors.textPrimary)),
+                      title: Text('智能拼音自愈与净化',
+                          style: TextStyle(color: colors.textPrimary)),
                       subtitle: Text(
                         '自愈第三方书源中的拼音谐音 · 支持云端热更新与自定义',
-                        style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary),
                       ),
-                      trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14.0, color: colors.textSecondary),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded,
+                          size: 14.0, color: colors.textSecondary),
                     ),
                   ),
                 ],
@@ -367,7 +396,8 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionHeader('数据与多端同步', colors),
             SoftCard(
               colors: colors,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: Column(
                 children: [
                   GestureDetector(
@@ -375,19 +405,26 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: () => WebDavConfigSheet.show(context),
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Text('☁️', style: TextStyle(fontSize: 20.0)),
-                      title: Text('WebDAV 增量云备份', style: TextStyle(color: colors.textPrimary)),
-                      subtitle: Text('跨 iOS/Android/纯血鸿蒙同步阅读进度', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                      leading:
+                          const Text('☁️', style: TextStyle(fontSize: 20.0)),
+                      title: Text('WebDAV 增量云备份',
+                          style: TextStyle(color: colors.textPrimary)),
+                      subtitle: Text('跨 iOS/Android/纯血鸿蒙同步阅读进度',
+                          style: TextStyle(
+                              fontSize: 12.0, color: colors.textSecondary)),
                       trailing: ElevatedButton(
                         key: const ValueKey('btn_webdav_sync'),
                         onPressed: _triggerWebDavSync,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: colors.accent,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 4.0),
                         ),
-                        child: const Text('立即同步', style: TextStyle(fontSize: 12.0)),
+                        child: const Text('立即同步',
+                            style: TextStyle(fontSize: 12.0)),
                       ),
                     ),
                   ),
@@ -398,10 +435,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: () => WifiTransferDialog.show(context),
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Text('📶', style: TextStyle(fontSize: 20.0)),
-                      title: Text('WiFi 局域网无线传书', style: TextStyle(color: colors.textPrimary)),
-                      subtitle: Text('电脑浏览器访问局域网 IP 直传 TXT/EPUB', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
-                      trailing: Icon(Icons.arrow_forward_ios_rounded, size: 14.0, color: colors.textSecondary),
+                      leading:
+                          const Text('📶', style: TextStyle(fontSize: 20.0)),
+                      title: Text('WiFi 局域网无线传书',
+                          style: TextStyle(color: colors.textPrimary)),
+                      subtitle: Text('电脑浏览器访问局域网 IP 直传 TXT/EPUB',
+                          style: TextStyle(
+                              fontSize: 12.0, color: colors.textSecondary)),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded,
+                          size: 14.0, color: colors.textSecondary),
                     ),
                   ),
                 ],
@@ -413,22 +455,30 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionHeader('存储管理与关于', colors),
             SoftCard(
               colors: colors,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
               child: Column(
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('离线正文缓存', style: TextStyle(color: colors.textPrimary)),
-                    subtitle: Text(_cacheSize, style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                    title: Text('离线正文缓存',
+                        style: TextStyle(color: colors.textPrimary)),
+                    subtitle: Text(_cacheSize,
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary)),
                     trailing: OutlinedButton(
                       key: const ValueKey('btn_clear_cache'),
                       onPressed: _clearCache,
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: colors.accent),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10.0, vertical: 2.0),
                       ),
-                      child: Text('清理缓存', style: TextStyle(fontSize: 12.0, color: colors.accent)),
+                      child: Text('清理缓存',
+                          style:
+                              TextStyle(fontSize: 12.0, color: colors.accent)),
                     ),
                   ),
                   Divider(height: 1, color: colors.border),
@@ -438,17 +488,21 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: _checkAppUpdate,
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Text('🚀', style: TextStyle(fontSize: 20.0)),
-                      title: Text('检查新版本', style: TextStyle(color: colors.textPrimary)),
+                      leading:
+                          const Text('🚀', style: TextStyle(fontSize: 20.0)),
+                      title: Text('检查新版本',
+                          style: TextStyle(color: colors.textPrimary)),
                       subtitle: Text(
                         '当前版本 v${_versionService.currentVersionName} (Android / iOS / 纯血鸿蒙)',
-                        style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary),
                       ),
                       trailing: _isCheckingUpdate
                           ? SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2.0, color: colors.accent),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2.0, color: colors.accent),
                             )
                           : ElevatedButton(
                               key: const ValueKey('btn_check_version'),
@@ -456,10 +510,13 @@ class _SettingsPageState extends State<SettingsPage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: colors.accent,
                                 foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-                                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0, vertical: 4.0),
                               ),
-                              child: const Text('检查更新', style: TextStyle(fontSize: 12.0)),
+                              child: const Text('检查更新',
+                                  style: TextStyle(fontSize: 12.0)),
                             ),
                     ),
                   ),
@@ -489,7 +546,8 @@ class _SettingsPageState extends State<SettingsPage> {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           setState(() => _followSystem = false);
-          _storageService.setGlobalTheme(ThemeNotifier.paletteToString(palette));
+          _storageService
+              .setGlobalTheme(ThemeNotifier.paletteToString(palette));
           try {
             ProviderScope.containerOf(context, listen: false)
                 .read(themeProvider.notifier)
@@ -523,12 +581,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: TextStyle(
                   fontSize: 11.5,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: palette == SoftPaletteType.night ? Colors.white : const Color(0xFF14161B),
+                  color: palette == SoftPaletteType.night
+                      ? Colors.white
+                      : const Color(0xFF14161B),
                 ),
               ),
               if (isSelected) ...[
                 const SizedBox(height: 2.0),
-                Icon(Icons.check_circle_rounded, size: 12.0, color: colors.accent),
+                Icon(Icons.check_circle_rounded,
+                    size: 12.0, color: colors.accent),
               ],
             ],
           ),

@@ -111,12 +111,14 @@ class _UpdateDialogState extends State<UpdateDialog> {
       child: Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+        insetPadding:
+            const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 380),
           decoration: BoxDecoration(
             color: colors.card,
-            borderRadius: BorderRadius.circular(SoftDecorations.squircleCardRadius),
+            borderRadius:
+                BorderRadius.circular(SoftDecorations.squircleCardRadius),
             border: Border.all(color: colors.border, width: 1.0),
             boxShadow: SoftDecorations.softShadows(colors, elevation: 3.0),
           ),
@@ -164,7 +166,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0, vertical: 2.0),
                               decoration: BoxDecoration(
                                 color: colors.accent.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10.0),
@@ -214,13 +217,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 decoration: BoxDecoration(
                   color: colors.surface,
                   borderRadius: BorderRadius.circular(16.0),
-                  border: Border.all(color: colors.border.withValues(alpha: 0.6)),
+                  border:
+                      Border.all(color: colors.border.withValues(alpha: 0.6)),
                 ),
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _buildReleaseNoteItems(widget.info.releaseNotes, colors),
+                    children: _buildReleaseNoteItems(
+                        widget.info.releaseNotes, colors),
                   ),
                 ),
               ),
@@ -228,7 +233,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
               // 3. 无损保留数据保障提示
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0, vertical: 10.0),
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.0),
@@ -250,7 +256,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
                         style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: colors.isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
+                          color: colors.isDark
+                              ? const Color(0xFF34D399)
+                              : const Color(0xFF065F46),
                           height: 1.3,
                         ),
                       ),
@@ -390,7 +398,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
                         color: colors.border.withValues(alpha: 0.5),
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
-                          widthFactor: _isDirectDownload ? _progress.clamp(0.0, 1.0) : 1.0,
+                          widthFactor: _isDirectDownload
+                              ? _progress.clamp(0.0, 1.0)
+                              : 1.0,
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(

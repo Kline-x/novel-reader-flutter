@@ -76,7 +76,8 @@ void main() {
   });
 
   group('ShelfPage 拼音排序逻辑与搜索过滤测试', () {
-    testWidgets('拼音字母序重排验证：书架应按道诡异仙(D) -> 诡秘之主(G) -> 剑来(J) -> 十日终焉(S) 排序', (tester) async {
+    testWidgets('拼音字母序重排验证：书架应按道诡异仙(D) -> 诡秘之主(G) -> 剑来(J) -> 十日终焉(S) 排序',
+        (tester) async {
       await tester.pumpWidget(createTestWidget(tester));
       await tester.pumpAndSettle();
 
@@ -107,7 +108,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // 1. 输入关键词 "诡秘"
-      await tester.enterText(find.byKey(const ValueKey('shelf_search_input')), '诡秘');
+      await tester.enterText(
+          find.byKey(const ValueKey('shelf_search_input')), '诡秘');
       await tester.pumpAndSettle();
 
       expect(find.text('诡秘之主'), findsOneWidget);
@@ -125,19 +127,22 @@ void main() {
       expect(find.text('剑来'), findsOneWidget);
 
       // 2.1 测试拼音检索 "guimi"
-      await tester.enterText(find.byKey(const ValueKey('shelf_search_input')), 'guimi');
+      await tester.enterText(
+          find.byKey(const ValueKey('shelf_search_input')), 'guimi');
       await tester.pumpAndSettle();
       expect(find.text('诡秘之主'), findsOneWidget);
       expect(find.text('剑来'), findsNothing);
 
       // 2.2 测试拼音首字母缩写检索 "srzy"
-      await tester.enterText(find.byKey(const ValueKey('shelf_search_input')), 'srzy');
+      await tester.enterText(
+          find.byKey(const ValueKey('shelf_search_input')), 'srzy');
       await tester.pumpAndSettle();
       expect(find.text('十日终焉'), findsOneWidget);
       expect(find.text('诡秘之主'), findsNothing);
 
       // 3. 搜索不存在的内容触发空状态
-      await tester.enterText(find.byKey(const ValueKey('shelf_search_input')), '未收录的冷门小说XYZ');
+      await tester.enterText(
+          find.byKey(const ValueKey('shelf_search_input')), '未收录的冷门小说XYZ');
       await tester.pumpAndSettle();
 
       expect(find.text('书架空空如也'), findsOneWidget);
@@ -208,7 +213,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tab_settings')));
       await tester.pumpAndSettle();
 
-      final volumeSwitchFinder = find.byKey(const ValueKey('switch_volume_paging'));
+      final volumeSwitchFinder =
+          find.byKey(const ValueKey('switch_volume_paging'));
       expect(volumeSwitchFinder, findsOneWidget);
 
       // 初始状态为 true
@@ -230,7 +236,8 @@ void main() {
       expect(volumeSwitch.value, isTrue);
 
       // 切换常亮开关
-      final awakeSwitchFinder = find.byKey(const ValueKey('switch_screen_awake'));
+      final awakeSwitchFinder =
+          find.byKey(const ValueKey('switch_screen_awake'));
       SoftSwitch awakeSwitch = tester.widget(awakeSwitchFinder);
       expect(awakeSwitch.value, isTrue);
 
@@ -244,7 +251,8 @@ void main() {
     testWidgets('缓存清空弹窗取消与确认清空流程验证', (tester) async {
       // 写入真实离线章节正文缓存
       final storage = StorageService();
-      await storage.saveChapterContent('guimi_01', 1, List.generate(50, (i) => '第$i行小说正文测试缓存段落内容'));
+      await storage.saveChapterContent(
+          'guimi_01', 1, List.generate(50, (i) => '第$i行小说正文测试缓存段落内容'));
       final totalBytes = await storage.getTotalCacheSize();
       final expectedInitial = StorageService.formatBytes(totalBytes);
 
@@ -263,8 +271,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('清空离线缓存'), findsOneWidget);
-      expect(find.byKey(const ValueKey('btn_cancel_clear_cache')), findsOneWidget);
-      expect(find.byKey(const ValueKey('btn_confirm_clear_cache')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('btn_cancel_clear_cache')), findsOneWidget);
+      expect(find.byKey(const ValueKey('btn_confirm_clear_cache')),
+          findsOneWidget);
 
       // 1. 点击取消
       await tester.tap(find.byKey(const ValueKey('btn_cancel_clear_cache')));
@@ -307,14 +317,16 @@ void main() {
       expect(cardFinder, findsOneWidget);
 
       // 初始 scale 为 1.0
-      AnimatedScale scaleWidget = tester.widget(find.descendant(of: cardFinder, matching: find.byType(AnimatedScale)));
+      AnimatedScale scaleWidget = tester.widget(find.descendant(
+          of: cardFinder, matching: find.byType(AnimatedScale)));
       expect(scaleWidget.scale, 1.0);
 
       // 手势按下
       final gesture = await tester.startGesture(tester.getCenter(cardFinder));
       await tester.pump(const Duration(milliseconds: 50));
 
-      scaleWidget = tester.widget(find.descendant(of: cardFinder, matching: find.byType(AnimatedScale)));
+      scaleWidget = tester.widget(find.descendant(
+          of: cardFinder, matching: find.byType(AnimatedScale)));
       expect(scaleWidget.scale, 0.975);
 
       // 手势抬起
@@ -322,7 +334,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tapped, isTrue);
-      scaleWidget = tester.widget(find.descendant(of: cardFinder, matching: find.byType(AnimatedScale)));
+      scaleWidget = tester.widget(find.descendant(
+          of: cardFinder, matching: find.byType(AnimatedScale)));
       expect(scaleWidget.scale, 1.0);
     });
 
@@ -345,20 +358,23 @@ void main() {
       expect(btnFinder, findsOneWidget);
 
       // 初始 scale 1.0
-      AnimatedScale scaleWidget = tester.widget(find.descendant(of: btnFinder, matching: find.byType(AnimatedScale)));
+      AnimatedScale scaleWidget = tester.widget(
+          find.descendant(of: btnFinder, matching: find.byType(AnimatedScale)));
       expect(scaleWidget.scale, 1.0);
 
       // 按下
       final gesture = await tester.startGesture(tester.getCenter(btnFinder));
       await tester.pump(const Duration(milliseconds: 50));
 
-      scaleWidget = tester.widget(find.descendant(of: btnFinder, matching: find.byType(AnimatedScale)));
+      scaleWidget = tester.widget(
+          find.descendant(of: btnFinder, matching: find.byType(AnimatedScale)));
       expect(scaleWidget.scale, 0.96);
 
       await gesture.up();
       await tester.pumpAndSettle();
 
-      scaleWidget = tester.widget(find.descendant(of: btnFinder, matching: find.byType(AnimatedScale)));
+      scaleWidget = tester.widget(
+          find.descendant(of: btnFinder, matching: find.byType(AnimatedScale)));
       expect(scaleWidget.scale, 1.0);
     });
 

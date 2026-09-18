@@ -11,21 +11,62 @@ class CjkPunctuation {
 
   /// 避头符号集合：严禁出现在行首
   static const Set<String> forbiddenLineStartChars = {
-    '，', '。', '！', '？', '：', '；', '、', '）', '》', '」', '】', '”', '’',
-    ',', '.', '!', '?', ':', ';', ')', '>', '}', ']', '…', '~', '%', '·', '`',
-    '—', '-'
+    '，',
+    '。',
+    '！',
+    '？',
+    '：',
+    '；',
+    '、',
+    '）',
+    '》',
+    '」',
+    '】',
+    '”',
+    '’',
+    ',',
+    '.',
+    '!',
+    '?',
+    ':',
+    ';',
+    ')',
+    '>',
+    '}',
+    ']',
+    '…',
+    '~',
+    '%',
+    '·',
+    '`',
+    '—',
+    '-'
   };
 
   /// 避尾符号集合：严禁出现在行尾
   static const Set<String> forbiddenLineEndChars = {
-    '（', '《', '「', '【', '“', '‘', '(', '<', '{', '[', '@', '¥', '\$'
+    '（',
+    '《',
+    '「',
+    '【',
+    '“',
+    '‘',
+    '(',
+    '<',
+    '{',
+    '[',
+    '@',
+    '¥',
+    '\$'
   };
 
   /// 检查字符是否为避头符号
-  static bool isForbiddenStart(String char) => forbiddenLineStartChars.contains(char);
+  static bool isForbiddenStart(String char) =>
+      forbiddenLineStartChars.contains(char);
 
   /// 检查字符是否为避尾符号
-  static bool isForbiddenEnd(String char) => forbiddenLineEndChars.contains(char);
+  static bool isForbiddenEnd(String char) =>
+      forbiddenLineEndChars.contains(char);
 
   /// 对段落进行清洗与段首 2em 缩进规整
   static String normalizeParagraph(String raw) {

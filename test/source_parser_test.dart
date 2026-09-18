@@ -52,7 +52,8 @@ void main() {
     });
 
     test('decodeHtmlEntities 实体解码验证（含 &emsp; 全角缩进与标点）', () {
-      const raw = '&emsp;&emsp;&ldquo;我穿&hellip;&hellip;穿越了？&rdquo;&mdash;&mdash;周明瑞。';
+      const raw =
+          '&emsp;&emsp;&ldquo;我穿&hellip;&hellip;穿越了？&rdquo;&mdash;&mdash;周明瑞。';
       final decoded = SourceParser.decodeHtmlEntities(raw);
       expect(decoded, '　　“我穿……穿越了？”——周明瑞。');
     });
@@ -104,17 +105,28 @@ void main() {
 
     test('sanitizeAndOrderChapters 修复表格跨列错序与前置最新章节预览', () {
       final scrambled = [
-        const ChapterItem(index: 0, title: '1417. 尾声', url: 'https://site.com/18871.html'),
-        const ChapterItem(index: 1, title: '第一章 绯红', url: 'https://site.com/17455.html'),
-        const ChapterItem(index: 2, title: '第八章 聚会', url: 'https://site.com/17462.html'),
-        const ChapterItem(index: 3, title: '第十五章 占卜', url: 'https://site.com/17469.html'),
-        const ChapterItem(index: 4, title: '第二章 魔药', url: 'https://site.com/17456.html'),
-        const ChapterItem(index: 5, title: '第九章 笔记', url: 'https://site.com/17463.html'),
-        const ChapterItem(index: 6, title: '第十六章 观众', url: 'https://site.com/17470.html'),
-        const ChapterItem(index: 7, title: '第三章 梅丽莎', url: 'https://site.com/17457.html'),
-        const ChapterItem(index: 8, title: '第十章 命运', url: 'https://site.com/17464.html'),
-        const ChapterItem(index: 9, title: '第二十三章 太阳', url: 'https://site.com/17477.html'),
-        const ChapterItem(index: 10, title: '1417. 尾声', url: 'https://site.com/18871.html'),
+        const ChapterItem(
+            index: 0, title: '1417. 尾声', url: 'https://site.com/18871.html'),
+        const ChapterItem(
+            index: 1, title: '第一章 绯红', url: 'https://site.com/17455.html'),
+        const ChapterItem(
+            index: 2, title: '第八章 聚会', url: 'https://site.com/17462.html'),
+        const ChapterItem(
+            index: 3, title: '第十五章 占卜', url: 'https://site.com/17469.html'),
+        const ChapterItem(
+            index: 4, title: '第二章 魔药', url: 'https://site.com/17456.html'),
+        const ChapterItem(
+            index: 5, title: '第九章 笔记', url: 'https://site.com/17463.html'),
+        const ChapterItem(
+            index: 6, title: '第十六章 观众', url: 'https://site.com/17470.html'),
+        const ChapterItem(
+            index: 7, title: '第三章 梅丽莎', url: 'https://site.com/17457.html'),
+        const ChapterItem(
+            index: 8, title: '第十章 命运', url: 'https://site.com/17464.html'),
+        const ChapterItem(
+            index: 9, title: '第二十三章 太阳', url: 'https://site.com/17477.html'),
+        const ChapterItem(
+            index: 10, title: '1417. 尾声', url: 'https://site.com/18871.html'),
       ];
 
       final ordered = SourceParser.sanitizeAndOrderChapters(scrambled);
@@ -150,11 +162,17 @@ void main() {
     });
 
     test('SourceParser.findRuleByUrl 智能匹配已注册书源规则', () {
-      expect(SourceParser.findRuleByUrl('https://www.biquge7.xyz/book/123')?.name, '笔趣阁7');
-      expect(SourceParser.findRuleByUrl('http://www.yetianlian.info/s.php')?.name, '夜天连看');
-      expect(SourceParser.findRuleByUrl('http://gdbzkz.org/book/1')?.name, '鬼吹灯书屋');
+      expect(
+          SourceParser.findRuleByUrl('https://www.biquge7.xyz/book/123')?.name,
+          '笔趣阁7');
+      expect(
+          SourceParser.findRuleByUrl('http://www.yetianlian.info/s.php')?.name,
+          '夜天连看');
+      expect(SourceParser.findRuleByUrl('http://gdbzkz.org/book/1')?.name,
+          '鬼吹灯书屋');
       expect(SourceParser.findRuleByUrl('cn.ttkan.co/novel/1')?.name, '天天看小说');
-      expect(SourceParser.findRuleByUrl('https://unknown-domain.com/1'), isNull);
+      expect(
+          SourceParser.findRuleByUrl('https://unknown-domain.com/1'), isNull);
       expect(SourceParser.findRuleByUrl(''), isNull);
     });
 
@@ -203,7 +221,8 @@ void main() {
       expect(namesPinyin.last, '传奇家族');
 
       // 3. 测试 getParagraphsForBookAndChapter 支持杜维·罗林真实背景，绝无周明瑞或齐夏
-      final paragraphs = ChapterHelper.getParagraphsForBookAndChapter('《恶魔法则》', 0);
+      final paragraphs =
+          ChapterHelper.getParagraphsForBookAndChapter('《恶魔法则》', 0);
       expect(paragraphs.isNotEmpty, isTrue);
       final combined = paragraphs.join();
       expect(combined, contains('杜维·罗林'));

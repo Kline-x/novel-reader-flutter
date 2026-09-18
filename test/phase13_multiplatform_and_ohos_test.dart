@@ -105,7 +105,13 @@ void main() {
 
   group('阶段 13：纯血鸿蒙 (OpenHarmony NEXT) 规范与生态准入门禁', () {
     test('OpenHarmony-TPC 准入算法：黑名单拦截与 Pure Dart 准入验证', () {
-      final safeDeps = ['dio', 'flutter_riverpod', 'lpinyin', 'fast_gbk', 'archive'];
+      final safeDeps = [
+        'dio',
+        'flutter_riverpod',
+        'lpinyin',
+        'fast_gbk',
+        'archive'
+      ];
       final audit1 = PlatformAdaptiveHelper.auditOhosDependencies(safeDeps);
       expect(audit1['passed'], isTrue);
       expect(audit1['violations'], isEmpty);
@@ -128,10 +134,14 @@ void main() {
         if (line.startsWith('dependencies:')) {
           inDeps = true;
           continue;
-        } else if (line.startsWith('dev_dependencies:') || line.startsWith('flutter:')) {
+        } else if (line.startsWith('dev_dependencies:') ||
+            line.startsWith('flutter:')) {
           inDeps = false;
         }
-        if (inDeps && line.trim().isNotEmpty && !line.startsWith('#') && line.contains(':')) {
+        if (inDeps &&
+            line.trim().isNotEmpty &&
+            !line.startsWith('#') &&
+            line.contains(':')) {
           final depName = line.split(':').first.trim();
           if (depName != 'flutter' && depName != 'sdk') {
             deps.add(depName);
@@ -151,7 +161,8 @@ void main() {
       // 1. AppScope
       final appJson5 = File('ohos/AppScope/app.json5');
       expect(appJson5.existsSync(), isTrue);
-      expect(appJson5.readAsStringSync(), contains('com.kline.novelreader.flutter'));
+      expect(appJson5.readAsStringSync(),
+          contains('com.kline.novelreader.flutter'));
       expect(appJson5.readAsStringSync(), contains('\$media:app_icon'));
 
       // 2. build-profile.json5
@@ -165,10 +176,12 @@ void main() {
       final moduleContent = moduleJson5.readAsStringSync();
       expect(moduleContent, contains('ohos.permission.INTERNET'));
       expect(moduleContent, contains('ohos.permission.READ_MEDIA'));
-      expect(moduleContent, contains('ohos.permission.KEEP_BACKGROUND_RUNNING'));
+      expect(
+          moduleContent, contains('ohos.permission.KEEP_BACKGROUND_RUNNING'));
 
       // 4. ArkTS 入口与主视图
-      final entryAbility = File('ohos/entry/src/main/ets/entryability/EntryAbility.ets');
+      final entryAbility =
+          File('ohos/entry/src/main/ets/entryability/EntryAbility.ets');
       expect(entryAbility.existsSync(), isTrue);
       expect(entryAbility.readAsStringSync(), contains('UIAbility'));
 

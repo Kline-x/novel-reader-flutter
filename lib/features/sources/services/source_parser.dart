@@ -39,7 +39,9 @@ class SourceParser {
           ruleHost = ruleHost.substring(4);
         }
         if (ruleHost.isNotEmpty &&
-            (host == ruleHost || host.endsWith('.$ruleHost') || ruleHost.endsWith('.$host'))) {
+            (host == ruleHost ||
+                host.endsWith('.$ruleHost') ||
+                ruleHost.endsWith('.$host'))) {
           return rule;
         }
       }
@@ -48,9 +50,11 @@ class SourceParser {
   }
 
   /// 搜索书籍
-  Future<List<BookSearchResult>> searchBooks(SourceRule rule, String keyword) async {
+  Future<List<BookSearchResult>> searchBooks(
+      SourceRule rule, String keyword) async {
     final search = rule.search;
-    final encodedKey = NetworkClient.encodeKeyword(keyword, charset: rule.charset);
+    final encodedKey =
+        NetworkClient.encodeKeyword(keyword, charset: rule.charset);
     final searchUrl = search.urlTemplate
         .replaceAll('{key}', encodedKey)
         .replaceAll('{{key}}', encodedKey)
@@ -72,12 +76,14 @@ class SourceParser {
 
       final bookUrl = absolutizeUrl(rawDetailUrl, rule.baseUrl);
       final author = extractValue(el, search.author);
-      final coverUrlRaw = search.coverUrl != null ? extractValue(el, search.coverUrl!) : null;
+      final coverUrlRaw =
+          search.coverUrl != null ? extractValue(el, search.coverUrl!) : null;
       final coverUrl = coverUrlRaw != null && coverUrlRaw.isNotEmpty
           ? absolutizeUrl(coverUrlRaw, rule.baseUrl)
           : null;
-      final latestChapter =
-          search.latestChapter != null ? extractValue(el, search.latestChapter!) : null;
+      final latestChapter = search.latestChapter != null
+          ? extractValue(el, search.latestChapter!)
+          : null;
 
       results.add(
         BookSearchResult(
@@ -99,16 +105,19 @@ class SourceParser {
   /// 获取书籍目录
   Future<List<ChapterItem>> fetchToc(SourceRule rule, String bookUrl) async {
     final fullBookUrl = absolutizeUrl(bookUrl, rule.baseUrl);
-    String tocHtml = await _client.fetchHtml(fullBookUrl, defaultCharset: rule.charset);
+    String tocHtml =
+        await _client.fetchHtml(fullBookUrl, defaultCharset: rule.charset);
     dom.Document document = html_parser.parse(tocHtml);
 
     // 若详情页指定了独立的目录 URL (例如 detail.tocUrl)，先跳转到独立目录页
     if (rule.detail?.tocUrl != null) {
-      final tocUrlVal = extractValue(document.body ?? document.documentElement!, rule.detail!.tocUrl!);
+      final tocUrlVal = extractValue(
+          document.body ?? document.documentElement!, rule.detail!.tocUrl!);
       if (tocUrlVal.isNotEmpty) {
         final targetTocUrl = absolutizeUrl(tocUrlVal, fullBookUrl);
         if (targetTocUrl != fullBookUrl) {
-          tocHtml = await _client.fetchHtml(targetTocUrl, defaultCharset: rule.charset);
+          tocHtml = await _client.fetchHtml(targetTocUrl,
+              defaultCharset: rule.charset);
           document = html_parser.parse(tocHtml);
         }
       }
@@ -137,7 +146,8 @@ class SourceParser {
   }
 
   /// 获取章节正文内容并降噪分段
-  Future<List<String>> fetchChapterContent(SourceRule rule, String chapterUrl) async {
+  Future<List<String>> fetchChapterContent(
+      SourceRule rule, String chapterUrl) async {
     final fullUrl = absolutizeUrl(chapterUrl, rule.baseUrl);
     final html = await _client.fetchHtml(fullUrl, defaultCharset: rule.charset);
     return parseChapterHtml(html, rule.chapter);
@@ -166,7 +176,8 @@ class SourceParser {
     // 若规则自带 regex 替换
     if (contentSelector.regex != null && contentSelector.regex!.isNotEmpty) {
       try {
-        combined = combined.replaceAll(RegExp(contentSelector.regex!, multiLine: true), '');
+        combined = combined.replaceAll(
+            RegExp(contentSelector.regex!, multiLine: true), '');
       } catch (_) {}
     }
 
@@ -176,9 +187,14 @@ class SourceParser {
   /// 将 HTML 片段转换为纯文本，还原换行并解码命名实体
   static String htmlToText(String html) {
     var text = html
-        .replaceAll(RegExp(r'<\s*(script|style)[^>]*>[\s\S]*?<\s*/\s*\1\s*>', caseSensitive: false), '')
+        .replaceAll(
+            RegExp(r'<\s*(script|style)[^>]*>[\s\S]*?<\s*/\s*\1\s*>',
+                caseSensitive: false),
+            '')
         .replaceAll(RegExp(r'<\s*br\s*/?\s*>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<\s*/\s*(p|div|li|h[1-6]|tr)\s*>', caseSensitive: false), '\n')
+        .replaceAll(
+            RegExp(r'<\s*/\s*(p|div|li|h[1-6]|tr)\s*>', caseSensitive: false),
+            '\n')
         .replaceAll(RegExp(r'<[^>]+>'), '');
 
     return decodeHtmlEntities(text);
@@ -217,19 +233,16 @@ class SourceParser {
       'amp': '&',
     };
 
-    return input
-        .replaceAllMapped(RegExp(r'&#x([0-9a-fA-F]+);'), (m) {
-          final code = int.tryParse(m.group(1)!, radix: 16);
-          return code != null ? String.fromCharCode(code) : m.group(0)!;
-        })
-        .replaceAllMapped(RegExp(r'&#(\d+);'), (m) {
-          final code = int.tryParse(m.group(1)!);
-          return code != null ? String.fromCharCode(code) : m.group(0)!;
-        })
-        .replaceAllMapped(RegExp(r'&([a-zA-Z]+);'), (m) {
-          final name = m.group(1)!.toLowerCase();
-          return namedEntities[name] ?? m.group(0)!;
-        });
+    return input.replaceAllMapped(RegExp(r'&#x([0-9a-fA-F]+);'), (m) {
+      final code = int.tryParse(m.group(1)!, radix: 16);
+      return code != null ? String.fromCharCode(code) : m.group(0)!;
+    }).replaceAllMapped(RegExp(r'&#(\d+);'), (m) {
+      final code = int.tryParse(m.group(1)!);
+      return code != null ? String.fromCharCode(code) : m.group(0)!;
+    }).replaceAllMapped(RegExp(r'&([a-zA-Z]+);'), (m) {
+      final name = m.group(1)!.toLowerCase();
+      return namedEntities[name] ?? m.group(0)!;
+    });
   }
 
   /// 清洗段落、智能语义断行、过滤广告噪音并输出标准段落列表
@@ -250,11 +263,14 @@ class SourceParser {
       RegExp(r'加入书签.*方便阅读.*', caseSensitive: false),
       RegExp(r'请务必保存书签.*', caseSensitive: false),
       RegExp(r'章节错误.*点此举报.*', caseSensitive: false),
-      RegExp(r'.*(?:投推荐票|投月票|求月票|求推荐票|求花花|求打赏|求收藏|求全订).*', caseSensitive: false),
+      RegExp(r'.*(?:投推荐票|投月票|求月票|求推荐票|求花花|求打赏|求收藏|求全订).*',
+          caseSensitive: false),
       RegExp(r'https?://[^\s]+', caseSensitive: false),
       RegExp(r'www\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\.\-]+', caseSensitive: false),
       RegExp(r'笔趣阁.*版权所有.*', caseSensitive: false),
-      RegExp(r'.*(?:[0-9a-zA-Z]{3,}\.com|[0-9a-zA-Z]{3,}\.net|[0-9a-zA-Z]{3,}\.org|[0-9a-zA-Z]{3,}\.cc|[0-9a-zA-Z]{3,}\.me).*', caseSensitive: false),
+      RegExp(
+          r'.*(?:[0-9a-zA-Z]{3,}\.com|[0-9a-zA-Z]{3,}\.net|[0-9a-zA-Z]{3,}\.org|[0-9a-zA-Z]{3,}\.cc|[0-9a-zA-Z]{3,}\.me).*',
+          caseSensitive: false),
       RegExp(r'.*免费提供.*(?:全文阅读|在线阅读).*', caseSensitive: false),
       RegExp(r'.*(?:全文字更新|更新速度最快|最新章节更新).*', caseSensitive: false),
       RegExp(r'.*(?:无广告|无弹窗|极速阅读).*', caseSensitive: false),
@@ -265,11 +281,13 @@ class SourceParser {
       RegExp(r'.*(?:app下载|客户端下载|下载APP|安装APP).*', caseSensitive: false),
       RegExp(r'.*[\u4e00-\u9fa5a-zA-Z0-9]{2,10}书城.*', caseSensitive: false),
       RegExp(r'.*(?:永久域名|防走丢|回家地址|最新防走失).*', caseSensitive: false),
-      RegExp(r'.*(?:官方交流群|qq群|QQ交流群|书友群|读者群|粉丝群)[：:\s0-9]+.*', caseSensitive: false),
+      RegExp(r'.*(?:官方交流群|qq群|QQ交流群|书友群|读者群|粉丝群)[：:\s0-9]+.*',
+          caseSensitive: false),
       RegExp(r'.*(?:微信公众号|关注微信|关注公号|公众号)[：:\s\w]+.*', caseSensitive: false),
       RegExp(r'.*(?:看完整版|精彩小说尽在|看全本小说|全本小说网).*', caseSensitive: false),
       RegExp(r'.*(?:百度搜索|搜狗搜索|夸克搜索|谷歌搜索|360搜索).*', caseSensitive: false),
-      RegExp(r'.*(?:飞卢小说|起点中文网|纵横中文网|17k小说|晋江文学城|塔读文学).*', caseSensitive: false),
+      RegExp(r'.*(?:飞卢小说|起点中文网|纵横中文网|17k小说|晋江文学城|塔读文学).*',
+          caseSensitive: false),
       RegExp(r'.*(?:充值VIP|VIP章节|本章为付费章节|充值送).*', caseSensitive: false),
       RegExp(r'.*(?:防盗版|防盗章节|防盗提示).*', caseSensitive: false),
       RegExp(r'.*(?:手机用户请浏览|手机端请访问).*', caseSensitive: false),
@@ -288,7 +306,10 @@ class SourceParser {
     var text = rawContent
         .replaceAll(RegExp(r'(?:(?:\u3000|[ \t]){2,}|\s{4,})'), '\n')
         .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'</?(?:div|p|span|section|article)[^>]*>', caseSensitive: false), '\n');
+        .replaceAll(
+            RegExp(r'</?(?:div|p|span|section|article)[^>]*>',
+                caseSensitive: false),
+            '\n');
 
     final rawLines = text.split(RegExp(r'\r?\n'));
     final filteredLines = <String>[];
@@ -325,7 +346,8 @@ class SourceParser {
       }
 
       // 超长段落：按句子终结标点（。”、！”、？”、。、！、？）语义拆分
-      final sentenceRegex = RegExp(r'''[^。！？!?…]*[。！？!?…]+[”"’'」』]?|[^。！？!?…]+$''');
+      final sentenceRegex =
+          RegExp(r'''[^。！？!?…]*[。！？!?…]+[”"’'」』]?|[^。！？!?…]+$''');
       final matches = sentenceRegex.allMatches(line);
       final buffer = StringBuffer();
 
@@ -335,7 +357,8 @@ class SourceParser {
 
         // 当当前段落累积超过 180 字且以完整句末标点结尾，断为新自然段
         if (buffer.length >= 180 &&
-            RegExp(r'''[。！？!?…][”"’'」』]?$''').hasMatch(buffer.toString().trim())) {
+            RegExp(r'''[。！？!?…][”"’'」』]?$''')
+                .hasMatch(buffer.toString().trim())) {
           result.add(buffer.toString().trim());
           buffer.clear();
         }
@@ -377,7 +400,10 @@ class SourceParser {
     }
 
     dom.Element? target;
-    if (selector.isEmpty || selector == ':scope' || selector == 'text' || selector == 'href') {
+    if (selector.isEmpty ||
+        selector == ':scope' ||
+        selector == 'text' ||
+        selector == 'href') {
       target = context;
     } else {
       final elements = queryAll(context, selector);
@@ -439,9 +465,12 @@ class SourceParser {
 
     // 处理 Legado 风格: class.xxx / id.xxx / tag.xxx
     sel = sel
-        .replaceAllMapped(RegExp(r'class\.([a-zA-Z0-9_\-]+)(?:\.(-?\d+))?'), (m) => '.${m.group(1)}')
-        .replaceAllMapped(RegExp(r'id\.([a-zA-Z0-9_\-]+)(?:\.(-?\d+))?'), (m) => '#${m.group(1)}')
-        .replaceAllMapped(RegExp(r'tag\.([a-zA-Z0-9_\-]+)(?:\.(-?\d+))?'), (m) => m.group(1)!);
+        .replaceAllMapped(RegExp(r'class\.([a-zA-Z0-9_\-]+)(?:\.(-?\d+))?'),
+            (m) => '.${m.group(1)}')
+        .replaceAllMapped(RegExp(r'id\.([a-zA-Z0-9_\-]+)(?:\.(-?\d+))?'),
+            (m) => '#${m.group(1)}')
+        .replaceAllMapped(RegExp(r'tag\.([a-zA-Z0-9_\-]+)(?:\.(-?\d+))?'),
+            (m) => m.group(1)!);
 
     return sel.trim();
   }
@@ -467,9 +496,22 @@ class SourceParser {
   static int? parseChineseNumber(String s) {
     if (s.isEmpty) return null;
     const map = {
-      '零': 0, '〇': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,
-      '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
-      '百': 100, '千': 1000, '万': 10000,
+      '零': 0,
+      '〇': 0,
+      '一': 1,
+      '二': 2,
+      '两': 2,
+      '三': 3,
+      '四': 4,
+      '五': 5,
+      '六': 6,
+      '七': 7,
+      '八': 8,
+      '九': 9,
+      '十': 10,
+      '百': 100,
+      '千': 1000,
+      '万': 10000,
     };
     int total = 0;
     int curr = 0;
@@ -492,7 +534,10 @@ class SourceParser {
   /// 提取章节标题中的序号数字（支持阿拉伯数字与中文大写数字）
   static int? extractChapterNumber(String title) {
     final t = title.trim();
-    if (t.startsWith('序章') || t.startsWith('引子') || t.startsWith('楔子') || t.startsWith('前言')) {
+    if (t.startsWith('序章') ||
+        t.startsWith('引子') ||
+        t.startsWith('楔子') ||
+        t.startsWith('前言')) {
       return 0;
     }
     // 匹配阿拉伯数字：第123章、第 123 节、123.
@@ -505,11 +550,15 @@ class SourceParser {
       return int.tryParse(dotMatch.group(1)!);
     }
     // 匹配中文数字：第一千二百三十四章
-    final cnMatch = RegExp(r'第\s*([零〇一二两三四五六七八九十百千万]+)\s*[章节回集卷话]').firstMatch(t);
+    final cnMatch =
+        RegExp(r'第\s*([零〇一二两三四五六七八九十百千万]+)\s*[章节回集卷话]').firstMatch(t);
     if (cnMatch != null) {
       return parseChineseNumber(cnMatch.group(1)!);
     }
-    if (t.startsWith('后记') || t.startsWith('尾声') || t.startsWith('番外') || t.startsWith('完本感言')) {
+    if (t.startsWith('后记') ||
+        t.startsWith('尾声') ||
+        t.startsWith('番外') ||
+        t.startsWith('完本感言')) {
       return 999999;
     }
     return null;
@@ -618,7 +667,8 @@ class SourceParser {
     }
 
     // 3. 智能检测是否发生乱序（仅限严格的表格分栏或奇偶列错序，保护多卷连贯顺序）
-    final chapterNumbers = unique.map((c) => extractChapterNumber(c.title)).toList();
+    final chapterNumbers =
+        unique.map((c) => extractChapterNumber(c.title)).toList();
     final numberedCount = chapterNumbers.where((n) => n != null).length;
 
     bool shouldSort = false;
@@ -675,7 +725,8 @@ class SourceParser {
   }
 
   /// 从 HTML Document 中解析 OpenGraph 标签与详情页语义节点元数据
-  static Map<String, dynamic> parseBookDetailDoc(dom.Document doc, [SourceRule? rule]) {
+  static Map<String, dynamic> parseBookDetailDoc(dom.Document doc,
+      [SourceRule? rule]) {
     String extractMeta(String prop) {
       final meta = doc.querySelector('meta[property="$prop"]') ??
           doc.querySelector('meta[name="$prop"]');
@@ -688,7 +739,8 @@ class SourceParser {
       intro = extractMeta('description');
     }
     if (intro.isEmpty && rule?.detail?.description != null) {
-      intro = extractValue(doc.body ?? doc.documentElement!, rule!.detail!.description!);
+      intro = extractValue(
+          doc.body ?? doc.documentElement!, rule!.detail!.description!);
     }
     if (intro.isEmpty) {
       final el = doc.querySelector('#intro') ??
@@ -728,7 +780,9 @@ class SourceParser {
     }
     if (status.isEmpty) {
       final text = doc.body?.text ?? '';
-      if (text.contains('已完结') || text.contains('全本完结') || text.contains('完本')) {
+      if (text.contains('已完结') ||
+          text.contains('全本完结') ||
+          text.contains('完本')) {
         status = '已完结';
       } else if (text.contains('连载')) {
         status = '连载中';
@@ -753,16 +807,19 @@ class SourceParser {
   }
 
   /// 方便单元测试直接传入 HTML 字符串解析元数据
-  static Map<String, dynamic> parseBookDetailHtml(String html, [SourceRule? rule]) {
+  static Map<String, dynamic> parseBookDetailHtml(String html,
+      [SourceRule? rule]) {
     final doc = html_parser.parse(html);
     return parseBookDetailDoc(doc, rule);
   }
 
   /// 抓取书籍详情页真实元数据（真实简介、最新更新时间、连载/完结状态）
-  Future<Map<String, dynamic>> fetchBookDetail(SourceRule rule, String bookUrl) async {
+  Future<Map<String, dynamic>> fetchBookDetail(
+      SourceRule rule, String bookUrl) async {
     try {
       final fullUrl = absolutizeUrl(bookUrl, rule.baseUrl);
-      final html = await _client.fetchHtml(fullUrl, defaultCharset: rule.charset);
+      final html =
+          await _client.fetchHtml(fullUrl, defaultCharset: rule.charset);
       final doc = html_parser.parse(html);
       return parseBookDetailDoc(doc, rule);
     } catch (e) {
@@ -785,4 +842,3 @@ class _SortableChapter {
     this.urlId,
   });
 }
-

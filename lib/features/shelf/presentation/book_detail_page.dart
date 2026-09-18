@@ -93,7 +93,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
       _parser.fetchBookDetail(rule, _book.bookUrl!).then((detail) {
         if (mounted && detail.isNotEmpty) {
           setState(() {
-            if (detail['intro'] != null && (detail['intro'] as String).isNotEmpty) {
+            if (detail['intro'] != null &&
+                (detail['intro'] as String).isNotEmpty) {
               _book = _book.copyWith(description: detail['intro'] as String);
             }
             if (detail['updateTime'] != null) {
@@ -138,20 +139,26 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
       String? targetUrl = _book.bookUrl;
       final lowerTitle = ChapterHelper.cleanTitle(_book.title).toLowerCase();
-      if (targetUrl == null || targetUrl.isEmpty || targetUrl.contains('biquge.company')) {
+      if (targetUrl == null ||
+          targetUrl.isEmpty ||
+          targetUrl.contains('biquge.company')) {
         if (lowerTitle.contains('恶魔') || lowerTitle.contains('emofaze')) {
           targetUrl = 'https://www.biquge7.xyz/1283/';
           rule = BuiltinSources.findByName('笔趣阁7') ?? rule;
-        } else if (lowerTitle.contains('诡秘之主') || lowerTitle.contains('guimi')) {
+        } else if (lowerTitle.contains('诡秘之主') ||
+            lowerTitle.contains('guimi')) {
           targetUrl = 'https://www.biqugezwx.com/50/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-        } else if (lowerTitle.contains('十日终焉') || lowerTitle.contains('shiri')) {
+        } else if (lowerTitle.contains('十日终焉') ||
+            lowerTitle.contains('shiri')) {
           targetUrl = 'https://www.biqugezwx.com/745/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-        } else if (lowerTitle.contains('道诡异仙') || lowerTitle.contains('daoti')) {
+        } else if (lowerTitle.contains('道诡异仙') ||
+            lowerTitle.contains('daoti')) {
           targetUrl = 'https://www.biqugezwx.com/334/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-        } else if (lowerTitle.contains('剑来') || lowerTitle.contains('jianlai')) {
+        } else if (lowerTitle.contains('剑来') ||
+            lowerTitle.contains('jianlai')) {
           targetUrl = 'https://www.biqugezwx.com/324/';
           rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
         }
@@ -159,7 +166,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
       if (targetUrl == null || targetUrl.isEmpty) {
         final cleanTitle = ChapterHelper.cleanTitle(_book.title);
-        final searchResults = await _parser.searchBooks(rule, cleanTitle).timeout(const Duration(seconds: 5));
+        final searchResults = await _parser
+            .searchBooks(rule, cleanTitle)
+            .timeout(const Duration(seconds: 5));
         if (searchResults.isNotEmpty) {
           final matched = searchResults.firstWhere(
             (b) => b.title == cleanTitle || b.title.contains(cleanTitle),
@@ -170,8 +179,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
       }
 
       if (targetUrl != null && targetUrl.isNotEmpty) {
-        _book = _book.copyWith(bookUrl: targetUrl, sourceName: rule.name, sourceId: rule.id);
-        final toc = await _parser.fetchToc(rule, targetUrl).timeout(const Duration(seconds: 8));
+        _book = _book.copyWith(
+            bookUrl: targetUrl, sourceName: rule.name, sourceId: rule.id);
+        final toc = await _parser
+            .fetchToc(rule, targetUrl)
+            .timeout(const Duration(seconds: 8));
         if (toc.isNotEmpty) {
           _chapters = toc;
           await _storageService.saveBookToc(_book.id, toc);
@@ -221,7 +233,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
         sourceName: _book.sourceName,
         bookUrl: _book.bookUrl,
         lastReadTime: DateTime.now(),
-        lastChapterTitle: _chapters.isNotEmpty ? _chapters.last.title : _book.latestChapter,
+        lastChapterTitle:
+            _chapters.isNotEmpty ? _chapters.last.title : _book.latestChapter,
       );
       await _storageService.addBookToShelf(shelfBook);
       ref.read(shelfProvider.notifier).addBook(_book);
@@ -240,7 +253,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
   void _openReader({int? chapterIndex}) {
     final targetCh = chapterIndex ?? _currentChapterIndex;
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => ReaderScreen(
           bookId: _book.id,
@@ -254,7 +268,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           book: _book,
         ),
       ),
-    ).then((_) {
+    )
+        .then((_) {
       _loadProgress();
       _checkShelfStatus();
     });
@@ -273,7 +288,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           height: MediaQuery.of(context).size.height * 0.65,
           decoration: BoxDecoration(
             color: colors.card,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(28.0)),
             boxShadow: SoftDecorations.softShadows(colors, elevation: 2.0),
           ),
           padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 24.0),
@@ -303,14 +319,18 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0, vertical: 3.0),
                     decoration: BoxDecoration(
                       color: colors.accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: Text(
                       '12 组稳定书源',
-                      style: TextStyle(fontSize: 11.0, color: colors.accent, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: 11.0,
+                          color: colors.accent,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -325,7 +345,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                 child: ListView.separated(
                   physics: const BouncingScrollPhysics(),
                   itemCount: sources.length,
-                  separatorBuilder: (_, __) => Divider(height: 1.0, color: colors.border.withValues(alpha: 0.5)),
+                  separatorBuilder: (_, __) => Divider(
+                      height: 1.0, color: colors.border.withValues(alpha: 0.5)),
                   itemBuilder: (context, index) {
                     final s = sources[index];
                     final isCurrent = s.name == _book.sourceName;
@@ -337,14 +358,16 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                         decoration: BoxDecoration(
                           color: isCurrent ? colors.accent : colors.surface,
                           borderRadius: BorderRadius.circular(10.0),
-                          border: Border.all(color: isCurrent ? colors.accent : colors.border),
+                          border: Border.all(
+                              color: isCurrent ? colors.accent : colors.border),
                         ),
                         alignment: Alignment.center,
                         child: Text(
                           s.name.characters.take(1).toString(),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: isCurrent ? Colors.white : colors.textPrimary,
+                            color:
+                                isCurrent ? Colors.white : colors.textPrimary,
                           ),
                         ),
                       ),
@@ -352,17 +375,23 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                         s.name,
                         style: TextStyle(
                           fontSize: 15.0,
-                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                          fontWeight:
+                              isCurrent ? FontWeight.bold : FontWeight.w500,
                           color: isCurrent ? colors.accent : colors.textPrimary,
                         ),
                       ),
                       subtitle: Text(
                         s.baseUrl,
-                        style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 11.0, color: colors.textSecondary),
                       ),
                       trailing: isCurrent
-                          ? Icon(Icons.check_circle, color: colors.accent, size: 20.0)
-                          : Icon(Icons.chevron_right, color: colors.textSecondary.withValues(alpha: 0.5), size: 18.0),
+                          ? Icon(Icons.check_circle,
+                              color: colors.accent, size: 20.0)
+                          : Icon(Icons.chevron_right,
+                              color:
+                                  colors.textSecondary.withValues(alpha: 0.5),
+                              size: 18.0),
                       onTap: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         Navigator.of(context).pop();
@@ -374,27 +403,40 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                           ),
                         );
                         try {
-                          final cleanTitle = ChapterHelper.cleanTitle(_book.title);
-                          final searchResults = await _parser.searchBooks(s, cleanTitle).timeout(const Duration(seconds: 5));
+                          final cleanTitle =
+                              ChapterHelper.cleanTitle(_book.title);
+                          final searchResults = await _parser
+                              .searchBooks(s, cleanTitle)
+                              .timeout(const Duration(seconds: 5));
                           final matches = searchResults.where((b) {
-                            final t = b.title.replaceAll(RegExp(r'[《》【】\s]'), '');
-                            return t == cleanTitle || t.contains(cleanTitle) || cleanTitle.contains(t);
+                            final t =
+                                b.title.replaceAll(RegExp(r'[《》【】\s]'), '');
+                            return t == cleanTitle ||
+                                t.contains(cleanTitle) ||
+                                cleanTitle.contains(t);
                           }).toList();
                           if (matches.isNotEmpty) {
                             final matched = matches.first;
-                            final newToc = await _parser.fetchToc(s, matched.bookUrl).timeout(const Duration(seconds: 7));
+                            final newToc = await _parser
+                                .fetchToc(s, matched.bookUrl)
+                                .timeout(const Duration(seconds: 7));
                             if (newToc.isNotEmpty) {
                               if (mounted) {
                                 setState(() {
-                                  _book = _book.copyWith(sourceName: s.name, sourceId: s.id, bookUrl: matched.bookUrl);
+                                  _book = _book.copyWith(
+                                      sourceName: s.name,
+                                      sourceId: s.id,
+                                      bookUrl: matched.bookUrl);
                                   _chapters = newToc;
                                 });
                               }
-                              await _storageService.saveBookToc(_book.id, newToc);
+                              await _storageService.saveBookToc(
+                                  _book.id, newToc);
                               if (mounted) {
                                 messenger.showSnackBar(
                                   SnackBar(
-                                    content: Text('已成功切换至【${s.name}】，获取到 ${newToc.length} 章完整目录！'),
+                                    content: Text(
+                                        '已成功切换至【${s.name}】，获取到 ${newToc.length} 章完整目录！'),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
@@ -409,7 +451,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                         if (mounted) {
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text('【${s.name}】暂未收录《${_book.title}》，已为您保留当前高可用源目录！'),
+                              content: Text(
+                                  '【${s.name}】暂未收录《${_book.title}》，已为您保留当前高可用源目录！'),
                               behavior: SnackBarBehavior.floating,
                               duration: const Duration(seconds: 2),
                             ),
@@ -432,9 +475,12 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     final colors = SoftTheme.of(context);
     final isDark = colors.isDark;
 
-    final displayChapters = _isReversed ? _chapters.reversed.toList() : _chapters;
-    final totalChaptersCount = _chapters.isNotEmpty ? _chapters.length : _book.totalChapters;
-    final readWordCount = _book.wordCount ?? '${(totalChaptersCount * 0.28).toStringAsFixed(1)}万字';
+    final displayChapters =
+        _isReversed ? _chapters.reversed.toList() : _chapters;
+    final totalChaptersCount =
+        _chapters.isNotEmpty ? _chapters.length : _book.totalChapters;
+    final readWordCount = _book.wordCount ??
+        '${(totalChaptersCount * 0.28).toStringAsFixed(1)}万字';
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -459,9 +505,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                     width: 38.0,
                     height: 38.0,
                     decoration: BoxDecoration(
-                      color: (isDark ? colors.surface : colors.card).withValues(alpha: 0.9),
+                      color: (isDark ? colors.surface : colors.card)
+                          .withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(12.0),
-                      boxShadow: SoftDecorations.softShadows(colors, elevation: 0.8),
+                      boxShadow:
+                          SoftDecorations.softShadows(colors, elevation: 0.8),
                     ),
                     child: Icon(
                       Icons.chevron_left_rounded,
@@ -479,11 +527,14 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                   child: GestureDetector(
                     onTap: _openSourceSwitcher,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 6.0),
                       decoration: BoxDecoration(
-                        color: (isDark ? colors.surface : colors.card).withValues(alpha: 0.9),
+                        color: (isDark ? colors.surface : colors.card)
+                            .withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(12.0),
-                        boxShadow: SoftDecorations.softShadows(colors, elevation: 0.6),
+                        boxShadow:
+                            SoftDecorations.softShadows(colors, elevation: 0.6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -506,7 +557,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                             ),
                           ),
                           const SizedBox(width: 2.0),
-                          Icon(Icons.arrow_drop_down, color: colors.accent, size: 16.0),
+                          Icon(Icons.arrow_drop_down,
+                              color: colors.accent, size: 16.0),
                         ],
                       ),
                     ),
@@ -520,10 +572,13 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                 final currentHeight = constraints.maxHeight;
                 final collapseRange = 250.0 - (kToolbarHeight + topPadding);
                 final expandRatio = collapseRange > 0
-                    ? ((currentHeight - (kToolbarHeight + topPadding)) / collapseRange).clamp(0.0, 1.0)
+                    ? ((currentHeight - (kToolbarHeight + topPadding)) /
+                            collapseRange)
+                        .clamp(0.0, 1.0)
                     : 0.0;
                 final titleOpacity = (1.0 - expandRatio * 2.2).clamp(0.0, 1.0);
-                final contentOpacity = ((expandRatio - 0.25) / 0.75).clamp(0.0, 1.0);
+                final contentOpacity =
+                    ((expandRatio - 0.25) / 0.75).clamp(0.0, 1.0);
 
                 return Stack(
                   fit: StackFit.expand,
@@ -536,7 +591,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              colors.accent.withValues(alpha: isDark ? 0.25 : 0.18),
+                              colors.accent
+                                  .withValues(alpha: isDark ? 0.25 : 0.18),
                               colors.background.withValues(alpha: 0.0),
                             ],
                           ),
@@ -599,7 +655,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                 coverUrl: _book.coverUrl,
                                 width: 96.0,
                                 height: 134.0,
-                                paletteIndex: BookCoverWidget.hashTitleToPalette(_book.title),
+                                paletteIndex:
+                                    BookCoverWidget.hashTitleToPalette(
+                                        _book.title),
                               ),
                               const SizedBox(width: 16.0),
                               // 右侧元数据
@@ -621,7 +679,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                     const SizedBox(height: 6.0),
                                     Row(
                                       children: [
-                                        Icon(Icons.person_outline_rounded, size: 14.0, color: colors.textSecondary),
+                                        Icon(Icons.person_outline_rounded,
+                                            size: 14.0,
+                                            color: colors.textSecondary),
                                         const SizedBox(width: 4.0),
                                         Expanded(
                                           child: Text(
@@ -663,17 +723,21 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           // 2. 三列数据统计卡片 (d-stats)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
               child: SoftCard(
                 colors: colors,
-                padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 10.0),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 14.0, horizontal: 10.0),
                 child: Row(
                   children: [
                     _buildStatItem(colors, '状态', _book.status, isGold: false),
                     _buildStatDivider(colors),
                     _buildStatItem(colors, '总字数', readWordCount, isGold: false),
                     _buildStatDivider(colors),
-                    _buildStatItem(colors, '读者评分', '★ ${_book.rating.toStringAsFixed(1)}', isGold: true),
+                    _buildStatItem(
+                        colors, '读者评分', '★ ${_book.rating.toStringAsFixed(1)}',
+                        isGold: true),
                   ],
                 ),
               ),
@@ -683,7 +747,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           // 3. 双主行动按钮栏 (d-btns)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
               child: Row(
                 children: [
                   // 加入书架 / 已在书架
@@ -696,23 +761,29 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                         height: 48.0,
                         decoration: BoxDecoration(
                           color: _isInShelf
-                              ? colors.accent.withValues(alpha: isDark ? 0.25 : 0.15)
+                              ? colors.accent
+                                  .withValues(alpha: isDark ? 0.25 : 0.15)
                               : colors.card,
                           borderRadius: BorderRadius.circular(16.0),
                           border: Border.all(
                             color: _isInShelf ? colors.accent : colors.border,
                             width: _isInShelf ? 1.5 : 1.0,
                           ),
-                          boxShadow: SoftDecorations.softShadows(colors, elevation: 0.8),
+                          boxShadow: SoftDecorations.softShadows(colors,
+                              elevation: 0.8),
                         ),
                         alignment: Alignment.center,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              _isInShelf ? Icons.check_circle_rounded : Icons.add_rounded,
+                              _isInShelf
+                                  ? Icons.check_circle_rounded
+                                  : Icons.add_rounded,
                               size: 18.0,
-                              color: _isInShelf ? colors.accent : colors.textPrimary,
+                              color: _isInShelf
+                                  ? colors.accent
+                                  : colors.textPrimary,
                             ),
                             const SizedBox(width: 6.0),
                             Text(
@@ -720,7 +791,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                               style: TextStyle(
                                 fontSize: 14.0,
                                 fontWeight: FontWeight.bold,
-                                color: _isInShelf ? colors.accent : colors.textPrimary,
+                                color: _isInShelf
+                                    ? colors.accent
+                                    : colors.textPrimary,
                               ),
                             ),
                           ],
@@ -743,7 +816,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                           gradient: LinearGradient(
                             colors: [
                               colors.accent,
-                              Color.lerp(colors.accent, Colors.blueAccent, 0.4) ?? colors.accent,
+                              Color.lerp(
+                                      colors.accent, Colors.blueAccent, 0.4) ??
+                                  colors.accent,
                             ],
                           ),
                           borderRadius: BorderRadius.circular(16.0),
@@ -770,7 +845,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                               ),
                             ),
                             const SizedBox(width: 6.0),
-                            const Icon(Icons.play_arrow_rounded, size: 20.0, color: Colors.white),
+                            const Icon(Icons.play_arrow_rounded,
+                                size: 20.0, color: Colors.white),
                           ],
                         ),
                       ),
@@ -784,7 +860,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           // 4. 书籍简介模块
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
               child: SoftCard(
                 colors: colors,
                 padding: const EdgeInsets.all(16.0),
@@ -811,9 +888,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                           ),
                         ),
                         const Spacer(),
-                        if (_latestUpdateTime != null && _latestUpdateTime!.isNotEmpty)
+                        if (_latestUpdateTime != null &&
+                            _latestUpdateTime!.isNotEmpty)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 3.0),
                             decoration: BoxDecoration(
                               color: colors.accent.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6.0),
@@ -821,7 +900,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.update_rounded, size: 12.0, color: colors.accent),
+                                Icon(Icons.update_rounded,
+                                    size: 12.0, color: colors.accent),
                                 const SizedBox(width: 3.0),
                                 Text(
                                   '更新: $_latestUpdateTime',
@@ -849,7 +929,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                     ),
                     if (_book.description.length > 50)
                       GestureDetector(
-                        onTap: () => setState(() => _isIntroExpanded = !_isIntroExpanded),
+                        onTap: () => setState(
+                            () => _isIntroExpanded = !_isIntroExpanded),
                         child: Padding(
                           padding: const EdgeInsets.only(top: 6.0),
                           child: Row(
@@ -864,7 +945,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                 ),
                               ),
                               Icon(
-                                _isIntroExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                _isIntroExpanded
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
                                 size: 16.0,
                                 color: colors.accent,
                               ),
@@ -883,7 +966,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
             pinned: true,
             delegate: _BookDetailTocHeaderDelegate(
               colors: colors,
-              totalCount: _chapters.isNotEmpty ? _chapters.length : totalChaptersCount,
+              totalCount:
+                  _chapters.isNotEmpty ? _chapters.length : totalChaptersCount,
               isReversed: _isReversed,
               onToggleReverse: () => setState(() => _isReversed = !_isReversed),
             ),
@@ -893,17 +977,21 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           if (_isLoadingToc)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0, vertical: 20.0),
                 child: Center(
                   child: Column(
                     children: [
                       const SizedBox(
                         width: 24.0,
                         height: 24.0,
-                        child: CircularProgressIndicator(strokeWidth: 2.0, color: Color(0xFF5B7FFF)),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.0, color: Color(0xFF5B7FFF)),
                       ),
                       const SizedBox(height: 10.0),
-                      Text('正在从【${_book.sourceName}】同步千章目录...', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                      Text('正在从【${_book.sourceName}】同步千章目录...',
+                          style: TextStyle(
+                              fontSize: 12.0, color: colors.textSecondary)),
                     ],
                   ),
                 ),
@@ -923,15 +1011,19 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                     return GestureDetector(
                       onTap: () => _openReader(chapterIndex: rawIndex),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 14.0),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12.0, horizontal: 14.0),
                         margin: const EdgeInsets.only(bottom: 6.0),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? colors.accent.withValues(alpha: isDark ? 0.2 : 0.08)
+                              ? colors.accent
+                                  .withValues(alpha: isDark ? 0.2 : 0.08)
                               : colors.card,
                           borderRadius: BorderRadius.circular(12.0),
                           border: Border.all(
-                            color: isCurrent ? colors.accent : colors.border.withValues(alpha: 0.6),
+                            color: isCurrent
+                                ? colors.accent
+                                : colors.border.withValues(alpha: 0.6),
                             width: isCurrent ? 1.2 : 0.8,
                           ),
                         ),
@@ -945,7 +1037,10 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                 style: TextStyle(
                                   fontSize: 12.0,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? colors.accent : colors.textSecondary.withValues(alpha: 0.6),
+                                  color: isCurrent
+                                      ? colors.accent
+                                      : colors.textSecondary
+                                          .withValues(alpha: 0.6),
                                 ),
                               ),
                             ),
@@ -957,36 +1052,51 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 14.0,
-                                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                                  color: isCurrent ? colors.accent : colors.textPrimary,
+                                  fontWeight: isCurrent
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: isCurrent
+                                      ? colors.accent
+                                      : colors.textPrimary,
                                 ),
                               ),
                             ),
                             // 状态微标签
                             if (isCurrent)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6.0, vertical: 2.0),
                                 decoration: BoxDecoration(
                                   color: colors.accent,
                                   borderRadius: BorderRadius.circular(6.0),
                                 ),
                                 child: const Text(
                                   '在读',
-                                  style: TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, color: Colors.white),
+                                  style: TextStyle(
+                                      fontSize: 10.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
                                 ),
                               )
                             else if (isDone)
-                              Icon(Icons.check_circle_outline_rounded, size: 16.0, color: colors.textSecondary.withValues(alpha: 0.4))
+                              Icon(Icons.check_circle_outline_rounded,
+                                  size: 16.0,
+                                  color: colors.textSecondary
+                                      .withValues(alpha: 0.4))
                             else
-                              Icon(Icons.chevron_right, size: 16.0, color: colors.textSecondary.withValues(alpha: 0.2)),
+                              Icon(Icons.chevron_right,
+                                  size: 16.0,
+                                  color: colors.textSecondary
+                                      .withValues(alpha: 0.2)),
                           ],
                         ),
                       ),
                     );
                   },
-                  childCount: (displayChapters.length > 30 && !_isAllChaptersExpanded)
-                      ? 20
-                      : displayChapters.length,
+                  childCount:
+                      (displayChapters.length > 30 && !_isAllChaptersExpanded)
+                          ? 20
+                          : displayChapters.length,
                 ),
               ),
             ),
@@ -1032,7 +1142,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                       },
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10.0, horizontal: 20.0),
                         child: Text(
                           '已显示全本全部章节 · 收起 ▲',
                           style: TextStyle(
@@ -1076,7 +1187,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     );
   }
 
-  Widget _buildStatItem(SoftColors colors, String label, String val, {required bool isGold}) {
+  Widget _buildStatItem(SoftColors colors, String label, String val,
+      {required bool isGold}) {
     return Expanded(
       child: Column(
         children: [
@@ -1150,7 +1262,8 @@ class _BookDetailTocHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => 46.0;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     final isDark = colors.isDark;
     return ClipRect(
       child: BackdropFilter(
@@ -1158,7 +1271,8 @@ class _BookDetailTocHeaderDelegate extends SliverPersistentHeaderDelegate {
         child: Container(
           height: 46.0,
           decoration: BoxDecoration(
-            color: (isDark ? colors.background : colors.surface).withValues(alpha: isDark ? 0.88 : 0.92),
+            color: (isDark ? colors.background : colors.surface)
+                .withValues(alpha: isDark ? 0.88 : 0.92),
             border: Border(
               bottom: BorderSide(
                 color: colors.border.withValues(alpha: isDark ? 0.3 : 0.5),
@@ -1197,21 +1311,27 @@ class _BookDetailTocHeaderDelegate extends SliverPersistentHeaderDelegate {
                 onTap: onToggleReverse,
                 behavior: HitTestBehavior.opaque,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.5),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 4.5),
                   decoration: BoxDecoration(
                     color: colors.card,
                     borderRadius: BorderRadius.circular(8.0),
                     border: Border.all(color: colors.border),
-                    boxShadow: SoftDecorations.softShadows(colors, elevation: 0.5),
+                    boxShadow:
+                        SoftDecorations.softShadows(colors, elevation: 0.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.swap_vert_rounded, size: 14.0, color: colors.textSecondary),
+                      Icon(Icons.swap_vert_rounded,
+                          size: 14.0, color: colors.textSecondary),
                       const SizedBox(width: 3.0),
                       Text(
                         isReversed ? '倒序' : '正序',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: colors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: colors.textSecondary),
                       ),
                     ],
                   ),

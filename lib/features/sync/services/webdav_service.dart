@@ -204,7 +204,8 @@ class WebDavService {
       }
 
       // 3. 执行三方增量合并
-      final mergedBooks = _mergeShelfBooks(localBooks, remotePayload?.shelf ?? []);
+      final mergedBooks =
+          _mergeShelfBooks(localBooks, remotePayload?.shelf ?? []);
       final mergedBookmarks =
           _mergeBookmarks(localBookmarks, remotePayload?.bookmarks ?? []);
       final mergedAnnotations =
@@ -259,7 +260,8 @@ class WebDavService {
   }
 
   /// 书籍增量合并算法：并集去重，取最新阅读进度
-  List<ShelfBook> _mergeShelfBooks(List<ShelfBook> local, List<ShelfBook> remote) {
+  List<ShelfBook> _mergeShelfBooks(
+      List<ShelfBook> local, List<ShelfBook> remote) {
     final map = <String, ShelfBook>{};
     for (final b in local) {
       map[b.bookId] = b;
@@ -296,7 +298,8 @@ class WebDavService {
   }
 
   /// 划线批注合并算法：并集去重，冲突采信最新更新时间
-  List<Annotation> _mergeAnnotations(List<Annotation> local, List<Annotation> remote) {
+  List<Annotation> _mergeAnnotations(
+      List<Annotation> local, List<Annotation> remote) {
     final map = <String, Annotation>{};
     for (final a in local) {
       map[a.id] = a;

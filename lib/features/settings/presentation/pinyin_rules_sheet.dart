@@ -80,7 +80,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
         return AlertDialog(
           backgroundColor: colors.card,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(SoftDecorations.squircleCardRadius),
+            borderRadius:
+                BorderRadius.circular(SoftDecorations.squircleCardRadius),
           ),
           title: Text(
             '添加拼音自愈规则',
@@ -99,7 +100,9 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                 decoration: InputDecoration(
                   labelText: '原词 / 拼音',
                   hintText: '如 pinyin 或 ci',
-                  hintStyle: TextStyle(fontSize: 13.0, color: colors.textSecondary.withValues(alpha: 0.6)),
+                  hintStyle: TextStyle(
+                      fontSize: 13.0,
+                      color: colors.textSecondary.withValues(alpha: 0.6)),
                   filled: true,
                   fillColor: colors.surface,
                   border: OutlineInputBorder(
@@ -115,7 +118,9 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                 decoration: InputDecoration(
                   labelText: '目标替换汉字',
                   hintText: '如 拼音 或 词',
-                  hintStyle: TextStyle(fontSize: 13.0, color: colors.textSecondary.withValues(alpha: 0.6)),
+                  hintStyle: TextStyle(
+                      fontSize: 13.0,
+                      color: colors.textSecondary.withValues(alpha: 0.6)),
                   filled: true,
                   fillColor: colors.surface,
                   border: OutlineInputBorder(
@@ -144,7 +149,9 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                   );
                 }
               },
-              child: Text('确认添加', style: TextStyle(color: colors.accent, fontWeight: FontWeight.bold)),
+              child: Text('确认添加',
+                  style: TextStyle(
+                      color: colors.accent, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -216,7 +223,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
 
           // 标题栏
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
             child: Row(
               children: [
                 Container(
@@ -225,7 +233,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                     color: colors.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12.0),
                   ),
-                  child: Icon(Icons.spellcheck_rounded, color: colors.accent, size: 24.0),
+                  child: Icon(Icons.spellcheck_rounded,
+                      color: colors.accent, size: 24.0),
                 ),
                 const SizedBox(width: 12.0),
                 Expanded(
@@ -242,7 +251,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                       ),
                       Text(
                         '自愈第三方书源中的拼音谐音和谐词',
-                        style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary),
                       ),
                     ],
                   ),
@@ -257,7 +267,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
 
           // 顶部信息与同步卡片
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
             child: SoftCard(
               colors: colors,
               padding: const EdgeInsets.all(14.0),
@@ -269,7 +280,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                       children: [
                         Text(
                           '已生效规则总计',
-                          style: TextStyle(fontSize: 11.5, color: colors.textSecondary),
+                          style: TextStyle(
+                              fontSize: 11.5, color: colors.textSecondary),
                         ),
                         const SizedBox(height: 3.0),
                         Text(
@@ -287,18 +299,21 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                     key: const ValueKey('btn_sync_pinyin_cloud'),
                     colors: colors,
                     isPill: true,
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 6.0),
                     onPressed: _syncCloudRules,
                     child: _isSyncing
                         ? SizedBox(
                             width: 14.0,
                             height: 14.0,
-                            child: CircularProgressIndicator(strokeWidth: 2.0, color: colors.accent),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2.0, color: colors.accent),
                           )
                         : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.cloud_sync_rounded, size: 16.0, color: colors.accent),
+                              Icon(Icons.cloud_sync_rounded,
+                                  size: 16.0, color: colors.accent),
                               const SizedBox(width: 4.0),
                               Text(
                                 '同步云端',
@@ -318,7 +333,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
 
           // 操作工具栏（添加、导出、导入）
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
             child: Row(
               children: [
                 Expanded(
@@ -333,7 +349,8 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                     child: const Center(
                       child: Text(
                         '+ 添加规则',
-                        style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 13.0, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -351,11 +368,13 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.upload_rounded, size: 15.0, color: colors.textSecondary),
+                          Icon(Icons.upload_rounded,
+                              size: 15.0, color: colors.textSecondary),
                           const SizedBox(width: 4.0),
                           Text(
                             '导出',
-                            style: TextStyle(fontSize: 12.5, color: colors.textPrimary),
+                            style: TextStyle(
+                                fontSize: 12.5, color: colors.textPrimary),
                           ),
                         ],
                       ),
@@ -375,11 +394,13 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.download_rounded, size: 15.0, color: colors.textSecondary),
+                          Icon(Icons.download_rounded,
+                              size: 15.0, color: colors.textSecondary),
                           const SizedBox(width: 4.0),
                           Text(
                             '导入',
-                            style: TextStyle(fontSize: 12.5, color: colors.textPrimary),
+                            style: TextStyle(
+                                fontSize: 12.5, color: colors.textPrimary),
                           ),
                         ],
                       ),
@@ -402,19 +423,22 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0, vertical: 6.0),
                     physics: const BouncingScrollPhysics(),
                     itemCount: allRules.length,
                     itemBuilder: (context, index) {
                       final rule = allRules[index];
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8.0),
-                        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14.0, vertical: 10.0),
                         decoration: BoxDecoration(
                           color: colors.card,
                           borderRadius: BorderRadius.circular(16.0),
                           border: Border.all(color: colors.border),
-                          boxShadow: SoftDecorations.softShadows(colors, elevation: 0.5),
+                          boxShadow: SoftDecorations.softShadows(colors,
+                              elevation: 0.5),
                         ),
                         child: Row(
                           children: [
@@ -427,11 +451,14 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                                     style: TextStyle(
                                       fontSize: 14.0,
                                       fontWeight: FontWeight.w700,
-                                      color: rule.isEnabled ? colors.textPrimary : colors.textSecondary,
+                                      color: rule.isEnabled
+                                          ? colors.textPrimary
+                                          : colors.textSecondary,
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8.0),
                                     child: Icon(
                                       Icons.arrow_forward_rounded,
                                       size: 14.0,
@@ -443,17 +470,22 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                                     style: TextStyle(
                                       fontSize: 14.0,
                                       fontWeight: FontWeight.w800,
-                                      color: rule.isEnabled ? colors.accent : colors.textSecondary,
+                                      color: rule.isEnabled
+                                          ? colors.accent
+                                          : colors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(width: 10.0),
                                   // 标签 Badge
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6.0, vertical: 2.0),
                                     decoration: BoxDecoration(
                                       color: rule.isCustom
-                                          ? colors.accent.withValues(alpha: 0.15)
-                                          : colors.textSecondary.withValues(alpha: 0.12),
+                                          ? colors.accent
+                                              .withValues(alpha: 0.15)
+                                          : colors.textSecondary
+                                              .withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(6.0),
                                     ),
                                     child: Text(
@@ -461,7 +493,9 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                                       style: TextStyle(
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.w600,
-                                        color: rule.isCustom ? colors.accent : colors.textSecondary,
+                                        color: rule.isCustom
+                                            ? colors.accent
+                                            : colors.textSecondary,
                                       ),
                                     ),
                                   ),
@@ -473,14 +507,17 @@ class _PinyinRulesSheetState extends State<PinyinRulesSheet> {
                             if (rule.isCustom)
                               IconButton(
                                 key: ValueKey('btn_delete_rule_${rule.id}'),
-                                icon: Icon(Icons.delete_outline_rounded, size: 18.0, color: colors.textSecondary),
-                                onPressed: () => _ruleService.removeCustomRule(rule.id),
+                                icon: Icon(Icons.delete_outline_rounded,
+                                    size: 18.0, color: colors.textSecondary),
+                                onPressed: () =>
+                                    _ruleService.removeCustomRule(rule.id),
                               ),
 
                             // 启停开关
                             SoftSwitch(
                               value: rule.isEnabled,
-                              onChanged: (val) => _ruleService.toggleRule(rule.id, val),
+                              onChanged: (val) =>
+                                  _ruleService.toggleRule(rule.id, val),
                               colors: colors,
                             ),
                           ],

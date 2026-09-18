@@ -57,10 +57,12 @@ void main() {
       expect(compactChipText.style?.color, equals(Colors.white70));
 
       // 验证 A- 和 A+ 图标颜色为白色
-      final iconDecrease = tester.widget<Icon>(find.byIcon(Icons.text_decrease));
+      final iconDecrease =
+          tester.widget<Icon>(find.byIcon(Icons.text_decrease));
       expect(iconDecrease.color, equals(Colors.white));
 
-      final iconIncrease = tester.widget<Icon>(find.byIcon(Icons.text_increase));
+      final iconIncrease =
+          tester.widget<Icon>(find.byIcon(Icons.text_increase));
       expect(iconIncrease.color, equals(Colors.white));
     });
   });
@@ -130,7 +132,8 @@ void main() {
       final hasHighlightedSpan = richTexts.any((rt) {
         if (rt.text is TextSpan) {
           final span = rt.text as TextSpan;
-          return span.children?.any((c) => c is TextSpan && c.text == '少年') ?? false;
+          return span.children?.any((c) => c is TextSpan && c.text == '少年') ??
+              false;
         }
         return false;
       });
@@ -243,7 +246,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      final material = tester.widget<Material>(find.byKey(const ValueKey('download_sheet_material')));
+      final material = tester.widget<Material>(
+          find.byKey(const ValueKey('download_sheet_material')));
       expect(material.color, equals(SoftColors.night.card));
     });
   });
@@ -287,7 +291,8 @@ void main() {
       expect(find.textContaining('按住可上下拖拽'), findsOneWidget);
 
       // 验证垂直拖拽位移不崩溃
-      await tester.drag(find.byKey(const ValueKey('tts_mini_player_tap')), const Offset(0, -50));
+      await tester.drag(find.byKey(const ValueKey('tts_mini_player_tap')),
+          const Offset(0, -50));
       await tester.pump(const Duration(milliseconds: 100));
     });
 

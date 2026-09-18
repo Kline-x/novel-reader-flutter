@@ -47,7 +47,11 @@ void main() {
       final positionedFinder = find.descendant(
         of: barFinder,
         matching: find.byWidgetPredicate(
-          (w) => w is Positioned && w.bottom == 0.0 && w.left == 0.0 && w.right == 0.0,
+          (w) =>
+              w is Positioned &&
+              w.bottom == 0.0 &&
+              w.left == 0.0 &&
+              w.right == 0.0,
         ),
       );
       expect(positionedFinder, findsOneWidget);
@@ -149,7 +153,8 @@ void main() {
 
       // 2. 滚动并验证出现「查看完整目录 (共 55 章)  ▼」按钮
       final expandBtn = find.text('查看完整目录 (共 55 章)  ▼');
-      await tester.scrollUntilVisible(expandBtn, 200.0, scrollable: find.byType(Scrollable));
+      await tester.scrollUntilVisible(expandBtn, 200.0,
+          scrollable: find.byType(Scrollable));
       expect(expandBtn, findsOneWidget);
 
       // 3. 点击展开按钮
@@ -158,7 +163,8 @@ void main() {
 
       // 4. 验证展开后能够翻阅全部 55 章
       final collapseBtn = find.text('已显示全本全部章节 · 收起 ▲');
-      await tester.scrollUntilVisible(collapseBtn, 300.0, scrollable: find.byType(Scrollable));
+      await tester.scrollUntilVisible(collapseBtn, 300.0,
+          scrollable: find.byType(Scrollable));
       expect(collapseBtn, findsOneWidget);
       expect(find.text('第55章 浩瀚星河'), findsOneWidget);
 
@@ -172,7 +178,8 @@ void main() {
 
       // 7. 测试正序/倒序切换
       final orderBtn = find.byIcon(Icons.swap_vert_rounded);
-      await tester.scrollUntilVisible(orderBtn, -200.0, scrollable: find.byType(Scrollable));
+      await tester.scrollUntilVisible(orderBtn, -200.0,
+          scrollable: find.byType(Scrollable));
       await tester.tap(orderBtn);
       await tester.pumpAndSettle();
 
@@ -219,7 +226,8 @@ void main() {
       // 验证第 1 章显示
       expect(find.text('第1章 短篇物语'), findsOneWidget);
       // 滚动验证第 25 章显示
-      await tester.scrollUntilVisible(find.text('第25章 短篇物语'), 200.0, scrollable: find.byType(Scrollable));
+      await tester.scrollUntilVisible(find.text('第25章 短篇物语'), 200.0,
+          scrollable: find.byType(Scrollable));
       expect(find.text('第25章 短篇物语'), findsOneWidget);
 
       // 验证不出现展开/收起按钮

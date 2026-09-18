@@ -78,8 +78,10 @@ class ReaderViewport extends StatefulWidget {
   State<ReaderViewport> createState() => _ReaderViewportState();
 }
 
-class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProviderStateMixin {
-  static const MethodChannel _volumeChannel = MethodChannel('com.kline.novelreader/volume_key');
+class _ReaderViewportState extends State<ReaderViewport>
+    with SingleTickerProviderStateMixin {
+  static const MethodChannel _volumeChannel =
+      MethodChannel('com.kline.novelreader/volume_key');
 
   late PageController _pageController;
   late AnimationController _turnAnimController;
@@ -177,7 +179,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       if (widget.chapterTitle != oldWidget.chapterTitle ||
           widget.initialCharOffset != oldWidget.initialCharOffset) {
         _activeCharOffset = widget.initialCharOffset;
-        if (widget.initialCharOffset >= 999999 || widget.initialCharOffset == -1) {
+        if (widget.initialCharOffset >= 999999 ||
+            widget.initialCharOffset == -1) {
           _currentPageIndex = 999999;
         }
       }
@@ -232,14 +235,17 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
     );
 
     int targetPageIndex = 0;
-    final anchor = _activeCharOffset >= 0 ? _activeCharOffset : widget.initialCharOffset;
+    final anchor =
+        _activeCharOffset >= 0 ? _activeCharOffset : widget.initialCharOffset;
     if (_currentPageIndex >= 999999 || anchor >= 999999 || anchor == -1) {
       targetPageIndex = newPages.isEmpty ? 0 : newPages.length - 1;
     } else {
-      targetPageIndex = ReaderLayoutEngine.findPageByCharOffset(newPages, anchor);
+      targetPageIndex =
+          ReaderLayoutEngine.findPageByCharOffset(newPages, anchor);
     }
 
-    final newIndex = targetPageIndex.clamp(0, newPages.isEmpty ? 0 : newPages.length - 1);
+    final newIndex =
+        targetPageIndex.clamp(0, newPages.isEmpty ? 0 : newPages.length - 1);
     if (newPages.isNotEmpty && newIndex < newPages.length) {
       _activeCharOffset = newPages[newIndex].charStart;
     }
@@ -257,7 +263,9 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       _pageController.jumpToPage(_currentPageIndex);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _pageController.hasClients && _pageController.page?.round() != _currentPageIndex) {
+      if (mounted &&
+          _pageController.hasClients &&
+          _pageController.page?.round() != _currentPageIndex) {
         _pageController.jumpToPage(_currentPageIndex);
       }
     });
@@ -288,11 +296,13 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
     }
   }
 
-  DateTime _lastChapterTurnTime = DateTime.now().subtract(const Duration(seconds: 1));
+  DateTime _lastChapterTurnTime =
+      DateTime.now().subtract(const Duration(seconds: 1));
 
   void _triggerNextChapterDebounced() {
     final now = DateTime.now();
-    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) {
+    if (now.difference(_lastChapterTurnTime) <
+        const Duration(milliseconds: 500)) {
       return;
     }
     _lastChapterTurnTime = now;
@@ -301,7 +311,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
   void _triggerPreviousChapterDebounced() {
     final now = DateTime.now();
-    if (now.difference(_lastChapterTurnTime) < const Duration(milliseconds: 500)) {
+    if (now.difference(_lastChapterTurnTime) <
+        const Duration(milliseconds: 500)) {
       return;
     }
     _lastChapterTurnTime = now;
@@ -376,7 +387,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
 
         // 如果页面尚未排版或视口尺寸变更，执行重排
         if (_pages.isEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _repaginate(size));
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _repaginate(size));
         }
 
         final config = _buildPagingConfig(size);
@@ -418,7 +430,9 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
           ),
           const SizedBox(height: 16.0),
           Text(
-            widget.chapterTitle.isNotEmpty ? '正在载入【${widget.chapterTitle}】...' : '正在准备正文...',
+            widget.chapterTitle.isNotEmpty
+                ? '正在载入【${widget.chapterTitle}】...'
+                : '正在准备正文...',
             style: TextStyle(
               color: widget.theme.textColor.withValues(alpha: 0.7),
               fontSize: 14.0,
@@ -438,12 +452,15 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         decoration: BoxDecoration(
           color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(24.0),
-          border: Border.all(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08)),
+          border: Border.all(
+              color: (isDark ? Colors.white : Colors.black)
+                  .withValues(alpha: 0.08)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.wifi_off_rounded, size: 44.0, color: widget.theme.subTextColor),
+            Icon(Icons.wifi_off_rounded,
+                size: 44.0, color: widget.theme.subTextColor),
             const SizedBox(height: 12.0),
             Text(
               '正文加载受阻',
@@ -471,7 +488,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5B7FFF),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0)),
                     ),
                     onPressed: widget.onRetry,
                     child: const Text('重试加载'),
@@ -481,8 +499,10 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: widget.theme.textColor,
-                      side: BorderSide(color: widget.theme.textColor.withValues(alpha: 0.2)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                      side: BorderSide(
+                          color: widget.theme.textColor.withValues(alpha: 0.2)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0)),
                     ),
                     onPressed: widget.onOpenSourceSwitcher,
                     child: const Text('立即换源'),
@@ -510,15 +530,19 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
         return NotificationListener<ScrollNotification>(
           onNotification: (notification) {
             if (notification is OverscrollNotification) {
-              if (notification.overscroll > 5.0 && _currentPageIndex >= _pages.length - 1) {
+              if (notification.overscroll > 5.0 &&
+                  _currentPageIndex >= _pages.length - 1) {
                 _triggerNextChapterDebounced();
-              } else if (notification.overscroll < -5.0 && _currentPageIndex <= 0) {
+              } else if (notification.overscroll < -5.0 &&
+                  _currentPageIndex <= 0) {
                 _triggerPreviousChapterDebounced();
               }
-            } else if (notification.metrics.pixels > notification.metrics.maxScrollExtent + 20.0 &&
+            } else if (notification.metrics.pixels >
+                    notification.metrics.maxScrollExtent + 20.0 &&
                 _currentPageIndex >= _pages.length - 1) {
               _triggerNextChapterDebounced();
-            } else if (notification.metrics.pixels < notification.metrics.minScrollExtent - 20.0 &&
+            } else if (notification.metrics.pixels <
+                    notification.metrics.minScrollExtent - 20.0 &&
                 _currentPageIndex <= 0) {
               _triggerPreviousChapterDebounced();
             }
@@ -574,7 +598,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       onHorizontalDragUpdate: (details) {
         if (_turnAnimController.isAnimating) return;
         setState(() {
-          _dragOffset = (_dragOffset + details.delta.dx).clamp(-size.width, size.width);
+          _dragOffset =
+              (_dragOffset + details.delta.dx).clamp(-size.width, size.width);
         });
       },
       onHorizontalDragEnd: (details) {
@@ -600,7 +625,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
             }
           }
 
-          final isPrev = _animDirection == -1 && (_turnAnimController.isAnimating || _dragOffset > 0);
+          final isPrev = _animDirection == -1 &&
+              (_turnAnimController.isAnimating || _dragOffset > 0);
 
           if (isPrev) {
             return Stack(
@@ -713,7 +739,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
       onHorizontalDragUpdate: (details) {
         if (_turnAnimController.isAnimating) return;
         setState(() {
-          _dragOffset = (_dragOffset + details.delta.dx).clamp(-size.width, size.width);
+          _dragOffset =
+              (_dragOffset + details.delta.dx).clamp(-size.width, size.width);
         });
       },
       onHorizontalDragEnd: (details) {
@@ -736,7 +763,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
             progress = (_dragOffset.abs() / size.width).clamp(0.0, 1.0);
           }
 
-          final isPrev = _animDirection == -1 && (_turnAnimController.isAnimating || _dragOffset > 0);
+          final isPrev = _animDirection == -1 &&
+              (_turnAnimController.isAnimating || _dragOffset > 0);
 
           if (isPrev) {
             final angle = (1.0 - progress) * (3.14159 / 2.0);
@@ -765,7 +793,9 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: (0.3 * (1.0 - progress)).clamp(0.0, 0.3)),
+                            color: Colors.black.withValues(
+                                alpha:
+                                    (0.3 * (1.0 - progress)).clamp(0.0, 0.3)),
                             offset: const Offset(4, 0),
                             blurRadius: 12,
                           ),
@@ -818,9 +848,11 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                       colors: [
-                        Colors.black.withValues(alpha: (0.12 * progress).clamp(0.0, 0.2)),
+                        Colors.black.withValues(
+                            alpha: (0.12 * progress).clamp(0.0, 0.2)),
                         Colors.transparent,
-                        Colors.black.withValues(alpha: (0.22 * progress).clamp(0.0, 0.28)),
+                        Colors.black.withValues(
+                            alpha: (0.22 * progress).clamp(0.0, 0.28)),
                       ],
                     ),
                   ),
@@ -850,9 +882,11 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
   Widget _buildScrollView(Size size, PagingConfig config) {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
-        if (notification.metrics.pixels >= notification.metrics.maxScrollExtent + 25.0) {
+        if (notification.metrics.pixels >=
+            notification.metrics.maxScrollExtent + 25.0) {
           _triggerNextChapterDebounced();
-        } else if (notification.metrics.pixels <= notification.metrics.minScrollExtent - 25.0) {
+        } else if (notification.metrics.pixels <=
+            notification.metrics.minScrollExtent - 25.0) {
           _triggerPreviousChapterDebounced();
         }
         return false;
@@ -911,10 +945,12 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
               right: 8.0,
             ),
             decoration: BoxDecoration(
-              color: (isDark ? const Color(0xFF16181A) : Colors.white).withValues(alpha: 0.94),
+              color: (isDark ? const Color(0xFF16181A) : Colors.white)
+                  .withValues(alpha: 0.94),
               border: Border(
                 bottom: BorderSide(
-                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                  color: (isDark ? Colors.white : Colors.black)
+                      .withValues(alpha: 0.08),
                 ),
               ),
               boxShadow: [
@@ -934,7 +970,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                     width: 32.0,
                     height: 32.0,
                     alignment: Alignment.center,
-                    child: Icon(Icons.arrow_back_ios_new, color: widget.theme.textColor, size: 18),
+                    child: Icon(Icons.arrow_back_ios_new,
+                        color: widget.theme.textColor, size: 18),
                   ),
                 ),
                 const SizedBox(width: 4.0),
@@ -965,28 +1002,40 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                           key: const ValueKey('reader_top_shelf_btn'),
                           onTap: widget.isInShelf ? null : widget.onAddToShelf,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5.0, vertical: 3.5),
                             decoration: BoxDecoration(
                               color: widget.isInShelf
-                                  ? (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05))
-                                  : const Color(0xFF07C160).withValues(alpha: 0.15),
+                                  ? (isDark
+                                      ? Colors.white12
+                                      : Colors.black.withValues(alpha: 0.05))
+                                  : const Color(0xFF07C160)
+                                      .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  widget.isInShelf ? Icons.check_circle_outline : Icons.bookmark_add_outlined,
+                                  widget.isInShelf
+                                      ? Icons.check_circle_outline
+                                      : Icons.bookmark_add_outlined,
                                   size: 13.5,
-                                  color: widget.isInShelf ? const Color(0xFF07C160) : widget.theme.textColor,
+                                  color: widget.isInShelf
+                                      ? const Color(0xFF07C160)
+                                      : widget.theme.textColor,
                                 ),
                                 const SizedBox(width: 2.0),
                                 Text(
                                   widget.isInShelf ? '已入架' : '加书架',
                                   style: TextStyle(
-                                    color: widget.isInShelf ? const Color(0xFF07C160) : widget.theme.textColor,
+                                    color: widget.isInShelf
+                                        ? const Color(0xFF07C160)
+                                        : widget.theme.textColor,
                                     fontSize: 10.0,
-                                    fontWeight: widget.isInShelf ? FontWeight.bold : FontWeight.normal,
+                                    fontWeight: widget.isInShelf
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
                                 ),
                               ],
@@ -1001,19 +1050,24 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                           key: const ValueKey('reader_top_source_btn'),
                           onTap: widget.onOpenSourceSwitcher,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5.0, vertical: 3.5),
                             decoration: BoxDecoration(
-                              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                              color: (isDark ? Colors.white : Colors.black)
+                                  .withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.swap_horiz_rounded, size: 14.0, color: widget.theme.textColor),
+                                Icon(Icons.swap_horiz_rounded,
+                                    size: 14.0, color: widget.theme.textColor),
                                 const SizedBox(width: 2.0),
                                 Text(
                                   '换源',
-                                  style: TextStyle(color: widget.theme.textColor, fontSize: 10.0),
+                                  style: TextStyle(
+                                      color: widget.theme.textColor,
+                                      fontSize: 10.0),
                                 ),
                               ],
                             ),
@@ -1027,19 +1081,24 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                           key: const ValueKey('reader_top_notes_btn'),
                           onTap: widget.onOpenNotes,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5.0, vertical: 3.5),
                             decoration: BoxDecoration(
-                              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                              color: (isDark ? Colors.white : Colors.black)
+                                  .withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.rate_review_outlined, size: 13.5, color: widget.theme.textColor),
+                                Icon(Icons.rate_review_outlined,
+                                    size: 13.5, color: widget.theme.textColor),
                                 const SizedBox(width: 2.0),
                                 Text(
                                   '笔记',
-                                  style: TextStyle(color: widget.theme.textColor, fontSize: 10.0),
+                                  style: TextStyle(
+                                      color: widget.theme.textColor,
+                                      fontSize: 10.0),
                                 ),
                               ],
                             ),
@@ -1053,28 +1112,39 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                           key: const ValueKey('reader_top_bookmark_btn'),
                           onTap: widget.onToggleBookmark,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5.0, vertical: 3.5),
                             decoration: BoxDecoration(
                               color: widget.isBookmarked
-                                  ? const Color(0xFFE5A93C).withValues(alpha: 0.18)
-                                  : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                                  ? const Color(0xFFE5A93C)
+                                      .withValues(alpha: 0.18)
+                                  : (isDark ? Colors.white : Colors.black)
+                                      .withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  widget.isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                                  widget.isBookmarked
+                                      ? Icons.bookmark_rounded
+                                      : Icons.bookmark_border_rounded,
                                   size: 13.5,
-                                  color: widget.isBookmarked ? const Color(0xFFE5A93C) : widget.theme.textColor,
+                                  color: widget.isBookmarked
+                                      ? const Color(0xFFE5A93C)
+                                      : widget.theme.textColor,
                                 ),
                                 const SizedBox(width: 2.0),
                                 Text(
                                   '书签',
                                   style: TextStyle(
-                                    color: widget.isBookmarked ? const Color(0xFFE5A93C) : widget.theme.textColor,
+                                    color: widget.isBookmarked
+                                        ? const Color(0xFFE5A93C)
+                                        : widget.theme.textColor,
                                     fontSize: 10.0,
-                                    fontWeight: widget.isBookmarked ? FontWeight.bold : FontWeight.normal,
+                                    fontWeight: widget.isBookmarked
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
                                 ),
                               ],
@@ -1088,19 +1158,24 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                         GestureDetector(
                           onTap: widget.onOpenDownload,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5.0, vertical: 3.5),
                             decoration: BoxDecoration(
-                              color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                              color: (isDark ? Colors.white : Colors.black)
+                                  .withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.download_rounded, size: 13.5, color: widget.theme.textColor),
+                                Icon(Icons.download_rounded,
+                                    size: 13.5, color: widget.theme.textColor),
                                 const SizedBox(width: 2.0),
                                 Text(
                                   '离线',
-                                  style: TextStyle(color: widget.theme.textColor, fontSize: 10.0),
+                                  style: TextStyle(
+                                      color: widget.theme.textColor,
+                                      fontSize: 10.0),
                                 ),
                               ],
                             ),
@@ -1139,8 +1214,10 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
               right: 20.0,
             ),
             decoration: BoxDecoration(
-              color: (isDark ? const Color(0xFF16181A) : Colors.white).withValues(alpha: 0.94),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+              color: (isDark ? const Color(0xFF16181A) : Colors.white)
+                  .withValues(alpha: 0.94),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24.0)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
@@ -1156,7 +1233,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                 Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.skip_previous_rounded, color: widget.theme.textColor),
+                      icon: Icon(Icons.skip_previous_rounded,
+                          color: widget.theme.textColor),
                       onPressed: widget.onPreviousChapter,
                       tooltip: '上一章',
                     ),
@@ -1169,15 +1247,18 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                             min: 1.0,
                             max: (total > 1 ? total : 1).toDouble(),
                             activeColor: const Color(0xFF5B7FFF),
-                            inactiveColor: widget.theme.subTextColor.withValues(alpha: 0.3),
+                            inactiveColor: widget.theme.subTextColor
+                                .withValues(alpha: 0.3),
                             onChanged: total > 1
                                 ? (val) {
                                     final target = val.round() - 1;
                                     if (target != _currentPageIndex) {
-                                      if (widget.turnMode == PageTurnMode.slide) {
+                                      if (widget.turnMode ==
+                                          PageTurnMode.slide) {
                                         _pageController.jumpToPage(target);
                                       } else {
-                                        setState(() => _currentPageIndex = target);
+                                        setState(
+                                            () => _currentPageIndex = target);
                                       }
                                     }
                                   }
@@ -1194,7 +1275,8 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.skip_next_rounded, color: widget.theme.textColor),
+                      icon: Icon(Icons.skip_next_rounded,
+                          color: widget.theme.textColor),
                       onPressed: widget.onNextChapter,
                       tooltip: '下一章',
                     ),
@@ -1217,7 +1299,9 @@ class _ReaderViewportState extends State<ReaderViewport> with SingleTickerProvid
                         onTap: widget.onOpenTts!,
                       ),
                     _buildActionButton(
-                      icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      icon: isDark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
                       label: isDark ? '日间' : '夜间',
                       onTap: () {
                         widget.onToggleTheme?.call();

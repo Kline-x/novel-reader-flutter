@@ -40,7 +40,8 @@ class Annotation {
 
   static const List<String> colorNames = ['晨曦黄', '薄荷绿', '天青蓝', '茱萸粉'];
 
-  Color get color => highlightColors[colorIndex.clamp(0, highlightColors.length - 1)];
+  Color get color =>
+      highlightColors[colorIndex.clamp(0, highlightColors.length - 1)];
 
   Map<String, dynamic> toJson() {
     return {

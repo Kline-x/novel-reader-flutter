@@ -20,7 +20,8 @@ void main() {
     },
   );
 
-  testWidgets('UpdateDialog renders version badge, notes, and safety notice', (tester) async {
+  testWidgets('UpdateDialog renders version badge, notes, and safety notice',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(

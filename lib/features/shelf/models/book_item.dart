@@ -51,7 +51,9 @@ class BookItem {
         lastReadTime = lastReadTime ?? DateTime.now();
 
   bool get isLocal => sourceId?.startsWith('local') == true || filePath != null;
-  bool get isEpub => sourceId == 'local_epub' || (filePath?.toLowerCase().endsWith('.epub') ?? false);
+  bool get isEpub =>
+      sourceId == 'local_epub' ||
+      (filePath?.toLowerCase().endsWith('.epub') ?? false);
   String get pinyin => pinyinKey;
   String get lastChapter => latestChapter;
   int get charOffset => currentCharOffset;

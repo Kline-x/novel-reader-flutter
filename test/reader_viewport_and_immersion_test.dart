@@ -12,7 +12,8 @@ void main() {
     test('1.2 浅色主题（纸白/羊皮纸/青润）次级文本对比度调校验证', () {
       const paper = ReaderThemeOption.paper;
       const cream = ReaderThemeOption.cream;
-      final green = ReaderThemeOption.presets.firstWhere((t) => t.id == 'green');
+      final green =
+          ReaderThemeOption.presets.firstWhere((t) => t.id == 'green');
 
       // 验证羊皮纸名称与高对比度次级文本
       expect(cream.name, '羊皮纸');
@@ -22,7 +23,9 @@ void main() {
       double calcContrast(Color c1, Color c2) {
         final l1 = c1.computeLuminance();
         final l2 = c2.computeLuminance();
-        return (l1 > l2) ? (l1 + 0.05) / (l2 + 0.05) : (l2 + 0.05) / (l1 + 0.05);
+        return (l1 > l2)
+            ? (l1 + 0.05) / (l2 + 0.05)
+            : (l2 + 0.05) / (l1 + 0.05);
       }
 
       final paperContrast = calcContrast(paper.background, paper.subTextColor);
@@ -88,7 +91,8 @@ void main() {
       const charOffset = 23;
       int startSentenceIndex = 0;
       for (int i = 0; i < sentences.length; i++) {
-        if (charOffset >= sentences[i].startIndex && charOffset < sentences[i].endIndex) {
+        if (charOffset >= sentences[i].startIndex &&
+            charOffset < sentences[i].endIndex) {
           startSentenceIndex = i;
           break;
         }
@@ -103,7 +107,8 @@ void main() {
     });
 
     testWidgets('3.1 阅读器顶栏「书签」胶囊完整展现且不被右边缘物理截断测试', (tester) async {
-      await tester.binding.setSurfaceSize(const Size(360.0, 780.0)); // 标准紧凑屏宽 360dp
+      await tester.binding
+          .setSurfaceSize(const Size(360.0, 780.0)); // 标准紧凑屏宽 360dp
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       bool bookmarkTapped = false;
@@ -143,14 +148,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // 验证「书签」按钮已渲染且在可视区内 (横坐标小于屏幕物理宽度 360.0)
-      final bookmarkFinder = find.byKey(const ValueKey('reader_top_bookmark_btn'));
+      final bookmarkFinder =
+          find.byKey(const ValueKey('reader_top_bookmark_btn'));
       expect(bookmarkFinder, findsOneWidget);
 
       final topLeft = tester.getTopLeft(bookmarkFinder);
       final bottomRight = tester.getBottomRight(bookmarkFinder);
 
       expect(topLeft.dx, greaterThanOrEqualTo(0.0));
-      expect(bottomRight.dx, lessThanOrEqualTo(360.0), reason: '书签胶囊右边缘必须在可视安全区内，绝不被右边缘裁切');
+      expect(bottomRight.dx, lessThanOrEqualTo(360.0),
+          reason: '书签胶囊右边缘必须在可视安全区内，绝不被右边缘裁切');
 
       // 验证书签按钮可正常响应点击
       await tester.tap(bookmarkFinder);

@@ -39,7 +39,8 @@ class TxtParserEngine {
   }
 
   /// 扫描大文件建立轻量章节索引表
-  static Future<List<LocalChapter>> parseChapters(File file, {Encoding? specifiedEncoding}) async {
+  static Future<List<LocalChapter>> parseChapters(File file,
+      {Encoding? specifiedEncoding}) async {
     final fileSize = await file.length();
     if (fileSize == 0) return [];
 
@@ -66,7 +67,8 @@ class TxtParserEngine {
         final b = buffer[i];
         final fileBytePos = currentOffset + i;
 
-        if (b == 0x0A) { // \n 换行符
+        if (b == 0x0A) {
+          // \n 换行符
           // 解析完整行
           if (lineBuffer.isNotEmpty && lineBuffer.last == 0x0D) {
             lineBuffer.removeLast(); // 移除 \r

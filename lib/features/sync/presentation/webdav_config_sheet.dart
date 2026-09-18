@@ -76,7 +76,9 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
       serverUrl: _urlController.text.trim(),
       username: _userController.text.trim(),
       password: _pwdController.text.trim(),
-      remotePath: _pathController.text.trim().isEmpty ? '/novel_reader' : _pathController.text.trim(),
+      remotePath: _pathController.text.trim().isEmpty
+          ? '/novel_reader'
+          : _pathController.text.trim(),
       autoSync: _autoSync,
       lastSyncTime: _lastSyncTime,
     );
@@ -142,7 +144,8 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
         _isSyncing = false;
         if (result.success) {
           _lastSyncTime = result.syncTime;
-          _syncStatusMessage = '同步成功：书架 ${result.syncedBooks} 本 · 书签 ${result.syncedBookmarks} 个 · 笔记 ${result.syncedAnnotations} 条';
+          _syncStatusMessage =
+              '同步成功：书架 ${result.syncedBooks} 本 · 书签 ${result.syncedBookmarks} 个 · 笔记 ${result.syncedAnnotations} 条';
         } else {
           _syncStatusMessage = '同步失败：${result.message}';
         }
@@ -197,7 +200,8 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: Icon(Icons.close_rounded, color: colors.textSecondary),
+                    icon:
+                        Icon(Icons.close_rounded, color: colors.textSecondary),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -254,12 +258,15 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
               // 自动同步开关与上次时间
               SoftCard(
                 colors: colors,
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        Text('打开应用时自动同步', style: TextStyle(fontSize: 13.0, color: colors.textPrimary)),
+                        Text('打开应用时自动同步',
+                            style: TextStyle(
+                                fontSize: 13.0, color: colors.textPrimary)),
                         const Spacer(),
                         SoftSwitch(
                           value: _autoSync,
@@ -275,11 +282,13 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                       const Divider(height: 14.0),
                       Row(
                         children: [
-                          Icon(Icons.history_rounded, size: 14.0, color: colors.textSecondary),
+                          Icon(Icons.history_rounded,
+                              size: 14.0, color: colors.textSecondary),
                           const SizedBox(width: 4.0),
                           Text(
                             '上次云端对齐：${_lastSyncTime.toString().split('.')[0]}',
-                            style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                            style: TextStyle(
+                                fontSize: 11.0, color: colors.textSecondary),
                           ),
                         ],
                       ),
@@ -302,9 +311,13 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                   child: Row(
                     children: [
                       Icon(
-                        _testResult!.startsWith('✓') ? Icons.check_circle : Icons.error,
+                        _testResult!.startsWith('✓')
+                            ? Icons.check_circle
+                            : Icons.error,
                         size: 16.0,
-                        color: _testResult!.startsWith('✓') ? Colors.green : Colors.red,
+                        color: _testResult!.startsWith('✓')
+                            ? Colors.green
+                            : Colors.red,
                       ),
                       const SizedBox(width: 6.0),
                       Expanded(
@@ -312,7 +325,9 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                           _testResult!,
                           style: TextStyle(
                             fontSize: 12.0,
-                            color: _testResult!.startsWith('✓') ? Colors.green : Colors.red,
+                            color: _testResult!.startsWith('✓')
+                                ? Colors.green
+                                : Colors.red,
                           ),
                         ),
                       ),
@@ -329,13 +344,17 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                     final isSuccess = _syncStatusMessage!.startsWith('同步成功');
                     final bg = isFailed
                         ? Colors.red.withValues(alpha: 0.1)
-                        : (isSuccess ? Colors.green.withValues(alpha: 0.1) : colors.accent.withValues(alpha: 0.12));
+                        : (isSuccess
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : colors.accent.withValues(alpha: 0.12));
                     final fg = isFailed
                         ? Colors.red
                         : (isSuccess ? Colors.green : colors.textPrimary);
                     final icon = isFailed
                         ? Icons.error_outline_rounded
-                        : (isSuccess ? Icons.check_circle_outline_rounded : Icons.sync_rounded);
+                        : (isSuccess
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.sync_rounded);
 
                     return Container(
                       padding: const EdgeInsets.all(10.0),
@@ -369,13 +388,17 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                       key: const ValueKey('btn_test_webdav'),
                       onPressed: _isTesting ? null : _testConnection,
                       icon: _isTesting
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.network_check_rounded, size: 16),
                       label: Text(_isTesting ? '探测中...' : '测试连接'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: colors.textPrimary,
                         side: BorderSide(color: colors.border),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.0)),
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                       ),
                     ),
@@ -387,13 +410,18 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                       key: const ValueKey('btn_sync_now'),
                       onPressed: _isSyncing ? null : _triggerSync,
                       icon: _isSyncing
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.cloud_sync_rounded, size: 16),
                       label: Text(_isSyncing ? '同步中...' : '立即增量漫游'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: colors.accent,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.0)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.0)),
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                       ),
                     ),
@@ -418,7 +446,11 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 11.0, color: colors.textSecondary, fontWeight: FontWeight.w600)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11.0,
+                color: colors.textSecondary,
+                fontWeight: FontWeight.w600)),
         const SizedBox(height: 4.0),
         TextField(
           key: key,
@@ -428,14 +460,17 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
           decoration: InputDecoration(
             isDense: true,
             hintText: hint,
-            hintStyle: TextStyle(fontSize: 12.0, color: colors.textSecondary.withValues(alpha: 0.7)),
+            hintStyle: TextStyle(
+                fontSize: 12.0,
+                color: colors.textSecondary.withValues(alpha: 0.7)),
             filled: true,
             fillColor: colors.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10.0),
               borderSide: BorderSide(color: colors.border),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
           ),
         ),
       ],

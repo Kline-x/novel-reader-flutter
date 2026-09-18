@@ -75,7 +75,8 @@ class _TtsMiniPlayerState extends State<TtsMiniPlayer>
 
     final isDark = widget.isDark;
     final isPlaying = _ttsService.isPlaying;
-    final sentenceText = _ttsService.currentSentence?.text ?? _ttsService.chapterTitle;
+    final sentenceText =
+        _ttsService.currentSentence?.text ?? _ttsService.chapterTitle;
 
     final cardBg = isDark
         ? const Color(0xFF1E2024).withValues(alpha: 0.88)
@@ -101,7 +102,8 @@ class _TtsMiniPlayerState extends State<TtsMiniPlayer>
           } else {
             setState(() {
               // 允许向上拖动避让底部滑块或电量，最大向上位移 360dp，向下缓冲 60dp
-              _dragOffsetY = (_dragOffsetY + details.delta.dy).clamp(-360.0, 60.0);
+              _dragOffsetY =
+                  (_dragOffsetY + details.delta.dy).clamp(-360.0, 60.0);
             });
           }
         },
@@ -111,7 +113,8 @@ class _TtsMiniPlayerState extends State<TtsMiniPlayer>
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(22.0),
@@ -121,7 +124,9 @@ class _TtsMiniPlayerState extends State<TtsMiniPlayer>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isDark ? Colors.black45 : accentColor.withValues(alpha: 0.15),
+                    color: isDark
+                        ? Colors.black45
+                        : accentColor.withValues(alpha: 0.15),
                     blurRadius: 16.0,
                     offset: const Offset(0, 6),
                   ),
@@ -213,7 +218,9 @@ class _TtsMiniPlayerState extends State<TtsMiniPlayer>
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
                           color: accentColor,
                           size: 20.0,
                         ),

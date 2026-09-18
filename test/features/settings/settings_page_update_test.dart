@@ -7,7 +7,9 @@ import 'package:novel_reader_flutter/features/settings/services/version_check_se
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('SettingsPage check update tile triggers SnackBar when already latest', (tester) async {
+  testWidgets(
+      'SettingsPage check update tile triggers SnackBar when already latest',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -40,7 +42,9 @@ void main() {
     expect(find.text('当前已是最新版本 (v1.0.1)，尽享极速纯净体验'), findsOneWidget);
   });
 
-  testWidgets('SettingsPage check update tile triggers UpdateDialog when new version available', (tester) async {
+  testWidgets(
+      'SettingsPage check update tile triggers UpdateDialog when new version available',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);

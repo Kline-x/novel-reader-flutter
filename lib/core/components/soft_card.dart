@@ -36,9 +36,10 @@ class _SoftCardState extends State<SoftCard> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveElevation = (_isPressed && (widget.onTap != null || widget.onLongPress != null))
-        ? widget.elevation * 0.35
-        : widget.elevation;
+    final effectiveElevation =
+        (_isPressed && (widget.onTap != null || widget.onLongPress != null))
+            ? widget.elevation * 0.35
+            : widget.elevation;
 
     Widget cardContent = AnimatedContainer(
       duration: const Duration(milliseconds: 120),
@@ -47,8 +48,10 @@ class _SoftCardState extends State<SoftCard> {
       decoration: BoxDecoration(
         color: widget.colors.card,
         borderRadius: BorderRadius.circular(widget.radius),
-        border: widget.border ?? Border.all(color: widget.colors.border, width: 1.0),
-        boxShadow: SoftDecorations.softShadows(widget.colors, elevation: effectiveElevation),
+        border: widget.border ??
+            Border.all(color: widget.colors.border, width: 1.0),
+        boxShadow: SoftDecorations.softShadows(widget.colors,
+            elevation: effectiveElevation),
       ),
       child: widget.child,
     );

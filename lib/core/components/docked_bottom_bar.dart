@@ -42,7 +42,8 @@ class _DockedBottomBarState extends State<DockedBottomBar> {
             height: totalHeight,
             padding: EdgeInsets.only(bottom: bottomInset),
             decoration: BoxDecoration(
-              color: (isDark ? colors.background : colors.surface).withValues(alpha: isDark ? 0.72 : 0.82),
+              color: (isDark ? colors.background : colors.surface)
+                  .withValues(alpha: isDark ? 0.72 : 0.82),
               border: Border(
                 top: BorderSide(
                   color: isDark
@@ -152,14 +153,16 @@ class _DockedBottomBarState extends State<DockedBottomBar> {
             borderRadius: BorderRadius.circular(16.0),
             border: isSelected
                 ? Border.all(
-                    color: colors.accent.withValues(alpha: isDark ? 0.45 : 0.32),
+                    color:
+                        colors.accent.withValues(alpha: isDark ? 0.45 : 0.32),
                     width: 1.0,
                   )
                 : Border.all(color: Colors.transparent, width: 1.0),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: colors.accent.withValues(alpha: isDark ? 0.28 : 0.2),
+                      color:
+                          colors.accent.withValues(alpha: isDark ? 0.28 : 0.2),
                       offset: const Offset(0, 2),
                       blurRadius: 10.0,
                       spreadRadius: 0,

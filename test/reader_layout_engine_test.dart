@@ -1,4 +1,3 @@
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_reader_flutter/features/reader/engine/cjk_punctuation.dart';
 import 'package:novel_reader_flutter/features/reader/engine/page_models.dart';
@@ -34,8 +33,9 @@ void main() {
       expect(pages18.isNotEmpty, true, reason: '分页结果不应为空');
 
       for (final page in pages18) {
-        final maxAllowedLines =
-            page.isFirstPage ? config18.firstPageMaxLines : config18.maxLinesPerPage;
+        final maxAllowedLines = page.isFirstPage
+            ? config18.firstPageMaxLines
+            : config18.maxLinesPerPage;
         expect(
           page.lines.length <= maxAllowedLines,
           true,
@@ -153,4 +153,3 @@ void main() {
     });
   });
 }
-

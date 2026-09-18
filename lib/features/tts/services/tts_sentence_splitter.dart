@@ -20,6 +20,7 @@ class TtsSentence {
 class TtsSentenceSplitter {
   /// 中文常见句末标点集合（包含省略号与感叹号）
   static final RegExp _terminalPunctuation = RegExp(r'[。！？!?；;\n]+');
+
   /// 常见后置闭合标点（引号、括号等）
   static const String _closingQuotes = '"\'”’」』）)》]】';
 
@@ -49,7 +50,8 @@ class TtsSentenceSplitter {
         int endCandidate = cursor + match.end;
 
         // 如果紧接着有右引号/闭合括号，将其归入当前句
-        while (endCandidate < length && _closingQuotes.contains(content[endCandidate])) {
+        while (endCandidate < length &&
+            _closingQuotes.contains(content[endCandidate])) {
           endCandidate++;
         }
 
@@ -73,6 +75,10 @@ class TtsSentenceSplitter {
   }
 
   static bool _isWhitespace(String char) {
-    return char == ' ' || char == '\t' || char == '\r' || char == '\n' || char == '　';
+    return char == ' ' ||
+        char == '\t' ||
+        char == '\r' ||
+        char == '\n' ||
+        char == '　';
   }
 }

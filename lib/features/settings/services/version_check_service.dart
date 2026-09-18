@@ -85,7 +85,8 @@ class AppVersionInfo {
     });
 
     // 兼容根级 downloadUrl
-    if (!parsedPlatforms.containsKey('android') && json.containsKey('downloadUrl')) {
+    if (!parsedPlatforms.containsKey('android') &&
+        json.containsKey('downloadUrl')) {
       parsedPlatforms['android'] = PlatformUpdateInfo(
         downloadUrl: json['downloadUrl'] as String?,
         installMode: 'in_app_apk',
@@ -117,12 +118,24 @@ class AppVersionInfo {
 
   /// 获取当前宿主平台的专属升级配置
   PlatformUpdateInfo? get currentPlatformInfo {
-    if (kIsWeb) return platforms['web'] ?? platforms['android'];
-    if (VersionCheckService.isHarmonyOS) return platforms['harmony'] ?? platforms['android'];
-    if (Platform.isAndroid) return platforms['android'];
-    if (Platform.isIOS) return platforms['ios'];
-    if (Platform.isMacOS) return platforms['macos'] ?? platforms['android'];
-    if (Platform.isWindows) return platforms['windows'] ?? platforms['android'];
+    if (kIsWeb) {
+      return platforms['web'] ?? platforms['android'];
+    }
+    if (VersionCheckService.isHarmonyOS) {
+      return platforms['harmony'] ?? platforms['android'];
+    }
+    if (Platform.isAndroid) {
+      return platforms['android'];
+    }
+    if (Platform.isIOS) {
+      return platforms['ios'];
+    }
+    if (Platform.isMacOS) {
+      return platforms['macos'] ?? platforms['android'];
+    }
+    if (Platform.isWindows) {
+      return platforms['windows'] ?? platforms['android'];
+    }
     return platforms['android'];
   }
 
@@ -155,7 +168,9 @@ class VersionCheckService {
   VersionCheckService._internal();
 
   Dio? _customDio;
-  Dio get _dio => _customDio ?? Dio(
+  Dio get _dio =>
+      _customDio ??
+      Dio(
         BaseOptions(
           connectTimeout: const Duration(milliseconds: 2500),
           receiveTimeout: const Duration(milliseconds: 3500),
@@ -173,7 +188,8 @@ class VersionCheckService {
   static bool isHarmonyOS = false;
 
   static const String updateChannelName = 'com.kline.novelreader/app_update';
-  static const MethodChannel _platformChannel = MethodChannel(updateChannelName);
+  static const MethodChannel _platformChannel =
+      MethodChannel(updateChannelName);
 
   /// 国内多级高可用探测源列表（按优先级排列）
   static const List<String> highAvailabilityEndpoints = [
@@ -194,7 +210,9 @@ class VersionCheckService {
 
   /// 生成国内高可用加速下载候选列表（方案 1：GitHub Release 镜像代理全自动加速）
   static List<String> buildAcceleratedDownloadUrls(String? originalUrl) {
-    if (originalUrl == null || originalUrl.trim().isEmpty) return [];
+    if (originalUrl == null || originalUrl.trim().isEmpty) {
+      return [];
+    }
     final url = originalUrl.trim();
     final result = <String>[];
 
@@ -257,7 +275,8 @@ class VersionCheckService {
     if (forceMock) {
       latestInfo = defaultMockVersion;
     } else {
-      latestInfo = await _probeHighAvailabilityManifest(customEndpoint: endpoint);
+      latestInfo =
+          await _probeHighAvailabilityManifest(customEndpoint: endpoint);
     }
 
     // 比较版本号：远程 versionCode 大于本地当前 versionCode 时返回新版本
@@ -268,7 +287,8 @@ class VersionCheckService {
   }
 
   /// 国内多级镜像源快速探测策略
-  Future<AppVersionInfo> _probeHighAvailabilityManifest({String? customEndpoint}) async {
+  Future<AppVersionInfo> _probeHighAvailabilityManifest(
+      {String? customEndpoint}) async {
     final endpoints = customEndpoint != null
         ? [customEndpoint, ...highAvailabilityEndpoints]
         : highAvailabilityEndpoints;
@@ -321,7 +341,8 @@ class VersionCheckService {
 
     // 2. 鸿蒙 HarmonyOS NEXT 平台：优先唤起华为应用市场
     if (isHarmonyOS) {
-      final marketUrl = platformInfo?.storeUrl ?? 'appmarket://details?id=com.kline.novelreader';
+      final marketUrl = platformInfo?.storeUrl ??
+          'appmarket://details?id=com.kline.novelreader';
       if (platformInfo?.installMode == 'app_market') {
         onProgress(0.5);
         await openExternalUrl(marketUrl);
@@ -351,7 +372,8 @@ class VersionCheckService {
     required void Function(double progress) onProgress,
   }) async {
     final tempDir = await getTemporaryDirectory();
-    final fileName = 'novel_reader_v${info.versionName}_${info.versionCode}.apk';
+    final fileName =
+        'novel_reader_v${info.versionName}_${info.versionCode}.apk';
     final saveFile = File('${tempDir.path}/$fileName');
 
     bool downloadSuccess = false;
@@ -387,7 +409,8 @@ class VersionCheckService {
     if (!downloadSuccess) {
       if (!await saveFile.exists()) {
         await saveFile.create(recursive: true);
-        await saveFile.writeAsString('PK_MOCK_APK_FOR_UPDATE_VERIFICATION_${info.versionCode}');
+        await saveFile.writeAsString(
+            'PK_MOCK_APK_FOR_UPDATE_VERIFICATION_${info.versionCode}');
       }
       for (int i = 1; i <= 10; i++) {
         await Future.delayed(const Duration(milliseconds: 50));

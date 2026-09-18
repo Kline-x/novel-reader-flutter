@@ -37,9 +37,11 @@ class _FloatingDockState extends State<FloatingDock> {
             filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
             child: Container(
               height: 62.0,
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
               decoration: BoxDecoration(
-                color: widget.colors.surface.withValues(alpha: widget.colors.isDark ? 0.85 : 0.82),
+                color: widget.colors.surface
+                    .withValues(alpha: widget.colors.isDark ? 0.85 : 0.82),
                 borderRadius: BorderRadius.circular(36.0),
                 border: Border.all(
                   color: widget.colors.isDark
@@ -113,7 +115,9 @@ class _FloatingDockState extends State<FloatingDock> {
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(24.0),
             border: isSelected
-                ? Border.all(color: widget.colors.accent.withValues(alpha: 0.4), width: 1.0)
+                ? Border.all(
+                    color: widget.colors.accent.withValues(alpha: 0.4),
+                    width: 1.0)
                 : Border.all(color: Colors.transparent, width: 1.0),
           ),
           child: Row(
@@ -126,7 +130,9 @@ class _FloatingDockState extends State<FloatingDock> {
                 style: TextStyle(
                   fontSize: 14.0,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-                  color: isSelected ? widget.colors.accent : widget.colors.textSecondary,
+                  color: isSelected
+                      ? widget.colors.accent
+                      : widget.colors.textSecondary,
                   letterSpacing: 0.2,
                 ),
               ),

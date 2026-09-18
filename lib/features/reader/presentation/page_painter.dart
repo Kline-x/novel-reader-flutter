@@ -34,7 +34,8 @@ class PagePainter extends CustomPainter {
     final bgPaint = Paint()..color = theme.background;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
-    final resolvedSubColor = _resolveHighContrastColor(theme.subTextColor, theme.background);
+    final resolvedSubColor =
+        _resolveHighContrastColor(theme.subTextColor, theme.background);
     final subTextStyle = TextStyle(
       color: resolvedSubColor,
       fontSize: 12.0,
@@ -95,8 +96,10 @@ class PagePainter extends CustomPainter {
       // 绘制划线高亮背景与下划线
       for (final ann in annotations) {
         if (ann.charEnd > line.charStart && ann.charStart < line.charEnd) {
-          final relStart = (ann.charStart - line.charStart).clamp(0, line.text.length);
-          final relEnd = (ann.charEnd - line.charStart).clamp(0, line.text.length);
+          final relStart =
+              (ann.charStart - line.charStart).clamp(0, line.text.length);
+          final relEnd =
+              (ann.charEnd - line.charStart).clamp(0, line.text.length);
           if (relEnd > relStart) {
             final textBefore = line.text.substring(0, relStart);
             final textTarget = line.text.substring(relStart, relEnd);
@@ -123,7 +126,8 @@ class PagePainter extends CustomPainter {
               ..color = ann.color.withValues(alpha: theme.isDark ? 0.35 : 0.45)
               ..style = PaintingStyle.fill;
             canvas.drawRRect(
-              RRect.fromRectAndRadius(highlightRect, const Radius.circular(3.0)),
+              RRect.fromRectAndRadius(
+                  highlightRect, const Radius.circular(3.0)),
               bgPaint,
             );
 
@@ -134,7 +138,8 @@ class PagePainter extends CustomPainter {
               ..style = PaintingStyle.stroke;
             canvas.drawLine(
               Offset(highlightX, currentY + config.lineHeight - 2.0),
-              Offset(highlightX + highlightW, currentY + config.lineHeight - 2.0),
+              Offset(
+                  highlightX + highlightW, currentY + config.lineHeight - 2.0),
               underlinePaint,
             );
           }
@@ -191,7 +196,8 @@ class PagePainter extends CustomPainter {
     } else if (isLowBattery) {
       batteryColor = const Color(0xFFF57C00); // 警示琥珀橙 (<=20%)
     } else {
-      batteryColor = _resolveHighContrastColor(theme.subTextColor, theme.background);
+      batteryColor =
+          _resolveHighContrastColor(theme.subTextColor, theme.background);
     }
 
     final percentStyle = TextStyle(
@@ -220,10 +226,12 @@ class PagePainter extends CustomPainter {
 
     // 2) 绘制电池胶囊
     final iconX = startX + percentPainter.width + spacing;
-    _drawBatteryIcon(canvas, Offset(iconX, iconY), batteryColor, batteryWidth, batteryHeight);
+    _drawBatteryIcon(canvas, Offset(iconX, iconY), batteryColor, batteryWidth,
+        batteryHeight);
   }
 
-  void _drawBatteryIcon(Canvas canvas, Offset offset, Color color, double width, double height) {
+  void _drawBatteryIcon(
+      Canvas canvas, Offset offset, Color color, double width, double height) {
     final borderPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -239,7 +247,8 @@ class PagePainter extends CustomPainter {
 
     // 电池头正极
     final capRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(offset.dx + bodyWidth, offset.dy + (height - 4.5) / 2, 2.0, 4.5),
+      Rect.fromLTWH(
+          offset.dx + bodyWidth, offset.dy + (height - 4.5) / 2, 2.0, 4.5),
       const Radius.circular(1.0),
     );
     canvas.drawRRect(capRect, Paint()..color = color);

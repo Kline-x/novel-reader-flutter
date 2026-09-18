@@ -47,7 +47,8 @@ void main() {
     test('内置 12 组书源成功注入与数量校验', () {
       final service = MultiSourceService();
       expect(service.sources.length, 12);
-      expect(service.sources.where((s) => s.enabled).length, greaterThanOrEqualTo(8));
+      expect(service.sources.where((s) => s.enabled).length,
+          greaterThanOrEqualTo(8));
     });
 
     test('并发多书源检索与毫秒级延迟标记 (searchAll)', () async {

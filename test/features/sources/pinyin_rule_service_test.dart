@@ -98,7 +98,8 @@ void main() {
       expect(service.exactRulesMap['zhengce'], '大政方针');
 
       // 3. 删除自定义规则
-      final targetRule = service.customRules.firstWhere((r) => r.pattern == 'zhengce');
+      final targetRule =
+          service.customRules.firstWhere((r) => r.pattern == 'zhengce');
       await service.deleteCustomRule(targetRule.id);
       expect(service.customRules.any((r) => r.pattern == 'zhengce'), isFalse);
       expect(service.exactRulesMap.containsKey('zhengce'), isFalse);
@@ -106,7 +107,8 @@ void main() {
 
     test('规则停用与重新启用 (toggleRule)', () async {
       await service.addCustomRule('chongdong', '冲动');
-      final rule = service.customRules.firstWhere((r) => r.pattern == 'chongdong');
+      final rule =
+          service.customRules.firstWhere((r) => r.pattern == 'chongdong');
 
       // 停用
       await service.toggleRule(rule.id, false);

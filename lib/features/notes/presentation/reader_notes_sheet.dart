@@ -133,7 +133,8 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
 
             // 头部标题与导出按键
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
               child: Row(
                 children: [
                   Text(
@@ -149,7 +150,8 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
                     key: const ValueKey('btn_export_notes'),
                     onTap: _exportNotes,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 5.0),
                       decoration: BoxDecoration(
                         color: colors.accent.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(12.0),
@@ -157,7 +159,8 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.share_rounded, size: 14.0, color: colors.accent),
+                          Icon(Icons.share_rounded,
+                              size: 14.0, color: colors.accent),
                           const SizedBox(width: 4.0),
                           Text(
                             '导出笔记',
@@ -179,16 +182,22 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
             if (_exportFeedback != null)
               AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
                 decoration: BoxDecoration(
-                  color: widget.isDark ? const Color(0xFF103A20) : const Color(0xFFE8F5E9),
+                  color: widget.isDark
+                      ? const Color(0xFF103A20)
+                      : const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(10.0),
-                  border: Border.all(color: const Color(0xFF07C160).withValues(alpha: 0.4)),
+                  border: Border.all(
+                      color: const Color(0xFF07C160).withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded, size: 16.0, color: Color(0xFF07C160)),
+                    const Icon(Icons.check_circle_rounded,
+                        size: 16.0, color: Color(0xFF07C160)),
                     const SizedBox(width: 8.0),
                     Expanded(
                       child: Text(
@@ -196,7 +205,9 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
                         style: TextStyle(
                           fontSize: 12.0,
                           fontWeight: FontWeight.w600,
-                          color: widget.isDark ? const Color(0xFF70E1A0) : const Color(0xFF1B5E20),
+                          color: widget.isDark
+                              ? const Color(0xFF70E1A0)
+                              : const Color(0xFF1B5E20),
                         ),
                       ),
                     ),
@@ -239,7 +250,8 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
   Widget _buildBookmarkList(SoftColors colors) {
     if (_bookmarks.isEmpty) {
       return Center(
-        child: Text('暂无书签，轻触顶栏书签按钮即可添加', style: TextStyle(color: colors.textSecondary)),
+        child: Text('暂无书签，轻触顶栏书签按钮即可添加',
+            style: TextStyle(color: colors.textSecondary)),
       );
     }
 
@@ -277,20 +289,24 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
                       const SizedBox(height: 4.0),
                       Text(
                         b.snippet,
-                        style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4.0),
                       Text(
                         b.createdAt.toString().split('.')[0],
-                        style: TextStyle(fontSize: 10.0, color: colors.textSecondary.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                            fontSize: 10.0,
+                            color: colors.textSecondary.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, size: 18.0, color: colors.textSecondary),
+                  icon: Icon(Icons.delete_outline_rounded,
+                      size: 18.0, color: colors.textSecondary),
                   onPressed: () => _notesService.removeBookmark(b.id),
                 ),
               ],
@@ -304,7 +320,8 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
   Widget _buildAnnotationList(SoftColors colors) {
     if (_annotations.isEmpty) {
       return Center(
-        child: Text('暂无划线笔记，在阅读时长按文本即可划线', style: TextStyle(color: colors.textSecondary)),
+        child: Text('暂无划线笔记，在阅读时长按文本即可划线',
+            style: TextStyle(color: colors.textSecondary)),
       );
     }
 
@@ -350,14 +367,16 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
                           ),
                           const Spacer(),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6.0, vertical: 2.0),
                             decoration: BoxDecoration(
                               color: a.color.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(6.0),
                             ),
                             child: Text(
                               Annotation.colorNames[a.colorIndex.clamp(0, 3)],
-                              style: TextStyle(fontSize: 10.0, color: colors.textPrimary),
+                              style: TextStyle(
+                                  fontSize: 10.0, color: colors.textPrimary),
                             ),
                           ),
                         ],
@@ -392,13 +411,16 @@ class _ReaderNotesSheetState extends State<ReaderNotesSheet>
                       const SizedBox(height: 4.0),
                       Text(
                         a.updatedAt.toString().split('.')[0],
-                        style: TextStyle(fontSize: 10.0, color: colors.textSecondary.withValues(alpha: 0.7)),
+                        style: TextStyle(
+                            fontSize: 10.0,
+                            color: colors.textSecondary.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, size: 18.0, color: colors.textSecondary),
+                  icon: Icon(Icons.delete_outline_rounded,
+                      size: 18.0, color: colors.textSecondary),
                   onPressed: () => _notesService.removeAnnotation(a.id),
                 ),
               ],

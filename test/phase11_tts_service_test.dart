@@ -225,7 +225,8 @@ void main() {
       expect(closeSize.height, equals(44.0));
 
       // 模拟向上拖拽 100dp
-      await tester.drag(find.byKey(const ValueKey('tts_mini_player_tap')), const Offset(0, -100));
+      await tester.drag(find.byKey(const ValueKey('tts_mini_player_tap')),
+          const Offset(0, -100));
       await tester.pump(const Duration(milliseconds: 100));
 
       // 验证外部回调被触发且位移扣除 touchSlop 后不小于 80

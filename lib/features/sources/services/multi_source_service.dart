@@ -54,14 +54,14 @@ class MultiSourceService {
     Duration timeout = const Duration(seconds: 8),
     bool enabledOnly = true,
   }) async {
-    final targetSources = enabledOnly
-        ? _sources.where((s) => s.enabled).toList()
-        : _sources;
+    final targetSources =
+        enabledOnly ? _sources.where((s) => s.enabled).toList() : _sources;
 
     final searchFutures = targetSources.map((source) async {
       final sw = Stopwatch()..start();
       try {
-        final results = await _parser.searchBooks(source, keyword).timeout(timeout);
+        final results =
+            await _parser.searchBooks(source, keyword).timeout(timeout);
         sw.stop();
         final elapsed = sw.elapsedMilliseconds;
         for (final r in results) {
@@ -110,11 +110,20 @@ class MultiSourceService {
   /// - 简介/最新章节提及关键词：+50 / +30
   /// - 若书名与作者完全不含关键词中任一有效字符，判定为噪点直接剔除
   static int calculateRelevance(BookSearchResult book, String keyword) {
-    final q = keyword.replaceAll(RegExp(r'[《》【】\[\]()（）\s]'), '').trim().toLowerCase();
+    final q = keyword
+        .replaceAll(RegExp(r'[《》【】\[\]()（）\s]'), '')
+        .trim()
+        .toLowerCase();
     if (q.isEmpty) return 0;
 
-    final t = book.title.replaceAll(RegExp(r'[《》【】\[\]()（）\s]'), '').trim().toLowerCase();
-    final a = book.author.replaceAll(RegExp(r'[《》【】\[\]()（）\s]'), '').trim().toLowerCase();
+    final t = book.title
+        .replaceAll(RegExp(r'[《》【】\[\]()（）\s]'), '')
+        .trim()
+        .toLowerCase();
+    final a = book.author
+        .replaceAll(RegExp(r'[《》【】\[\]()（）\s]'), '')
+        .trim()
+        .toLowerCase();
 
     int score = 0;
 
@@ -158,7 +167,9 @@ class MultiSourceService {
       score += 600;
     } else if (sId.contains('yetian') || sName.contains('夜天')) {
       score += 500;
-    } else if (sId.contains('situ') || sId.contains('sto66') || sName.contains('思兔')) {
+    } else if (sId.contains('situ') ||
+        sId.contains('sto66') ||
+        sName.contains('思兔')) {
       score -= 4000; // 思兔阅读（严重跳章、缺几百章）执行惩罚性降权
     }
 
@@ -170,7 +181,9 @@ class MultiSourceService {
         chNum = int.tryParse(match.group(1)!);
       } else {
         chNum = SourceParser.extractChapterNumber(book.latestChapter!) ??
-            int.tryParse(RegExp(r'(\d+)').firstMatch(book.latestChapter!)?.group(1) ?? '');
+            int.tryParse(
+                RegExp(r'(\d+)').firstMatch(book.latestChapter!)?.group(1) ??
+                    '');
       }
       if (chNum != null) {
         if (chNum >= 700) {
@@ -182,7 +195,8 @@ class MultiSourceService {
     }
 
     // 9. 负向过滤：若书名与作者完全不含任何关键词字符，直接判为无关噪点
-    final hasAnyChar = q.split('').any((char) => t.contains(char) || a.contains(char));
+    final hasAnyChar =
+        q.split('').any((char) => t.contains(char) || a.contains(char));
     if (!hasAnyChar) {
       score -= 50000;
     }
@@ -191,7 +205,8 @@ class MultiSourceService {
   }
 
   /// 智能相关度优先重排，相同相关度下按网络延迟升序排列
-  static List<BookSearchResult> rankResults(List<BookSearchResult> list, String keyword) {
+  static List<BookSearchResult> rankResults(
+      List<BookSearchResult> list, String keyword) {
     final copy = List<BookSearchResult>.from(list);
     copy.sort((a, b) {
       final scoreA = calculateRelevance(a, keyword);
@@ -211,9 +226,8 @@ class MultiSourceService {
     bool enabledOnly = true,
   }) {
     final controller = StreamController<List<BookSearchResult>>();
-    final targetSources = enabledOnly
-        ? _sources.where((s) => s.enabled).toList()
-        : _sources;
+    final targetSources =
+        enabledOnly ? _sources.where((s) => s.enabled).toList() : _sources;
 
     int pending = targetSources.length;
     if (pending == 0) {
@@ -250,12 +264,12 @@ class MultiSourceService {
     Duration timeout = const Duration(seconds: 5),
     bool enabledOnly = false,
   }) async {
-    final targetSources = enabledOnly
-        ? _sources.where((s) => s.enabled).toList()
-        : _sources;
+    final targetSources =
+        enabledOnly ? _sources.where((s) => s.enabled).toList() : _sources;
 
     final futures = targetSources.map((source) async {
-      final latency = await _client.measureLatency(source.baseUrl, timeout: timeout);
+      final latency =
+          await _client.measureLatency(source.baseUrl, timeout: timeout);
       return SourceLatency(
         sourceId: source.id,
         sourceName: source.name,
@@ -279,7 +293,8 @@ class MultiSourceService {
     SourceRule source, {
     Duration timeout = const Duration(seconds: 5),
   }) async {
-    final latency = await _client.measureLatency(source.baseUrl, timeout: timeout);
+    final latency =
+        await _client.measureLatency(source.baseUrl, timeout: timeout);
     return SourceLatency(
       sourceId: source.id,
       sourceName: source.name,

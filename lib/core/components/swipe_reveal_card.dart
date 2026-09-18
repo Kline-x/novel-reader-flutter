@@ -25,7 +25,8 @@ class SwipeRevealCard extends StatefulWidget {
   State<SwipeRevealCard> createState() => _SwipeRevealCardState();
 }
 
-class _SwipeRevealCardState extends State<SwipeRevealCard> with SingleTickerProviderStateMixin {
+class _SwipeRevealCardState extends State<SwipeRevealCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
   double _dragOffset = 0.0;
@@ -71,7 +72,8 @@ class _SwipeRevealCardState extends State<SwipeRevealCard> with SingleTickerProv
     setState(() {
       _dragOffset += details.primaryDelta!;
       // 限制最大左右位移并施加轻微阻尼
-      _dragOffset = _dragOffset.clamp(-widget.maxActionWidth, widget.maxActionWidth);
+      _dragOffset =
+          _dragOffset.clamp(-widget.maxActionWidth, widget.maxActionWidth);
     });
   }
 
@@ -108,9 +110,12 @@ class _SwipeRevealCardState extends State<SwipeRevealCard> with SingleTickerProv
                 builder: (context, constraints) {
                   final isRevealingLeft = _dragOffset > 0;
                   return Align(
-                    alignment: isRevealingLeft ? Alignment.centerLeft : Alignment.centerRight,
+                    alignment: isRevealingLeft
+                        ? Alignment.centerLeft
+                        : Alignment.centerRight,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4.0, vertical: 2.0),
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
@@ -125,7 +130,8 @@ class _SwipeRevealCardState extends State<SwipeRevealCard> with SingleTickerProv
                             borderRadius: BorderRadius.circular(16.0),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFDC2626).withValues(alpha: 0.35 * actionOpacity),
+                                color: const Color(0xFFDC2626)
+                                    .withValues(alpha: 0.35 * actionOpacity),
                                 offset: const Offset(0, 4),
                                 blurRadius: 10.0,
                               ),

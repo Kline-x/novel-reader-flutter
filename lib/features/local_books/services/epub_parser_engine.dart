@@ -38,7 +38,9 @@ class EpubParserEngine {
     for (final f in archive.files) {
       if (f.name == 'META-INF/container.xml' && f.isFile) {
         final content = utf8.decode(f.content as List<int>);
-        final match = RegExp(r'full-path\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']').firstMatch(content);
+        final match =
+            RegExp(r'full-path\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']')
+                .firstMatch(content);
         if (match != null) {
           opfPath = match.group(1);
         }
@@ -75,16 +77,21 @@ class EpubParserEngine {
 
     // 提取书名与作者
     String title = '未命名书籍';
-    final titleMatch = RegExp(r'<dc:title[^>]*>([^<]+)</dc:title>', caseSensitive: false).firstMatch(opfContent);
+    final titleMatch =
+        RegExp(r'<dc:title[^>]*>([^<]+)</dc:title>', caseSensitive: false)
+            .firstMatch(opfContent);
     if (titleMatch != null) {
       title = titleMatch.group(1)!.trim();
     } else {
       // 从文件名推导
-      title = file.uri.pathSegments.last.replaceAll(RegExp(r'\.epub$', caseSensitive: false), '');
+      title = file.uri.pathSegments.last
+          .replaceAll(RegExp(r'\.epub$', caseSensitive: false), '');
     }
 
     String author = '佚名';
-    final authorMatch = RegExp(r'<dc:creator[^>]*>([^<]+)</dc:creator>', caseSensitive: false).firstMatch(opfContent);
+    final authorMatch =
+        RegExp(r'<dc:creator[^>]*>([^<]+)</dc:creator>', caseSensitive: false)
+            .firstMatch(opfContent);
     if (authorMatch != null) {
       author = authorMatch.group(1)!.trim();
     }
@@ -92,17 +99,22 @@ class EpubParserEngine {
     // 提取 manifest (id -> href)
     final manifestMap = <String, String>{};
     String? coverHref;
-    final itemMatches = RegExp(r'<item\b([^>]+)>', caseSensitive: false).allMatches(opfContent);
+    final itemMatches =
+        RegExp(r'<item\b([^>]+)>', caseSensitive: false).allMatches(opfContent);
     for (final m in itemMatches) {
       final attrs = m.group(1)!;
-      final idMatch = RegExp(r'id\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']').firstMatch(attrs);
-      final hrefMatch = RegExp(r'href\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']').firstMatch(attrs);
+      final idMatch = RegExp(r'id\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']')
+          .firstMatch(attrs);
+      final hrefMatch =
+          RegExp(r'href\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']')
+              .firstMatch(attrs);
       if (idMatch != null && hrefMatch != null) {
         final id = idMatch.group(1)!;
         final href = hrefMatch.group(1)!;
         manifestMap[id] = href;
 
-        if (id.toLowerCase().contains('cover') || attrs.contains('cover-image')) {
+        if (id.toLowerCase().contains('cover') ||
+            attrs.contains('cover-image')) {
           coverHref = href;
         }
       }
@@ -127,11 +139,25 @@ class EpubParserEngine {
       final fullNcxPath = '$opfBase$ncxHref';
       for (final f in archive.files) {
         if (f.name == fullNcxPath && f.isFile) {
-          final ncxXml = utf8.decode(f.content as List<int>, allowMalformed: true);
-          final navPoints = RegExp(r'<navPoint[^>]*>([\s\S]*?)</navPoint>', caseSensitive: false).allMatches(ncxXml);
+          final ncxXml =
+              utf8.decode(f.content as List<int>, allowMalformed: true);
+          final navPoints = RegExp(r'<navPoint[^>]*>([\s\S]*?)</navPoint>',
+                  caseSensitive: false)
+              .allMatches(ncxXml);
           for (final np in navPoints) {
-            final textMatch = RegExp(r'<text>([^<]+)</text>', caseSensitive: false).firstMatch(np.group(1)!);
-            final srcMatch = RegExp(r'<content\s+src\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']', caseSensitive: false).firstMatch(np.group(1)!);
+            final textMatch =
+                RegExp(r'<text>([^<]+)</text>', caseSensitive: false)
+                    .firstMatch(np.group(1)!);
+            final srcMatch = RegExp(
+                    r'<content\s+src\s*=\s*["'
+                    "'"
+                    r']([^"'
+                    "'"
+                    r']+)["'
+                    "'"
+                    r']',
+                    caseSensitive: false)
+                .firstMatch(np.group(1)!);
             if (textMatch != null && srcMatch != null) {
               final src = srcMatch.group(1)!.split('#').first; // 去掉锚点
               ncxTitles[src] = textMatch.group(1)!.trim();
@@ -144,7 +170,10 @@ class EpubParserEngine {
 
     // 提取 spine 线性章节流
     final chapters = <LocalChapter>[];
-    final spineMatches = RegExp(r'<itemref\b[^>]*idref\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']', caseSensitive: false).allMatches(opfContent);
+    final spineMatches = RegExp(
+            r'<itemref\b[^>]*idref\s*=\s*["' "'" r']([^"' "'" r']+)["' "'" r']',
+            caseSensitive: false)
+        .allMatches(opfContent);
     int chIdx = 0;
 
     for (final sm in spineMatches) {
@@ -160,7 +189,8 @@ class EpubParserEngine {
         // 尝试从 XHTML 中嗅探标题
         for (final f in archive.files) {
           if (f.name == fullHref && f.isFile) {
-            final htmlContent = utf8.decode(f.content as List<int>, allowMalformed: true);
+            final htmlContent =
+                utf8.decode(f.content as List<int>, allowMalformed: true);
             final doc = html_parser.parse(htmlContent);
             final hTitle = doc.querySelector('h1, h2, h3, title')?.text.trim();
             if (hTitle != null && hTitle.isNotEmpty) {
@@ -207,7 +237,8 @@ class EpubParserEngine {
   }
 
   /// 提取 EPUB 单章 XHTML 内容并清洗为排版段落
-  static Future<List<String>> readChapterContent(File epubFile, LocalChapter chapter) async {
+  static Future<List<String>> readChapterContent(
+      File epubFile, LocalChapter chapter) async {
     if (chapter.contentHref == null) return [];
 
     final bytes = await epubFile.readAsBytes();
@@ -229,10 +260,13 @@ class EpubParserEngine {
     final doc = html_parser.parse(htmlContent);
 
     // 移除无用元素
-    doc.querySelectorAll('script, style, header, footer, nav').forEach((e) => e.remove());
+    doc
+        .querySelectorAll('script, style, header, footer, nav')
+        .forEach((e) => e.remove());
 
     final paragraphs = <String>[];
-    final nodes = doc.body?.querySelectorAll('p, h1, h2, h3, h4, h5, div') ?? [];
+    final nodes =
+        doc.body?.querySelectorAll('p, h1, h2, h3, h4, h5, div') ?? [];
 
     if (nodes.isNotEmpty) {
       for (final el in nodes) {

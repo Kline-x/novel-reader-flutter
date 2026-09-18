@@ -52,9 +52,15 @@ class _SoftButtonState extends State<SoftButton> {
     }
 
     return GestureDetector(
-      onTapDown: widget.onPressed == null ? null : (_) => setState(() => _isPressed = true),
-      onTapUp: widget.onPressed == null ? null : (_) => setState(() => _isPressed = false),
-      onTapCancel: widget.onPressed == null ? null : () => setState(() => _isPressed = false),
+      onTapDown: widget.onPressed == null
+          ? null
+          : (_) => setState(() => _isPressed = true),
+      onTapUp: widget.onPressed == null
+          ? null
+          : (_) => setState(() => _isPressed = false),
+      onTapCancel: widget.onPressed == null
+          ? null
+          : () => setState(() => _isPressed = false),
       onTap: widget.onPressed,
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
@@ -71,7 +77,8 @@ class _SoftButtonState extends State<SoftButton> {
                     ? Color.lerp(widget.colors.accent, Colors.black, 0.12)!
                     : widget.colors.accent)
                 : (widget.isActive
-                    ? widget.colors.accent.withValues(alpha: widget.colors.isDark ? 0.25 : 0.15)
+                    ? widget.colors.accent
+                        .withValues(alpha: widget.colors.isDark ? 0.25 : 0.15)
                     : widget.colors.surface),
             borderRadius: BorderRadius.circular(effectiveRadius),
             border: Border.all(
@@ -79,7 +86,9 @@ class _SoftButtonState extends State<SoftButton> {
                   ? (_isPressed
                       ? Color.lerp(widget.colors.accent, Colors.black, 0.18)!
                       : widget.colors.accent)
-                  : (widget.isActive ? widget.colors.accent : widget.colors.border),
+                  : (widget.isActive
+                      ? widget.colors.accent
+                      : widget.colors.border),
               width: (widget.isFilled || widget.isActive) ? 1.5 : 1.0,
             ),
             boxShadow: widget.isFilled
@@ -100,7 +109,8 @@ class _SoftButtonState extends State<SoftButton> {
                       ])
                 : (isDepressed
                     ? SoftDecorations.insetShadows(widget.colors)
-                    : SoftDecorations.softShadows(widget.colors, elevation: 0.8)),
+                    : SoftDecorations.softShadows(widget.colors,
+                        elevation: 0.8)),
           ),
           child: content,
         ),

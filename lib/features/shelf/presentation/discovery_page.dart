@@ -37,7 +37,14 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   String _activeQuery = '';
   final List<BookSearchResult> _searchResults = [];
 
-  final List<String> _categories = ['全部', '玄幻奇幻', '仙侠修真', '科幻未来', '都市异能', '悬疑惊悚'];
+  final List<String> _categories = [
+    '全部',
+    '玄幻奇幻',
+    '仙侠修真',
+    '科幻未来',
+    '都市异能',
+    '悬疑惊悚'
+  ];
 
   final List<Map<String, String>> _allHotBooks = [
     // 玄幻奇幻
@@ -61,7 +68,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'bookUrl': 'https://www.biqugezwx.com/50/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
-      'desc': '蒸汽与机械的浪潮中，谁能触及非凡？历史和黑暗的迷雾里，又是谁在耳语？我从诡秘中醒来，睁眼看见这个世界：魔药、占卜、诅咒、倒吊人、封印物……',
+      'desc':
+          '蒸汽与机械的浪潮中，谁能触及非凡？历史和黑暗的迷雾里，又是谁在耳语？我从诡秘中醒来，睁眼看见这个世界：魔药、占卜、诅咒、倒吊人、封印物……',
     },
     {
       'id': 'suming_02',
@@ -345,7 +353,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       BookSearchResult(
         id: 'biquge_cp_$cleanQuery',
         title: cleanQuery,
-        author: cleanQuery == '诡秘之主' ? '爱潜水的乌贼' : (cleanQuery == '道诡异仙' ? '狐尾的笔' : '网络作家'),
+        author: cleanQuery == '诡秘之主'
+            ? '爱潜水的乌贼'
+            : (cleanQuery == '道诡异仙' ? '狐尾的笔' : '网络作家'),
         bookUrl: 'https://www.biquge.company/book/$cleanQuery',
         latestChapter: '最新章节连载中',
         intro: '全网优质书源收录，极速纯净无弹窗阅读。',
@@ -356,7 +366,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       BookSearchResult(
         id: 'situ_read_$cleanQuery',
         title: cleanQuery,
-        author: cleanQuery == '十日终焉' ? '杀虫队队员' : (cleanQuery == '剑来' ? '烽火戏诸侯' : '网络作家'),
+        author: cleanQuery == '十日终焉'
+            ? '杀虫队队员'
+            : (cleanQuery == '剑来' ? '烽火戏诸侯' : '网络作家'),
         bookUrl: 'https://www.sto66.com/book/$cleanQuery',
         latestChapter: '全本精校校验完结',
         intro: '思兔全本小说优质书源，目录完整无缺章。',
@@ -502,18 +514,24 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                       GestureDetector(
                         onTap: _clearSearch,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10.0, vertical: 4.0),
                           decoration: BoxDecoration(
                             color: colors.card,
                             borderRadius: BorderRadius.circular(12.0),
-                            boxShadow: SoftDecorations.softShadows(colors, elevation: 1.0),
+                            boxShadow: SoftDecorations.softShadows(colors,
+                                elevation: 1.0),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.close, size: 14.0, color: colors.textSecondary),
+                              Icon(Icons.close,
+                                  size: 14.0, color: colors.textSecondary),
                               const SizedBox(width: 4.0),
-                              Text('清除搜索', style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                              Text('清除搜索',
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: colors.textSecondary)),
                             ],
                           ),
                         ),
@@ -533,7 +551,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                 onClear: _clearSearch,
                 categories: _categories,
                 selectedCategoryIndex: _selectedCategoryIndex,
-                onCategorySelected: (idx) => setState(() => _selectedCategoryIndex = idx),
+                onCategorySelected: (idx) =>
+                    setState(() => _selectedCategoryIndex = idx),
               ),
             ),
 
@@ -555,7 +574,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                         Expanded(
                           child: Text(
                             '正在向笔趣阁、思兔、天天看等 12 组书源打捞《$_activeQuery》...',
-                            style: TextStyle(fontSize: 12.0, color: colors.accent),
+                            style:
+                                TextStyle(fontSize: 12.0, color: colors.accent),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -563,7 +583,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                       ] else ...[
                         Text(
                           '已为您聚合检索出 ${_searchResults.length} 个书源版本',
-                          style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: colors.textSecondary),
+                          style: TextStyle(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.bold,
+                              color: colors.textSecondary),
                         ),
                       ],
                     ],
@@ -578,7 +601,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final item = _searchResults[index];
-                      final cleanItemTitle = ChapterHelper.cleanTitle(item.title);
+                      final cleanItemTitle =
+                          ChapterHelper.cleanTitle(item.title);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12.0),
                         child: GestureDetector(
@@ -598,12 +622,15 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                       author: item.author,
                                       width: 48.0,
                                       height: 66.0,
-                                      paletteIndex: BookCoverWidget.hashTitleToPalette(cleanItemTitle),
+                                      paletteIndex:
+                                          BookCoverWidget.hashTitleToPalette(
+                                              cleanItemTitle),
                                     ),
                                     const SizedBox(width: 12.0),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             cleanItemTitle,
@@ -618,26 +645,41 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                             children: [
                                               Text(
                                                 item.author,
-                                                style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
+                                                style: TextStyle(
+                                                    fontSize: 12.0,
+                                                    color:
+                                                        colors.textSecondary),
                                               ),
                                               const SizedBox(width: 8.0),
                                               // 书源标签
                                               Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6.0,
+                                                        vertical: 2.0),
                                                 decoration: BoxDecoration(
-                                                  color: colors.accent.withValues(alpha: 0.12),
-                                                  borderRadius: BorderRadius.circular(4.0),
+                                                  color: colors.accent
+                                                      .withValues(alpha: 0.12),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          4.0),
                                                 ),
                                                 child: Text(
                                                   item.sourceName,
-                                                  style: TextStyle(fontSize: 10.0, color: colors.accent, fontWeight: FontWeight.w600),
+                                                  style: TextStyle(
+                                                      fontSize: 10.0,
+                                                      color: colors.accent,
+                                                      fontWeight:
+                                                          FontWeight.w600),
                                                 ),
                                               ),
                                               const SizedBox(width: 6.0),
                                               // 延迟指示
                                               Text(
                                                 '${item.latencyMs ?? 99}ms',
-                                                style: const TextStyle(fontSize: 10.0, color: Colors.green),
+                                                style: const TextStyle(
+                                                    fontSize: 10.0,
+                                                    color: Colors.green),
                                               ),
                                             ],
                                           ),
@@ -645,7 +687,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                             const SizedBox(height: 4.0),
                                             Text(
                                               item.latestChapter!,
-                                              style: TextStyle(fontSize: 11.0, color: colors.textSecondary),
+                                              style: TextStyle(
+                                                  fontSize: 11.0,
+                                                  color: colors.textSecondary),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -662,65 +706,87 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                   children: [
                                     Builder(
                                       builder: (context) {
-                                        final inShelf = _isBookInShelf(item.id, item.title);
+                                        final inShelf =
+                                            _isBookInShelf(item.id, item.title);
                                         return SoftButton(
                                           colors: colors,
                                           onPressed: inShelf
                                               ? () {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
                                                     SnackBar(
-                                                      content: Text('《$cleanItemTitle》已在书架中'),
-                                                      behavior: SnackBarBehavior.floating,
-                                                      duration: const Duration(seconds: 1),
+                                                      content: Text(
+                                                          '《$cleanItemTitle》已在书架中'),
+                                                      behavior: SnackBarBehavior
+                                                          .floating,
+                                                      duration: const Duration(
+                                                          seconds: 1),
                                                     ),
                                                   );
                                                 }
                                               : () => _addBookToShelf(item),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12.0, vertical: 6.0),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              inShelf ? Icons.check_circle_rounded : Icons.bookmark_add_outlined,
-                                              size: 14.0,
-                                              color: inShelf ? colors.accent : colors.textPrimary,
-                                            ),
-                                            const SizedBox(width: 4.0),
-                                            Text(
-                                              inShelf ? '已在书架' : '加入书架',
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                                color: inShelf ? colors.accent : colors.textPrimary,
-                                                fontWeight: inShelf ? FontWeight.bold : FontWeight.normal,
+                                            children: [
+                                              Icon(
+                                                inShelf
+                                                    ? Icons.check_circle_rounded
+                                                    : Icons
+                                                        .bookmark_add_outlined,
+                                                size: 14.0,
+                                                color: inShelf
+                                                    ? colors.accent
+                                                    : colors.textPrimary,
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 8.0),
-                                  SoftButton(
-                                    colors: colors,
-                                    onPressed: () => _openBookFromResult(item),
-                                    isFilled: true,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.chrome_reader_mode, size: 14.0, color: Colors.white),
-                                        SizedBox(width: 4.0),
-                                        Text('立即阅读', style: TextStyle(fontSize: 12.0, color: Colors.white, fontWeight: FontWeight.bold)),
-                                      ],
+                                              const SizedBox(width: 4.0),
+                                              Text(
+                                                inShelf ? '已在书架' : '加入书架',
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: inShelf
+                                                      ? colors.accent
+                                                      : colors.textPrimary,
+                                                  fontWeight: inShelf
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                    const SizedBox(width: 8.0),
+                                    SoftButton(
+                                      colors: colors,
+                                      onPressed: () =>
+                                          _openBookFromResult(item),
+                                      isFilled: true,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14.0, vertical: 6.0),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.chrome_reader_mode,
+                                              size: 14.0, color: Colors.white),
+                                          SizedBox(width: 4.0),
+                                          Text('立即阅读',
+                                              style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
+                      );
                     },
                     childCount: _searchResults.length,
                   ),
@@ -750,7 +816,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
               // 热门榜单
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -769,7 +836,9 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                 author: book['author']!,
                                 width: 56.0,
                                 height: 76.0,
-                                paletteIndex: BookCoverWidget.hashTitleToPalette(book['title']!),
+                                paletteIndex:
+                                    BookCoverWidget.hashTitleToPalette(
+                                        book['title']!),
                               ),
                               const SizedBox(width: 14.0),
                               Expanded(
@@ -793,8 +862,10 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                             vertical: 2.0,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: colors.accent.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(6.0),
+                                            color: colors.accent
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(6.0),
                                           ),
                                           child: Text(
                                             book['category']!,
@@ -874,7 +945,8 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => 104.0;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     final isDark = colors.isDark;
 
     return ClipRect(
@@ -883,10 +955,12 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
         child: Container(
           height: 104.0,
           decoration: BoxDecoration(
-            color: (isDark ? colors.background : colors.surface).withValues(alpha: isDark ? 0.88 : 0.92),
+            color: (isDark ? colors.background : colors.surface)
+                .withValues(alpha: isDark ? 0.88 : 0.92),
             border: Border(
               bottom: BorderSide(
-                color: colors.border.withValues(alpha: (overlapsContent || shrinkOffset > 0) ? 0.6 : 0.25),
+                color: colors.border.withValues(
+                    alpha: (overlapsContent || shrinkOffset > 0) ? 0.6 : 0.25),
                 width: 0.8,
               ),
             ),
@@ -907,7 +981,8 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                   padding: const EdgeInsets.symmetric(horizontal: 12.0),
                   child: Row(
                     children: [
-                      Icon(Icons.search, size: 19.0, color: colors.textSecondary),
+                      Icon(Icons.search,
+                          size: 19.0, color: colors.textSecondary),
                       const SizedBox(width: 8.0),
                       Expanded(
                         child: TextField(
@@ -915,10 +990,14 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                           controller: searchController,
                           textInputAction: TextInputAction.search,
                           onSubmitted: onSearch,
-                          style: TextStyle(fontSize: 13.5, color: colors.textPrimary),
+                          style: TextStyle(
+                              fontSize: 13.5, color: colors.textPrimary),
                           decoration: InputDecoration(
                             hintText: '输入书名，全网 12 组稳定书源并发打捞...',
-                            hintStyle: TextStyle(fontSize: 12.5, color: colors.textSecondary.withValues(alpha: 0.8)),
+                            hintStyle: TextStyle(
+                                fontSize: 12.5,
+                                color: colors.textSecondary
+                                    .withValues(alpha: 0.8)),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
@@ -929,8 +1008,10 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                         GestureDetector(
                           onTap: onClear,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                            child: Icon(Icons.cancel, size: 17.0, color: colors.textSecondary),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: Icon(Icons.cancel,
+                                size: 17.0, color: colors.textSecondary),
                           ),
                         ),
                       const SizedBox(width: 6.0),
@@ -938,7 +1019,8 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                         key: const ValueKey('discovery_search_btn'),
                         onTap: () => onSearch(searchController.text),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10.0, vertical: 5.0),
                           decoration: BoxDecoration(
                             color: colors.accent,
                             borderRadius: BorderRadius.circular(9.0),
@@ -952,7 +1034,10 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                           ),
                           child: const Text(
                             '搜索',
-                            style: TextStyle(color: Colors.white, fontSize: 12.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -979,16 +1064,20 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                         key: ValueKey('category_pill_$index'),
                         onTap: () => onCategorySelected(index),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 13.0, vertical: 6.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 13.0, vertical: 6.0),
                           decoration: BoxDecoration(
                             color: isSelected ? colors.accent : colors.card,
                             borderRadius: BorderRadius.circular(14.0),
                             border: Border.all(
-                              color: isSelected ? colors.accent : colors.border.withValues(alpha: 0.5),
+                              color: isSelected
+                                  ? colors.accent
+                                  : colors.border.withValues(alpha: 0.5),
                               width: 0.8,
                             ),
                             boxShadow: isSelected
-                                ? SoftDecorations.softShadows(colors, elevation: 0.8)
+                                ? SoftDecorations.softShadows(colors,
+                                    elevation: 0.8)
                                 : null,
                           ),
                           alignment: Alignment.center,
@@ -996,8 +1085,12 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
                             categories[index],
                             style: TextStyle(
                               fontSize: 12.5,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                              color: isSelected ? Colors.white : colors.textSecondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? Colors.white
+                                  : colors.textSecondary,
                             ),
                           ),
                         ),

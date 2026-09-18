@@ -85,7 +85,8 @@ Chapter 3 The Heritage
       await file.writeAsBytes(gbkBytes);
 
       // 嗅探编码
-      final detected = TxtParserEngine.detectEncoding(Uint8List.fromList(gbkBytes.sublist(0, 50)));
+      final detected = TxtParserEngine.detectEncoding(
+          Uint8List.fromList(gbkBytes.sublist(0, 50)));
       expect(detected, equals(gbk));
 
       // 扫描分章
@@ -95,7 +96,8 @@ Chapter 3 The Heritage
       expect(chapters[1].title, contains('第1章 惊世觉醒'));
 
       // 读取正文
-      final paras = await TxtParserEngine.readChapterContent(file, chapters[1], encoding: gbk);
+      final paras = await TxtParserEngine.readChapterContent(file, chapters[1],
+          encoding: gbk);
       expect(paras.any((p) => p.contains('少年从梦境中猛然苏醒')), isTrue);
     });
   });
@@ -117,7 +119,8 @@ Chapter 3 The Heritage
   </rootfiles>
 </container>''';
       final containerBytes = utf8.encode(containerXml);
-      archive.addFile(ArchiveFile('META-INF/container.xml', containerBytes.length, containerBytes));
+      archive.addFile(ArchiveFile(
+          'META-INF/container.xml', containerBytes.length, containerBytes));
 
       // 3. OEBPS/content.opf
       const opfXml = '''<?xml version="1.0" encoding="utf-8"?>
@@ -135,7 +138,8 @@ Chapter 3 The Heritage
   </spine>
 </package>''';
       final opfBytes = utf8.encode(opfXml);
-      archive.addFile(ArchiveFile('OEBPS/content.opf', opfBytes.length, opfBytes));
+      archive
+          .addFile(ArchiveFile('OEBPS/content.opf', opfBytes.length, opfBytes));
 
       // 4. OEBPS/toc.ncx
       const ncxXml = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -162,7 +166,8 @@ Chapter 3 The Heritage
 </body>
 </html>''';
       final ch01Bytes = utf8.encode(ch01Xhtml);
-      archive.addFile(ArchiveFile('OEBPS/text/ch01.xhtml', ch01Bytes.length, ch01Bytes));
+      archive.addFile(
+          ArchiveFile('OEBPS/text/ch01.xhtml', ch01Bytes.length, ch01Bytes));
 
       final zipBytes = ZipEncoder().encode(archive);
       final epubFile = File('${tempDir.path}/test_book.epub');
@@ -176,7 +181,8 @@ Chapter 3 The Heritage
       expect(epubInfo.chapters.first.title, contains('第一章 北凉刀出鞘'));
 
       // 读取 XHTML 段落
-      final paras = await EpubParserEngine.readChapterContent(epubFile, epubInfo.chapters.first);
+      final paras = await EpubParserEngine.readChapterContent(
+          epubFile, epubInfo.chapters.first);
       expect(paras.length, equals(2));
       expect(paras[0], contains('小二，上一壶滚烫的黄酒'));
       expect(paras[1], contains('老仆牵着一匹瘦骨嶙峋的老马'));
@@ -200,7 +206,8 @@ Chapter 3 The Heritage
         final client = HttpClient();
 
         // 1. GET / 验证网页返回
-        final getReq = await client.getUrl(Uri.parse('http://127.0.0.1:$testPort/'));
+        final getReq =
+            await client.getUrl(Uri.parse('http://127.0.0.1:$testPort/'));
         final getRes = await getReq.close();
         expect(getRes.statusCode, equals(HttpStatus.ok));
         final html = await utf8.decodeStream(getRes);
@@ -208,10 +215,12 @@ Chapter 3 The Heritage
         expect(html, contains('拖拽 TXT 或 EPUB 文件到这里'));
 
         // 2. GET /api/status 验证状态 JSON
-        final statusReq = await client.getUrl(Uri.parse('http://127.0.0.1:$testPort/api/status'));
+        final statusReq = await client
+            .getUrl(Uri.parse('http://127.0.0.1:$testPort/api/status'));
         final statusRes = await statusReq.close();
         expect(statusRes.statusCode, equals(HttpStatus.ok));
-        final statusJson = jsonDecode(await utf8.decodeStream(statusRes)) as Map<String, dynamic>;
+        final statusJson = jsonDecode(await utf8.decodeStream(statusRes))
+            as Map<String, dynamic>;
         expect(statusJson['status'], equals('running'));
         expect(statusJson['port'], equals(testPort));
 
@@ -221,13 +230,15 @@ Chapter 3 The Heritage
           fileReceivedCalled = true;
         };
 
-        final uploadUri = Uri.parse('http://127.0.0.1:$testPort/api/upload?filename=my_novel.txt');
+        final uploadUri = Uri.parse(
+            'http://127.0.0.1:$testPort/api/upload?filename=my_novel.txt');
         final uploadReq = await client.postUrl(uploadUri);
         uploadReq.headers.contentType = ContentType.text;
         uploadReq.write('第一章 剑起风云\n青衫少年踏雪而归。');
         final uploadRes = await uploadReq.close();
         expect(uploadRes.statusCode, equals(HttpStatus.ok));
-        final uploadJson = jsonDecode(await utf8.decodeStream(uploadRes)) as Map<String, dynamic>;
+        final uploadJson = jsonDecode(await utf8.decodeStream(uploadRes))
+            as Map<String, dynamic>;
         expect(uploadJson['success'], isTrue);
         expect(uploadJson['filename'], equals('my_novel.txt'));
         expect(fileReceivedCalled, isTrue);
@@ -278,7 +289,8 @@ Chapter 3 The Heritage
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('shelf_wifi_transfer_btn')), findsOneWidget);
+      expect(find.byKey(const ValueKey('shelf_wifi_transfer_btn')),
+          findsOneWidget);
       expect(find.text('WiFi传书'), findsOneWidget);
 
       // 点击唤起 WiFi 传书弹窗

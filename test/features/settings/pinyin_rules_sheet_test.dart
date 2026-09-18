@@ -14,7 +14,8 @@ void main() {
     PinyinRuleService().resetForTest();
   });
 
-  testWidgets('PinyinRulesSheet renders header, stat card and action toolbar', (tester) async {
+  testWidgets('PinyinRulesSheet renders header, stat card and action toolbar',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -33,8 +34,10 @@ void main() {
     expect(find.textContaining('已生效规则总计'), findsOneWidget);
     expect(find.byKey(const ValueKey('btn_sync_pinyin_cloud')), findsOneWidget);
     expect(find.byKey(const ValueKey('btn_open_add_rule')), findsOneWidget);
-    expect(find.byKey(const ValueKey('btn_export_pinyin_rules')), findsOneWidget);
-    expect(find.byKey(const ValueKey('btn_import_pinyin_rules')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('btn_export_pinyin_rules')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('btn_import_pinyin_rules')), findsOneWidget);
 
     // 验证规则列表中展示云端规则
     expect(find.text('zhengfu'), findsOneWidget);
@@ -64,8 +67,10 @@ void main() {
     expect(find.text('添加拼音自愈规则'), findsOneWidget);
 
     // 输入规则
-    await tester.enterText(find.byKey(const ValueKey('input_rule_pinyin')), 'gongzuo');
-    await tester.enterText(find.byKey(const ValueKey('input_rule_hanzi')), '工作');
+    await tester.enterText(
+        find.byKey(const ValueKey('input_rule_pinyin')), 'gongzuo');
+    await tester.enterText(
+        find.byKey(const ValueKey('input_rule_hanzi')), '工作');
     await tester.pump();
 
     // 确认添加
@@ -78,7 +83,8 @@ void main() {
     expect(find.text('自定义'), findsWidgets);
   });
 
-  testWidgets('SettingsPage can open PinyinRulesSheet via tile', (tester) async {
+  testWidgets('SettingsPage can open PinyinRulesSheet via tile',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);

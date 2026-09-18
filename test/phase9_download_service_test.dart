@@ -14,14 +14,16 @@ import 'package:novel_reader_flutter/features/reader/presentation/catalog_drawer
 
 class FakeSuccessSourceParser extends SourceParser {
   @override
-  Future<List<String>> fetchChapterContent(SourceRule rule, String chapterUrl) async {
+  Future<List<String>> fetchChapterContent(
+      SourceRule rule, String chapterUrl) async {
     return ['真实测试正文段落1', '真实测试正文段落2'];
   }
 }
 
 class FakeFailingSourceParser extends SourceParser {
   @override
-  Future<List<String>> fetchChapterContent(SourceRule rule, String chapterUrl) async {
+  Future<List<String>> fetchChapterContent(
+      SourceRule rule, String chapterUrl) async {
     return [];
   }
 }
@@ -35,9 +37,11 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    tempDir = await Directory.systemTemp.createTemp('novel_reader_phase9_test_');
+    tempDir =
+        await Directory.systemTemp.createTemp('novel_reader_phase9_test_');
     storage = StorageService(customCacheDir: tempDir.path);
-    downloadService = DownloadService.withStorage(storage, parser: FakeSuccessSourceParser());
+    downloadService =
+        DownloadService.withStorage(storage, parser: FakeSuccessSourceParser());
     DownloadService.setMockInstance(downloadService);
   });
 
@@ -118,7 +122,8 @@ void main() {
     });
 
     test('DownloadService 核心铁律：正文抓取失败时绝不向沙盒写入假正文，记录失败并跳过', () async {
-      final failingService = DownloadService.withStorage(storage, parser: FakeFailingSourceParser());
+      final failingService = DownloadService.withStorage(storage,
+          parser: FakeFailingSourceParser());
       const bookId = 'test_failing_batch_book';
       const bookTitle = '《凡人修仙传》';
       final chapters = [

@@ -71,7 +71,8 @@ void main() {
       expect(encodedGbk, startsWith('%'));
       expect(encodedGbk.contains('%'), isTrue);
 
-      final encodedUtf8 = NetworkClient.encodeKeyword(keyword, charset: 'utf-8');
+      final encodedUtf8 =
+          NetworkClient.encodeKeyword(keyword, charset: 'utf-8');
       expect(encodedUtf8, '%E8%AF%A1%E7%A7%98');
     });
   });

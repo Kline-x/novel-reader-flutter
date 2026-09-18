@@ -94,7 +94,8 @@ class _DownloadSheetState extends State<DownloadSheet> {
   }
 
   Future<void> _refreshCacheInfo() async {
-    final count = await _storageService.getDownloadedChaptersCount(widget.bookId);
+    final count =
+        await _storageService.getDownloadedChaptersCount(widget.bookId);
     final size = await _storageService.getBookCacheSize(widget.bookId);
     if (mounted) {
       setState(() {
@@ -185,7 +186,8 @@ class _DownloadSheetState extends State<DownloadSheet> {
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0, vertical: 5.0),
                     decoration: BoxDecoration(
                       color: colors.accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10.0),
@@ -254,7 +256,8 @@ class _DownloadSheetState extends State<DownloadSheet> {
                           value: _currentProgress!.progress,
                           minHeight: 6.0,
                           backgroundColor: colors.surface,
-                          valueColor: AlwaysStoppedAnimation<Color>(colors.accent),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(colors.accent),
                         ),
                       ),
                       const SizedBox(height: 8.0),
@@ -288,7 +291,8 @@ class _DownloadSheetState extends State<DownloadSheet> {
                           children: [
                             TextButton.icon(
                               icon: const Icon(Icons.close, size: 14.0),
-                              label: const Text('取消下载', style: TextStyle(fontSize: 12.0)),
+                              label: const Text('取消下载',
+                                  style: TextStyle(fontSize: 12.0)),
                               onPressed: () {
                                 _downloadService.cancelDownload(widget.bookId);
                               },
@@ -320,7 +324,9 @@ class _DownloadSheetState extends State<DownloadSheet> {
                       icon: Icons.download_rounded,
                       title: '缓存后 20 章',
                       subtitle: '适合通勤碎片阅读',
-                      onTap: isDownloading ? null : () => _triggerBatchDownload(20),
+                      onTap: isDownloading
+                          ? null
+                          : () => _triggerBatchDownload(20),
                     ),
                   ),
                   const SizedBox(width: 12.0),
@@ -331,7 +337,9 @@ class _DownloadSheetState extends State<DownloadSheet> {
                       title: '缓存后 50 章',
                       subtitle: '推荐 · 畅读不断章',
                       isHighlight: true,
-                      onTap: isDownloading ? null : () => _triggerBatchDownload(50),
+                      onTap: isDownloading
+                          ? null
+                          : () => _triggerBatchDownload(50),
                     ),
                   ),
                 ],
@@ -359,7 +367,8 @@ class _DownloadSheetState extends State<DownloadSheet> {
                       onTap: isDownloading
                           ? null
                           : () async {
-                              await _storageService.clearBookCache(widget.bookId);
+                              await _storageService
+                                  .clearBookCache(widget.bookId);
                               await _refreshCacheInfo();
                               widget.onCacheUpdated?.call();
                               if (context.mounted) {
@@ -429,7 +438,9 @@ class _DownloadSheetState extends State<DownloadSheet> {
                       style: TextStyle(
                         fontSize: 13.0,
                         fontWeight: FontWeight.bold,
-                        color: isDestructive ? Colors.redAccent : colors.textPrimary,
+                        color: isDestructive
+                            ? Colors.redAccent
+                            : colors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
