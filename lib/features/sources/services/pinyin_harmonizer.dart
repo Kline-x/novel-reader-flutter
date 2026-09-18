@@ -1,13 +1,10 @@
-/// 智能拼音敏感词和谐脱敏还原引擎 (pinyin_harmonizer.dart)
-/// 专用于自愈各大盗版/第三方书源中因规避审查而将敏感汉字替换为拼音的段落内容
-/// 具备：零误伤保护（保留合法英文单词与技术术语）、多音节全拼还原、语境单字混排自愈与大小写自适应
+/// 智能拼音转汉字还原自愈引擎 (pinyin_harmonizer.dart)
+/// 针对第三方书源文本中常见的拼音替换字词进行智能自愈还原，保障排版纯净通畅。
 class PinyinHarmonizer {
   PinyinHarmonizer._();
 
-  /// 1. 网文高频被和谐的无歧义多音节拼音词库（在英语中无同形常用词）
-  /// Key: 拼音小写（不带空格或带空格），Value: 对应标准汉字
+  /// 常见拼音词组到标准汉字的高频映射字典
   static const Map<String, String> _multiSyllableMap = {
-    // 涉政 / 公职 / 机构
     'zhengfu': '政府',
     'jingcha': '警察',
     'guojia': '国家',
@@ -23,8 +20,6 @@ class PinyinHarmonizer {
     'shouhui': '受贿',
     'jianyu': '监狱',
     'shexiangtou': '摄像头',
-
-    // 暴力 / 涉案 / 涉恐
     'sharen': '杀人',
     'siwang': '死亡',
     'fanzui': '犯罪',
@@ -40,8 +35,6 @@ class PinyinHarmonizer {
     'bangjia': '绑架',
     'zisha': '自杀',
     'xidang': '洗脑',
-
-    // 涉黄 / 人体 / 亲密与欲望描写
     'gaochao': '高潮',
     'luoti': '裸体',
     'chiluoluo': '赤裸裸',
@@ -74,16 +67,12 @@ class PinyinHarmonizer {
     'xiongbu': '胸部',
     'tunbu': '臀部',
     'datui': '大腿',
-
-    // 国家 / 地名和谐
     'meiguo': '美国',
     'riben': '日本',
     'faguo': '法国',
     'yingguo': '英国',
     'deguo': '德国',
     'chaoxian': '朝鲜',
-
-    // 其他网文常见规避字
     'zhaopian': '照片',
     'chongdong': '冲动',
     'mimang': '迷茫',
@@ -136,7 +125,7 @@ class PinyinHarmonizer {
       replacement: (m) => '第十${m.group(1)}',
     ),
 
-    // 身体与动作高频拼音单字（前缀或后缀紧随中文）
+    // 语境单字拼音自愈（需紧邻中文）
     _ContextualPinyinRule(
       pattern: RegExp(r'xing\s*([欲感性格命交伴奴爱])', caseSensitive: false),
       replacement: (m) => '性${m.group(1)}',

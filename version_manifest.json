@@ -6,8 +6,8 @@
   "isForceUpdate": false,
   "platforms": {
     "android": {
-      "downloadUrl": "https://github.com/Kline-x/novel-reader-release/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
-      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-release/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
+      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
+      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
       "fileSize": 22357987,
       "installMode": "in_app_apk"
     },

@@ -3,20 +3,20 @@ import 'package:novel_reader_flutter/features/sources/services/pinyin_harmonizer
 import 'package:novel_reader_flutter/features/sources/services/source_parser.dart';
 
 void main() {
-  group('PinyinHarmonizer 智能拼音敏感词脱敏还原引擎测试', () {
-    test('【专项一】涉政/公职类高频多音节拼音还原', () {
+  group('PinyinHarmonizer 智能拼音转汉字自愈引擎测试', () {
+    test('【专项一】多音节高频拼音还原', () {
       const dirty = '当地zhengfu派遣了大量jingcha封锁了现场，维护guojia的安宁，严查官员fubai现象。';
       final clean = PinyinHarmonizer.restorePinyin(dirty);
       expect(clean, '当地政府派遣了大量警察封锁了现场，维护国家的安宁，严查官员腐败现象。');
     });
 
-    test('【专项二】暴力/枪械/涉案类高频多音节拼音还原', () {
+    test('【专项二】常见网文拼音词汇自愈', () {
       const dirty = '那个凶手犯下了sharen大罪，手里握着一把黑色的shouqiang，装填了三颗zidan，制造了恐慌。';
       final clean = PinyinHarmonizer.restorePinyin(dirty);
       expect(clean, '那个凶手犯下了杀人大罪，手里握着一把黑色的手枪，装填了三颗子弹，制造了恐慌。');
     });
 
-    test('【专项三】人体描写与亲密感官高频单字/词汇语境混排自愈', () {
+    test('【专项三】语境单字与词汇混排自愈', () {
       const dirty = '她有着白皙修长的da腿和傲人的xiong部，散发着诱人的xing感魅力，抑制不住内心的rou欲。';
       final clean = PinyinHarmonizer.restorePinyin(dirty);
       expect(clean, '她有着白皙修长的大腿和傲人的胸部，散发着诱人的性感魅力，抑制不住内心的肉欲。');

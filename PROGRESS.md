@@ -579,12 +579,9 @@
     - 对 >320 字超长段落按句末终结标点（`。”`、`！”`、`。`）执行**语义智能断段**，杜绝大段密不透风黑压压一片；
     - 扩充 46+ 条主流书源广告黑名单正则（全面覆盖“xxxx书城”、“最新网址发布页”等）；
     - 实现 `fetchBookDetail` 异步抓取 HTML OpenGraph 真实简介、最新更新时间与连载状态。
-  - [x] **3. 智能拼音敏感词和谐脱敏还原引擎 (`PinyinHarmonizer`)**：
-    - **多音节全拼还原**：自动识别并自愈涉政（`zhengfu` $\rightarrow$ 政府、`jingcha` $\rightarrow$ 警察）、暴力涉案（`sharen` $\rightarrow$ 杀人、`siwang` $\rightarrow$ 死亡、`shouqiang` $\rightarrow$ 手枪）等高频被和谐词汇；
-    - **语境单字混排自愈**：自愈身体与亲密描写（`xing欲` $\rightarrow$ 性欲、`rou体` $\rightarrow$ 肉体、`nai子` $\rightarrow$ 奶子、`da腿` $\rightarrow$ 大腿、`xiong部` $\rightarrow$ 胸部、`kuai感` $\rightarrow$ 快感、`chuan息` $\rightarrow$ 喘息、`shenyin` $\rightarrow$ 呻吟）；
-    - **章节序号和谐自愈**：`第yi章` $\rightarrow$ 第一章、`第er章` $\rightarrow$ 第二章、`第san节` $\rightarrow$ 第三节；
-    - **零误伤英文保护**：严格词边界与中文字符绑定，绝不误伤合法英文单词（如 `he`, `me`, `BOSS`, `level`, `DNA`, `FBI`）；
-    - **全链路即时自愈**：在 `SourceParser` 网络抓取清洗流与 `StorageService` 本地沙盒缓存读取层双重拦截自愈，老旧离线缓存无需重下即可瞬时恢复纯净汉字。
+  - [x] **3. 智能拼音脱敏还原引擎 (`PinyinHarmonizer`)**：
+    - 针对第三方网络书源中规避审查而替换的常见拼音字词执行智能自愈还原，使正文通畅连贯，并零误伤保留英文单词；
+    - 在网络正文清洗流水线与本地离线缓存读取层双重即时自愈，旧缓存打开即恢复正常汉字阅读。
   - [x] **4. 书源智能评分排序与信誉体系（思兔阅读降权，全本源置顶）**：
     - 重构 `calculateRelevance`，笔趣阁7（708章全本真本）给予 `+1000` 最高信誉加权与 700+ 章节完整度奖励；
     - 缺章跳章残次源思兔阅读执行惩罚性降权 `score -= 4000`，彻底沉底，全本优质源稳居榜首。
