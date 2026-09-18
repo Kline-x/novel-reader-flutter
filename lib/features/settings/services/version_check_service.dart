@@ -26,6 +26,11 @@ class PlatformUpdateInfo {
   /// 安装模式：in_app_apk（应用内安装APK）, app_store（应用商店）, app_market（华为应用市场）, in_app_hap（鸿蒙HAP）
   final String installMode;
 
+  /// 按 ABI 区分的安装包变体（arm64-v8a / armeabi-v7a / x86_64）。
+  /// 流水线是 --split-per-abi 出三个包，清单只挂 arm64 的话，
+  /// armeabi-v7a 设备下载后会 INSTALL_FAILED_NO_MATCHING_ABIS。
+  final Map<String, PlatformUpdateInfo> variants;
+
   const PlatformUpdateInfo({
     this.downloadUrl,
     this.storeUrl,
@@ -33,9 +38,27 @@ class PlatformUpdateInfo {
     this.fileSize,
     this.sha256,
     this.installMode = 'in_app_apk',
+    this.variants = const {},
   });
 
+  /// 按设备支持的 ABI 列表挑选匹配的安装包；无匹配时回退到自身（扁平字段）
+  PlatformUpdateInfo resolveForAbis(List<String> deviceAbis) {
+    if (variants.isEmpty || deviceAbis.isEmpty) return this;
+    for (final abi in deviceAbis) {
+      final hit = variants[abi];
+      if (hit != null) return hit;
+    }
+    return this;
+  }
+
   factory PlatformUpdateInfo.fromJson(Map<String, dynamic> json) {
+    final rawVariants = json['variants'] as Map<String, dynamic>? ?? {};
+    final parsedVariants = <String, PlatformUpdateInfo>{};
+    rawVariants.forEach((abi, v) {
+      if (v is Map<String, dynamic>) {
+        parsedVariants[abi] = PlatformUpdateInfo.fromJson(v);
+      }
+    });
     return PlatformUpdateInfo(
       downloadUrl: json['downloadUrl'] as String?,
       storeUrl: json['storeUrl'] as String?,
@@ -43,6 +66,7 @@ class PlatformUpdateInfo {
       fileSize: json['fileSize'] as int?,
       sha256: json['sha256'] as String?,
       installMode: json['installMode'] as String? ?? 'in_app_apk',
+      variants: parsedVariants,
     );
   }
 
@@ -54,6 +78,8 @@ class PlatformUpdateInfo {
       if (fileSize != null) 'fileSize': fileSize,
       if (sha256 != null) 'sha256': sha256,
       'installMode': installMode,
+      if (variants.isNotEmpty)
+        'variants': variants.map((k, v) => MapEntry(k, v.toJson())),
     };
   }
 }
@@ -191,6 +217,9 @@ class VersionCheckService {
 
   bool _installedVersionLoaded = false;
 
+  /// 设备支持的 ABI（优先级从高到低），由 getPackageInfo 一并带回
+  List<String> deviceAbis = const [];
+
   /// 从宿主平台读取真实已安装版本号（Android 经 MethodChannel 取 PackageInfo）。
   /// 读取失败时保留内置默认值，不影响其余功能。
   Future<void> loadInstalledVersion({bool force = false}) async {
@@ -210,6 +239,10 @@ class VersionCheckService {
       }
       if (name is String && name.isNotEmpty) {
         currentVersionName = name;
+      }
+      final abis = info['abis'];
+      if (abis is List) {
+        deviceAbis = abis.whereType<String>().toList();
       }
       debugPrint(
           '[VersionCheckService] 已读取真实安装版本: $currentVersionName+$currentVersionCode');
@@ -428,7 +461,8 @@ class VersionCheckService {
     final saveFile = File('${tempDir.path}/$fileName');
 
     bool downloadSuccess = false;
-    final platformInfo = info.currentPlatformInfo;
+    // 按设备 ABI 选择匹配的安装包，避免 v7a 设备下到 arm64 包装不上
+    final platformInfo = info.currentPlatformInfo?.resolveForAbis(deviceAbis);
     final candidates = <String>{
       ...buildAcceleratedDownloadUrls(platformInfo?.backupUrl),
       ...buildAcceleratedDownloadUrls(platformInfo?.downloadUrl),

@@ -102,6 +102,59 @@ void main() {
       expect(result.currentPlatformInfo, isNotNull);
     });
 
+    test('按设备 ABI 选择匹配的安装包，避免 v7a 设备下到 arm64 包', () {
+      final android = PlatformUpdateInfo.fromJson({
+        'downloadUrl': 'https://example.com/arm64.apk',
+        'fileSize': 100,
+        'sha256': 'aaa',
+        'installMode': 'in_app_apk',
+        'variants': {
+          'arm64-v8a': {
+            'downloadUrl': 'https://example.com/arm64.apk',
+            'fileSize': 100,
+            'sha256': 'aaa',
+          },
+          'armeabi-v7a': {
+            'downloadUrl': 'https://example.com/v7a.apk',
+            'fileSize': 90,
+            'sha256': 'bbb',
+          },
+        },
+      });
+
+      // v7a 设备（SUPPORTED_ABIS 通常是 [armeabi-v7a, armeabi]）
+      final v7a = android.resolveForAbis(['armeabi-v7a', 'armeabi']);
+      expect(v7a.downloadUrl, 'https://example.com/v7a.apk');
+      expect(v7a.sha256, 'bbb');
+      expect(v7a.fileSize, 90);
+
+      // arm64 设备优先命中 arm64
+      final a64 = android.resolveForAbis(['arm64-v8a', 'armeabi-v7a']);
+      expect(a64.downloadUrl, 'https://example.com/arm64.apk');
+
+      // 未知 ABI 或拿不到 ABI 时回退到扁平字段，绝不能返回空
+      expect(android.resolveForAbis(['mips']).downloadUrl,
+          'https://example.com/arm64.apk');
+      expect(android.resolveForAbis(const []).downloadUrl,
+          'https://example.com/arm64.apk');
+    });
+
+    test('variants 能完整 round-trip 序列化', () {
+      final src = PlatformUpdateInfo.fromJson({
+        'downloadUrl': 'https://example.com/a.apk',
+        'installMode': 'in_app_apk',
+        'variants': {
+          'x86_64': {
+            'downloadUrl': 'https://example.com/x64.apk',
+            'sha256': 'ccc',
+          },
+        },
+      });
+      final back = PlatformUpdateInfo.fromJson(src.toJson());
+      expect(back.variants.length, 1);
+      expect(back.variants['x86_64']!.sha256, 'ccc');
+    });
+
     test(
         'buildAcceleratedDownloadUrls automatically prepends domestic proxy mirrors for GitHub URLs',
         () {

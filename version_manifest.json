@@ -6,10 +6,31 @@
   "isForceUpdate": false,
   "platforms": {
     "android": {
-      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
-      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
-      "fileSize": 22357987,
-      "installMode": "in_app_apk"
+      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-arm64-v8a.apk",
+      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-arm64-v8a.apk",
+      "fileSize": 22555772,
+      "installMode": "in_app_apk",
+      "variants": {
+        "arm64-v8a": {
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-arm64-v8a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-arm64-v8a.apk",
+          "fileSize": 22555772,
+          "sha256": "ede4b6886d3b0144c4220274e1f77d23041654791df610f6e746c5ab4f9aafca"
+        },
+        "armeabi-v7a": {
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-armeabi-v7a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-armeabi-v7a.apk",
+          "fileSize": 21176904,
+          "sha256": "10e51764ba3ed40d965374fe48d1c1b7c1b6cee3b57a18db0ecfe596ac47a8ca"
+        },
+        "x86_64": {
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-x86_64.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.2/novel-reader-x86_64.apk",
+          "fileSize": 23777400,
+          "sha256": "5967e1b2620850e4659ee0f2693896a1cafc3abe64ad26a8ce1273aef20f4b62"
+        }
+      },
+      "sha256": "ede4b6886d3b0144c4220274e1f77d23041654791df610f6e746c5ab4f9aafca"
     },
     "ios": {
       "storeUrl": "itms-apps://itunes.apple.com/app/id6478901234",

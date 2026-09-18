@@ -113,6 +113,31 @@ jobs:
           cat SHA256SUMS.txt
           cd ..
 
+      # 把三个 ABI 包的真实下载地址、sha256 与体积回填进 version_manifest.json，
+      # 并提交回 main —— 客户端就是从 main 拉这份清单的。
+      # 不回填的话：客户端的完整性校验会拦下自家的包，
+      # 且 armeabi-v7a 设备会下到 arm64 包而 INSTALL_FAILED_NO_MATCHING_ABIS。
+      - name: Fill Version Manifest (URLs / sha256 / fileSize)
+        run: |
+          TAG="${{ github.event.inputs.version_tag || github.ref_name }}"
+          dart run tool/sync_version_manifest.dart --write --tag "$TAG" \
+            --apk arm64-v8a=release-artifacts/apk/novel-reader-arm64-v8a.apk \
+            --apk armeabi-v7a=release-artifacts/apk/novel-reader-armeabi-v7a.apk \
+            --apk x86_64=release-artifacts/apk/novel-reader-x86_64.apk
+          cat version_manifest.json
+
+      - name: Commit Manifest Back to main
+        run: |
+          if git diff --quiet version_manifest.json; then
+            echo "清单无变化，跳过提交"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version_manifest.json
+          git commit -m "chore(release): 回填 ${{ github.event.inputs.version_tag || github.ref_name }} 的下载地址与 sha256 校验和"
+          git push origin HEAD:main
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
@@ -129,6 +154,7 @@ jobs:
             release-artifacts/aab/*.aab
             release-artifacts/novel-reader-web.zip
             release-artifacts/SHA256SUMS.txt
+            version_manifest.json
           body: |
             ## 藏书阁 (Novel Reader) 生产正式发版
 

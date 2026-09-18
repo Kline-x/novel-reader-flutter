@@ -69,7 +69,11 @@ class MainActivity : FlutterActivity() {
                         result.success(
                             mapOf(
                                 "versionCode" to code.toInt(),
-                                "versionName" to (pInfo.versionName ?: "")
+                                "versionName" to (pInfo.versionName ?: ""),
+                                // 上报设备支持的 ABI，客户端据此挑选匹配的安装包。
+                                // 清单若只挂 arm64，armeabi-v7a 设备装包会
+                                // INSTALL_FAILED_NO_MATCHING_ABIS。
+                                "abis" to android.os.Build.SUPPORTED_ABIS.toList()
                             )
                         )
                     } catch (e: Exception) {
