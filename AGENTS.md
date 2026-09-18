@@ -98,3 +98,21 @@
 6. **用户确认后再统一开启下一轮批量修复**；
 7. **复验至零缺陷后交付**：真机复验无任何遗留缺陷，方可更新进度、执行 Commit 与 Push 交付！
 
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked on GitHub via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical triage vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repository layout. See `docs/agents/domain.md`.
+
+
+
