@@ -31,6 +31,66 @@ const _proxy = 'https://ghproxy.net/';
 /// arm64-v8a 覆盖绝大多数在用机型，作为扁平字段的默认值供老客户端回退
 const _defaultAbi = 'arm64-v8a';
 
+/// Flutter `--split-per-abi` 会按 `abiCode * 1000 + 基础 versionCode` 重写每个包的
+/// versionCode（见 flutter_tools 的 gradle 脚本）。注意 x86_64 的 abiCode 是 **4** 不是 3
+/// ——历史上 3 留给了 x86。清单若直接写 pubspec 的基础号，
+/// 客户端拿真实 versionCode（如 arm64 的 6003）去比 4003，永远判定"已是最新"，
+/// 新版本再也推不出去。
+const _abiVersionCode = {
+  'armeabi-v7a': 1,
+  'arm64-v8a': 2,
+  'x86': 3,
+  'x86_64': 4,
+};
+
+/// 优先用 aapt2 从 APK 里读真实 versionCode；读不到再退回公式推算
+int _resolveApkVersionCode(String apkPath, String abi, int baseCode) {
+  final fromAapt = _readVersionCodeWithAapt(apkPath);
+  if (fromAapt != null) return fromAapt;
+
+  final abiCode = _abiVersionCode[abi];
+  final guessed = abiCode == null ? baseCode : abiCode * 1000 + baseCode;
+  stdout.writeln('    ⚠ 未找到 aapt2，$abi 的 versionCode 按公式推算为 $guessed，'
+      '发布前请人工核对');
+  return guessed;
+}
+
+/// 在 Android SDK 的 build-tools 里找 aapt2 并 dump 出 versionCode
+int? _readVersionCodeWithAapt(String apkPath) {
+  final exe = _findAapt2();
+  if (exe == null) return null;
+  try {
+    final r = Process.runSync(exe, ['dump', 'badging', apkPath]);
+    if (r.exitCode != 0) return null;
+    final m = RegExp(r"versionCode='(\d+)'").firstMatch(r.stdout.toString());
+    return m == null ? null : int.tryParse(m.group(1)!);
+  } catch (_) {
+    return null;
+  }
+}
+
+String? _findAapt2() {
+  final sdk = Platform.environment['ANDROID_HOME'] ??
+      Platform.environment['ANDROID_SDK_ROOT'];
+  if (sdk == null) return null;
+  final buildTools = Directory('$sdk/build-tools');
+  if (!buildTools.existsSync()) return null;
+
+  final versions = buildTools
+      .listSync()
+      .whereType<Directory>()
+      .map((d) => d.path)
+      .toList()
+    ..sort();
+  for (final dir in versions.reversed) {
+    for (final name in ['aapt2.exe', 'aapt2', 'aapt.exe', 'aapt']) {
+      final f = File('$dir/$name');
+      if (f.existsSync()) return f.path;
+    }
+  }
+  return null;
+}
+
 void main(List<String> args) {
   final write = args.contains('--write');
   final tag = _optionValue(args, '--tag');
@@ -63,7 +123,16 @@ void main(List<String> args) {
   stdout.writeln('pubspec.yaml          : $pubName+$pubCode');
   stdout.writeln('version_manifest.json : $manName+$manCode');
 
-  final consistent = manName == pubName && manCode == pubCode;
+  // 顶层 versionCode 记的是**实际发布包**的号。
+  // --split-per-abi 会把它重写成 abiCode*1000+base（arm64 即 base+2000），
+  // 所以这里不能直接和 pubspec 的基础号比，要按 base 的余数校验。
+  final variantsNow = ((manifest['platforms'] as Map<String, dynamic>?)?['android']
+      as Map<String, dynamic>?)?['variants'] as Map<String, dynamic>?;
+  final hasVariants = variantsNow != null && variantsNow.isNotEmpty;
+  final codeConsistent = hasVariants
+      ? (manCode != null && manCode % 1000 == pubCode % 1000)
+      : manCode == pubCode;
+  final consistent = manName == pubName && codeConsistent;
 
   // ---- 纯校验模式（CI 门禁） ----
   if (!write) {
@@ -74,7 +143,8 @@ void main(List<String> args) {
       stderr.writeln('  执行 `dart run tool/sync_version_manifest.dart --write` 同步。');
       exit(1);
     }
-    stdout.writeln('✓ 版本号一致');
+    stdout.writeln('✓ 版本号一致'
+        '${hasVariants ? '（清单记录的是分包后的真实 versionCode）' : ''}');
     _reportIntegrity(manifest);
     exit(0);
   }
@@ -108,15 +178,17 @@ void main(List<String> args) {
       final assetName = 'novel-reader-$abi.apk';
       final url =
           'https://github.com/$_repo/releases/download/$effectiveTag/$assetName';
+      final abiVersionCode = _resolveApkVersionCode(path, abi, pubCode);
 
       variants[abi] = {
+        'versionCode': abiVersionCode,
         'downloadUrl': url,
         'backupUrl': '$_proxy$url',
         'fileSize': bytes.length,
         'sha256': digest,
       };
-      stdout.writeln(
-          '  · $abi  ${bytes.length} B  sha256=${digest.substring(0, 16)}...');
+      stdout.writeln('  · $abi  versionCode=$abiVersionCode  '
+          '${bytes.length} B  sha256=${digest.substring(0, 16)}...');
     }
 
     android['variants'] = variants;
@@ -128,6 +200,11 @@ void main(List<String> args) {
     android['backupUrl'] = f['backupUrl'];
     android['fileSize'] = f['fileSize'];
     android['sha256'] = f['sha256'];
+    android['versionCode'] = f['versionCode'];
+
+    // 顶层 versionCode 也要用 arm64 包的真实值：
+    // 不认识 variants 的老客户端就是拿它和自己的 versionCode 比较的
+    manifest['versionCode'] = f['versionCode'];
   }
 
   manifestFile.writeAsStringSync(

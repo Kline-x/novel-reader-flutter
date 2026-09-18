@@ -23,6 +23,11 @@ class PlatformUpdateInfo {
   /// 安装包 SHA256 完整性校验和
   final String? sha256;
 
+  /// 该安装包的真实 versionCode。
+  /// --split-per-abi 会按 abiCode*1000+base 重写，三个包各不相同，
+  /// 必须拿对应包的号去和设备已安装版本比较。
+  final int? versionCode;
+
   /// 安装模式：in_app_apk（应用内安装APK）, app_store（应用商店）, app_market（华为应用市场）, in_app_hap（鸿蒙HAP）
   final String installMode;
 
@@ -39,6 +44,7 @@ class PlatformUpdateInfo {
     this.sha256,
     this.installMode = 'in_app_apk',
     this.variants = const {},
+    this.versionCode,
   });
 
   /// 按设备支持的 ABI 列表挑选匹配的安装包；无匹配时回退到自身（扁平字段）
@@ -67,6 +73,7 @@ class PlatformUpdateInfo {
       sha256: json['sha256'] as String?,
       installMode: json['installMode'] as String? ?? 'in_app_apk',
       variants: parsedVariants,
+      versionCode: json['versionCode'] as int?,
     );
   }
 
@@ -78,6 +85,7 @@ class PlatformUpdateInfo {
       if (fileSize != null) 'fileSize': fileSize,
       if (sha256 != null) 'sha256': sha256,
       'installMode': installMode,
+      if (versionCode != null) 'versionCode': versionCode,
       if (variants.isNotEmpty)
         'variants': variants.map((k, v) => MapEntry(k, v.toJson())),
     };
@@ -173,6 +181,15 @@ class AppVersionInfo {
         info?.storeUrl ??
         info?.backupUrl ??
         'https://github.com/Kline-x/novel-reader-flutter/releases';
+  }
+
+  /// 按设备 ABI 取到的真实发布版本号；拿不到就回退顶层
+  int effectiveVersionCodeFor(List<String> deviceAbis) {
+    final android = platforms['android'];
+    if (android == null) return versionCode;
+    return android.resolveForAbis(deviceAbis).versionCode ??
+        android.versionCode ??
+        versionCode;
   }
 
   /// 格式化展示的完整版本标签 (如 v1.0.1+2)
@@ -349,8 +366,11 @@ class VersionCheckService {
           await _probeHighAvailabilityManifest(customEndpoint: endpoint);
     }
 
-    // 比较版本号：远程 versionCode 大于本地当前 versionCode 时返回新版本
-    if (latestInfo.versionCode > baseCode) {
+    // 比较版本号：必须拿**本机 ABI 对应的那个包**的 versionCode 去比。
+    // --split-per-abi 让 arm64 包是 base+2000、v7a 是 base+1000、x86_64 是 base+4000，
+    // 用基础号去比会让所有用户永远停在"已是最新"。
+    final latestCode = latestInfo.effectiveVersionCodeFor(deviceAbis);
+    if (latestCode > baseCode) {
       return latestInfo;
     }
     return null;

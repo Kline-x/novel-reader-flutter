@@ -102,6 +102,36 @@ void main() {
       expect(result.currentPlatformInfo, isNotNull);
     });
 
+    test('必须按本机 ABI 的 versionCode 比较，否则分包后永远判定"已是最新"', () {
+      // --split-per-abi 把 versionCode 重写成 abiCode*1000+base：
+      // base=4003 → v7a 5003 / arm64 6003 / x86_64 8003（x86_64 的 abiCode 是 4 不是 3）
+      final info = AppVersionInfo.fromJson({
+        'versionCode': 6003,
+        'versionName': '1.0.2',
+        'releaseNotes': '',
+        'publishDate': '',
+        'platforms': {
+          'android': {
+            'versionCode': 6003,
+            'installMode': 'in_app_apk',
+            'variants': {
+              'arm64-v8a': {'versionCode': 6003},
+              'armeabi-v7a': {'versionCode': 5003},
+              'x86_64': {'versionCode': 8003},
+            },
+          },
+        },
+      });
+
+      expect(info.effectiveVersionCodeFor(['arm64-v8a']), 6003);
+      expect(info.effectiveVersionCodeFor(['armeabi-v7a', 'armeabi']), 5003);
+      expect(info.effectiveVersionCodeFor(['x86_64']), 8003);
+      // 未知 ABI 回退顶层
+      expect(info.effectiveVersionCodeFor(['mips']), 6003);
+      expect(info.effectiveVersionCodeFor(const []), 6003);
+    });
+
+
     test('按设备 ABI 选择匹配的安装包，避免 v7a 设备下到 arm64 包', () {
       final android = PlatformUpdateInfo.fromJson({
         'downloadUrl': 'https://example.com/arm64.apk',
