@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/components/book_cover_widget.dart';
+import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
@@ -38,6 +39,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
   bool _isInShelf = false;
   bool _isLoadingToc = true;
+
+  /// 目录抓取失败：宁可空着让用户重试/换源，也不能塞 12 章假目录冒充真目录
+  bool _tocFailed = false;
   bool _isReversed = false;
   bool _isIntroExpanded = false;
   bool _isAllChaptersExpanded = false;
@@ -186,6 +190,7 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
             .timeout(const Duration(seconds: 8));
         if (toc.isNotEmpty) {
           _chapters = toc;
+          _tocFailed = false;
           await _storageService.saveBookToc(_book.id, toc);
           if (mounted) {
             setState(() => _isLoadingToc = false);
@@ -199,8 +204,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     }
 
     // 3. 网络异常且无缓存时的仅内存临时兜底，绝不写入本地持久化缓存以防污染
+    // 此前这里会回退到 ChapterHelper 的 12 章假目录，
+    // 用户看到的是「伯爵的儿子 / 白痴 / 文不成武不就…」这种伪造章节，
+    // 却完全不知道真目录根本没拉到。
     if (_chapters.isEmpty) {
-      _chapters = ChapterHelper.getFallbackChapters(_book.title);
+      _tocFailed = true;
     }
     if (mounted) {
       setState(() => _isLoadingToc = false);
@@ -477,11 +485,14 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
     final displayChapters =
         _isReversed ? _chapters.reversed.toList() : _chapters;
-    final totalChaptersCount =
-        _chapters.isNotEmpty ? _chapters.length : _book.totalChapters;
+    // 目录没拉到时不要拿 BookItem 的默认章节数顶上——
+    // 会出现"篇幅 100 章"和下方"目录获取失败"自相矛盾
+    final hasRealToc = _chapters.isNotEmpty;
+    final totalChaptersCount = hasRealToc ? _chapters.length : 0;
     // 书源不返回字数，此前按"章节数 × 0.28"伪造成"198.2万字"。
     // 拿不到真实字数时改为展示真实的章节总数。
-    final readWordCount = _book.wordCount ?? '$totalChaptersCount 章';
+    final readWordCount =
+        _book.wordCount ?? (hasRealToc ? '$totalChaptersCount 章' : '—');
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -1007,6 +1018,38 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                 ),
               ),
             )
+          else if (_tocFailed || _chapters.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0, vertical: 28.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.cloud_off_rounded,
+                        size: 36.0, color: colors.textSecondary),
+                    const SizedBox(height: 10.0),
+                    Text('目录获取失败',
+                        style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.bold,
+                            color: colors.textPrimary)),
+                    const SizedBox(height: 6.0),
+                    Text('网络不稳定或【${_book.sourceName}】暂未收录本书',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 12.0, color: colors.textSecondary)),
+                    const SizedBox(height: 14.0),
+                    SoftButton(
+                      colors: colors,
+                      isFilled: true,
+                      isPill: true,
+                      onPressed: () => _loadToc(forceRefresh: true),
+                      child: const Text('重新获取目录'),
+                    ),
+                  ],
+                ),
+              ),
+            )
           else ...[
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20.0, 0.0, 20.0, 8.0),
@@ -1312,7 +1355,7 @@ class _BookDetailTocHeaderDelegate extends SliverPersistentHeaderDelegate {
               ),
               const SizedBox(width: 8.0),
               Text(
-                '共 $totalCount 章',
+                totalCount > 0 ? '共 $totalCount 章' : '暂未获取',
                 style: TextStyle(fontSize: 12.0, color: colors.textSecondary),
               ),
               const Spacer(),

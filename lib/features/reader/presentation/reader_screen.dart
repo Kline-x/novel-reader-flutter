@@ -390,8 +390,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
 
     // 4. 网络异常且无缓存时的内存临时降级（绝不向本地沙盒写入12章假目录）
-    if (_chapters.isEmpty) {
-      _chapters = ChapterHelper.getFallbackChapters(widget.bookTitle);
+    // 不再回退到 12 章假目录——宁可显示错误态让用户重试或换源，
+    // 也不能拿伪造的章节名冒充真目录
+    if (_chapters.isEmpty && mounted) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
+      return;
     }
     if (mounted) {
       setState(() => _isLoading = false);
