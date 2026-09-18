@@ -175,13 +175,15 @@ class VersionCheckService {
   static const String updateChannelName = 'com.kline.novelreader/app_update';
   static const MethodChannel _platformChannel = MethodChannel(updateChannelName);
 
-  /// 国内多级高可用探测源列表（按优先级排列）
+  /// 国内多级高可用探测源列表（按优先级排列，方案A：公开发布节点与国内镜像加速）
   static const List<String> highAvailabilityEndpoints = [
-    // 1. 国内高可用高速 CDN 镜像节点
-    'https://cdn.jsdelivr.net/gh/Kline-x/novel-reader-flutter@main/version_manifest.json',
-    // 2. Gitee 国内代码托管平台镜像源
-    'https://gitee.com/Kline-x/novel-reader-flutter/raw/main/version_manifest.json',
-    // 3. GitHub 原源
+    // 1. 公开分发仓库 CDN 镜像节点 (jsDelivr 加速公开仓库)
+    'https://cdn.jsdelivr.net/gh/Kline-x/novel-reader-release@main/version_manifest.json',
+    // 2. Gitee 国内代码托管平台公开镜像源
+    'https://gitee.com/Kline-x/novel-reader-release/raw/main/version_manifest.json',
+    // 3. GitHub 公开发布仓库直链
+    'https://raw.githubusercontent.com/Kline-x/novel-reader-release/main/version_manifest.json',
+    // 4. 备用原源
     'https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/version_manifest.json',
   ];
 

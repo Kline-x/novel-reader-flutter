@@ -1,4 +1,4 @@
-﻿{
+{
   "versionCode": 2,
   "versionName": "1.0.1",
   "publishDate": "2026-09-18",
@@ -6,9 +6,9 @@
   "isForceUpdate": false,
   "platforms": {
     "android": {
-      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-v1.0.1.apk",
-      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-v1.0.1.apk",
-      "fileSize": 64800000,
+      "downloadUrl": "https://github.com/Kline-x/novel-reader-release/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
+      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-release/releases/download/v1.0.1/novel-reader-arm64-v8a.apk",
+      "fileSize": 22357987,
       "installMode": "in_app_apk"
     },
     "ios": {
