@@ -19,7 +19,9 @@ class BookItem {
   final String? sourceId;
   final String? filePath;
   final String? bookUrl;
-  final double rating;
+  /// 读者评分。书源并不提供该数据，默认为 null；
+  /// 此前默认写死 9.6，导致每一本书的详情页都显示"★ 9.6"。
+  final double? rating;
   final String status;
   final String? wordCount;
 
@@ -43,7 +45,7 @@ class BookItem {
     this.sourceId,
     this.filePath,
     this.bookUrl,
-    this.rating = 9.6,
+    this.rating,
     this.status = '连载中',
     this.wordCount,
   })  : latestChapter = latestChapter ?? lastChapter ?? '第一章',

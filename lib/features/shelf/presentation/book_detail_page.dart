@@ -479,8 +479,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
         _isReversed ? _chapters.reversed.toList() : _chapters;
     final totalChaptersCount =
         _chapters.isNotEmpty ? _chapters.length : _book.totalChapters;
-    final readWordCount = _book.wordCount ??
-        '${(totalChaptersCount * 0.28).toStringAsFixed(1)}万字';
+    // 书源不返回字数，此前按"章节数 × 0.28"伪造成"198.2万字"。
+    // 拿不到真实字数时改为展示真实的章节总数。
+    final readWordCount = _book.wordCount ?? '$totalChaptersCount 章';
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -704,7 +705,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                       children: [
                                         _buildTag(colors, _book.category),
                                         _buildTag(colors, _book.status),
-                                        _buildTag(colors, '已连通 12 组源'),
+                                        // 此前写死"已连通 12 组源"，改为展示真实生效的书源
+                                        _buildTag(colors, _book.sourceName),
                                       ],
                                     ),
                                   ],
@@ -733,11 +735,19 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                   children: [
                     _buildStatItem(colors, '状态', _book.status, isGold: false),
                     _buildStatDivider(colors),
-                    _buildStatItem(colors, '总字数', readWordCount, isGold: false),
-                    _buildStatDivider(colors),
-                    _buildStatItem(
-                        colors, '读者评分', '★ ${_book.rating.toStringAsFixed(1)}',
-                        isGold: true),
+                    _buildStatItem(colors, '篇幅', readWordCount, isGold: false),
+                    // 书源不提供评分，拿不到真实值就不显示这一格，
+                    // 而不是给每本书都挂一个写死的"★ 9.6"
+                    if (_book.rating != null) ...[
+                      _buildStatDivider(colors),
+                      _buildStatItem(colors, '读者评分',
+                          '★ ${_book.rating!.toStringAsFixed(1)}',
+                          isGold: true),
+                    ] else ...[
+                      _buildStatDivider(colors),
+                      _buildStatItem(colors, '书源', _book.sourceName,
+                          isGold: false),
+                    ],
                   ],
                 ),
               ),

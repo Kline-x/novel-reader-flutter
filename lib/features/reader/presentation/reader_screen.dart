@@ -69,6 +69,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
   List<Annotation> _annotations = [];
   double _ttsMiniOffsetY = 0.0;
 
+  /// 当前页首行文本，用于书签摘要（避免每条书签都显示本章第一段）
+  String _currentPageSnippet = '';
+
   late int _currentChapterIndex;
   late int _currentCharOffset;
   late double _fontSize;
@@ -1196,9 +1199,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final tts = TtsService();
     tts.onChapterComplete = () async {
       if (_currentChapterIndex + 1 < _chapters.length) {
-        _nextChapter();
+        // 必须 await：_loadChapterContent 只在首个 await 前同步更新章索引，
+        // 正文 _currentParagraphs 要等存储/网络返回后才赋值。
+        // 漏掉 await 会出现"标题已翻到下一章、朗读的还是上一章句子"。
+        await _nextChapter();
+        if (!mounted) return;
         final newTitle = _chapters[_currentChapterIndex].title;
         final newText = _currentParagraphs.join('\n\n');
+        if (newText.trim().isEmpty) {
+          await tts.stop();
+          return;
+        }
         await tts.playChapter(
           bookId: widget.bookId,
           bookTitle: widget.bookTitle,
@@ -1273,9 +1284,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
         ),
       );
     } else {
-      final snippet = _currentParagraphs.isNotEmpty
-          ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
-          : currentTitle;
+      // 优先用当前页首行做摘要；拿不到才退回段落开头
+      final raw = _currentPageSnippet.isNotEmpty
+          ? _currentPageSnippet
+          : (_currentParagraphs.isNotEmpty
+              ? _currentParagraphs.first
+              : currentTitle);
+      final snippet = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
       final bm = Bookmark(
         id: 'bm_${DateTime.now().millisecondsSinceEpoch}',
         bookId: widget.bookId,
@@ -1302,8 +1317,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
-  void _openNotesSheet() {
-    ReaderNotesSheet.show(
+  void _openNotesSheet() async {
+    // 面板里可以删除书签，关闭后必须重算顶栏书签高亮，
+    // 否则会出现"书签已全部删除、图标还亮着"的状态不同步。
+    await ReaderNotesSheet.show(
       context,
       bookId: widget.bookId,
       bookTitle: widget.bookTitle,
@@ -1312,17 +1329,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _loadChapterContent(chIdx, initialCharOffset: offset);
       },
     );
+    if (!mounted) return;
+    await _checkBookmarkStatus();
+    await _loadAnnotations();
   }
 
-  void _openAddAnnotation() async {
+  /// [lineText] / [charStart] / [charEnd] 来自用户长按命中的那一行；
+  /// charStart 为 -1 表示拿不到行坐标（如滚动模式），此时退回段落首句。
+  void _openAddAnnotation(String lineText, int charStart, int charEnd) async {
     final currentTitle =
         _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
             ? _chapters[_currentChapterIndex].title
             : '第${_currentChapterIndex + 1}章';
-    final snippet = _currentParagraphs.isNotEmpty
-        ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
-        : '精彩选段';
+
+    final hasLine = charStart >= 0 && lineText.trim().isNotEmpty;
+    final snippet = hasLine
+        ? lineText.replaceAll(RegExp(r'\s+'), ' ').trim()
+        : (_currentParagraphs.isNotEmpty
+            ? _currentParagraphs.first.replaceAll(RegExp(r'\s+'), ' ')
+            : '精彩选段');
     final excerpt = snippet.length > 60 ? snippet.substring(0, 60) : snippet;
+    final start = hasLine ? charStart : _currentCharOffset;
+    final end = hasLine ? charEnd : _currentCharOffset + excerpt.length;
 
     final result = await AddAnnotationDialog.show(
       context,
@@ -1330,8 +1358,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
       bookTitle: widget.bookTitle,
       chapterIndex: _currentChapterIndex,
       chapterTitle: currentTitle,
-      charStart: _currentCharOffset,
-      charEnd: _currentCharOffset + excerpt.length,
+      charStart: start,
+      charEnd: end,
       selectedText: excerpt,
       isDark: _theme.isDark,
     );
@@ -1409,8 +1437,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
               onToggleTheme: _toggleNightMode,
               onNextChapter: _nextChapter,
               onPreviousChapter: _previousChapter,
-              onProgressChanged: (charOffset) {
+              onProgressChanged: (charOffset, pageSnippet) {
                 _currentCharOffset = charOffset;
+                if (pageSnippet.isNotEmpty) {
+                  _currentPageSnippet = pageSnippet;
+                }
                 _storage.saveReadingProgress(
                   widget.bookId,
                   chapterIndex: _currentChapterIndex,

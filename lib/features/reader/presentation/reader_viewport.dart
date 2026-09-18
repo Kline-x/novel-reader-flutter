@@ -30,10 +30,15 @@ class ReaderViewport extends StatefulWidget {
   final VoidCallback? onToggleTheme;
   final VoidCallback? onNextChapter;
   final VoidCallback? onPreviousChapter;
-  final ValueChanged<int>? onProgressChanged;
+  /// 进度变更回调：除字符偏移外，一并回传当前页首行文本，
+  /// 供书签摘要使用——此前书签摘要恒为本章第一段，列表里根本分不出是哪一页。
+  final void Function(int charOffset, String pageSnippet)? onProgressChanged;
   final VoidCallback? onToggleBookmark;
   final VoidCallback? onOpenNotes;
-  final VoidCallback? onAddAnnotation;
+  /// 长按划线回调：带上用户真正按到的那一行文本与字符区间。
+  /// 此前是无参回调，阅读页只能拿本章第一段来划线——
+  /// 不管按在哪里，划的永远是章节开头那句。
+  final void Function(String text, int charStart, int charEnd)? onAddAnnotation;
   final VoidCallback? onAddToShelf;
   final bool isInShelf;
   final List<Annotation> annotations;
@@ -336,6 +341,34 @@ class _ReaderViewportState extends State<ReaderViewport>
     }
   }
 
+  /// 把长按坐标映射到具体行，取该行的文本与字符区间用于划线
+  void _handleLongPress(Offset pos, PagingConfig config) {
+    final cb = widget.onAddAnnotation;
+    if (cb == null) return;
+
+    // 滚动流式模式没有分页行坐标，退回按段落整体划线
+    if (widget.turnMode == PageTurnMode.scroll ||
+        _pages.isEmpty ||
+        _currentPageIndex >= _pages.length) {
+      cb('', -1, -1);
+      return;
+    }
+
+    final page = _pages[_currentPageIndex];
+    if (page.lines.isEmpty) {
+      cb('', -1, -1);
+      return;
+    }
+
+    // PagePainter 的排版起点：正文顶边，首页还要跳过章节大标题
+    final startY = config.padTop + (page.isFirstPage ? config.titleHeight : 0.0);
+    final rawIndex = ((pos.dy - startY) / config.lineHeight).floor();
+    final lineIndex = rawIndex.clamp(0, page.lines.length - 1);
+    final line = page.lines[lineIndex];
+
+    cb(line.text.trim(), line.charStart, line.charEnd);
+  }
+
   void _handleTap(TapUpDetails details, Size size) {
     final x = details.localPosition.dx;
     final w = size.width;
@@ -436,11 +469,11 @@ class _ReaderViewportState extends State<ReaderViewport>
 
   void _notifyProgress() {
     if (_pages.isNotEmpty && _currentPageIndex < _pages.length) {
-      final currentOffset = _pages[_currentPageIndex].charStart;
+      final page = _pages[_currentPageIndex];
+      final currentOffset = page.charStart;
       _activeCharOffset = currentOffset;
-      if (widget.onProgressChanged != null) {
-        widget.onProgressChanged!(currentOffset);
-      }
+      final snippet = page.lines.isNotEmpty ? page.lines.first.text.trim() : '';
+      widget.onProgressChanged?.call(currentOffset, snippet);
     }
   }
 
@@ -465,7 +498,8 @@ class _ReaderViewportState extends State<ReaderViewport>
               // 1. 阅读正文视口渲染
               GestureDetector(
                 onTapUp: (details) => _handleTap(details, size),
-                onLongPress: () => widget.onAddAnnotation?.call(),
+                onLongPressStart: (d) =>
+                    _handleLongPress(d.localPosition, config),
                 behavior: HitTestBehavior.opaque,
                 child: _buildReaderBody(size, config),
               ),
@@ -984,7 +1018,7 @@ class _ReaderViewportState extends State<ReaderViewport>
 
     final changed = _activeCharOffset != offset;
     _activeCharOffset = offset;
-    widget.onProgressChanged?.call(offset);
+    widget.onProgressChanged?.call(offset, '');
     // 菜单展开时底部的「本章已读 N%」依赖 _activeCharOffset，
     // 不 setState 的话文案会一直停在 0%
     if (changed && _showMenu && mounted) {

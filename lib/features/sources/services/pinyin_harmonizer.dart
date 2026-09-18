@@ -102,6 +102,12 @@ class PinyinHarmonizer {
     'mimang': '迷茫',
     'mimi': '秘密',
     'zongjiao': '宗教',
+    'didu': '帝都',
+    'huangdi': '皇帝',
+    'junduì': '军队',
+    'jundui': '军队',
+    'zhanzheng': '战争',
+    'shibing': '士兵',
   };
 
   /// 常见单字拼音音节集合（用于变异解混淆中的单字归一化判定）
@@ -293,8 +299,25 @@ class PinyinHarmonizer {
       replacement: (m) => '${m.group(1)}操',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'she\s*([精出入头击穿向来])', caseSensitive: false),
+      pattern: RegExp(r'she\s*([精出入头击穿向来程线])', caseSensitive: false),
       replacement: (m) => '射${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([放注发喷辐折反投映扫])\s*she', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}射',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([夏烈春秋冬今明昨往末生落旭朝白终])\s*ri(?![a-z])',
+          caseSensitive: false),
+      replacement: (m) => '${m.group(1)}日',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'ri\s*([光子后期记出落夜间])', caseSensitive: false),
+      replacement: (m) => '日${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([吃喂断哺牛羊])\s*nai(?![a-z])', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}奶',
     ),
     _ContextualPinyinRule(
       pattern: RegExp(r'da\s*([腿腿肚腿部胸乳])', caseSensitive: false),
@@ -383,6 +406,47 @@ class PinyinHarmonizer {
     r'''(?<=[\u4e00-\u9fa5])([a-z]{2,20})(?=[\u4e00-\u9fa5])''',
   );
 
+  /// 带声调拼音字母 → 基本拉丁字母
+  ///
+  /// 书源里大量使用带声调的拼音规避审查（「夏rì」「放shè」「dìdū」「吃nǎi」），
+  /// 而规则表里全是无声调写法，导致一条都匹配不上、整段正文夹满拼音。
+  static const Map<String, String> _toneFoldMap = {
+    'ā': 'a', 'á': 'a', 'ǎ': 'a', 'à': 'a',
+    'ē': 'e', 'é': 'e', 'ě': 'e', 'è': 'e',
+    'ī': 'i', 'í': 'i', 'ǐ': 'i', 'ì': 'i',
+    'ō': 'o', 'ó': 'o', 'ǒ': 'o', 'ò': 'o',
+    'ū': 'u', 'ú': 'u', 'ǔ': 'u', 'ù': 'u',
+    'ǖ': 'v', 'ǘ': 'v', 'ǚ': 'v', 'ǜ': 'v',
+    'ü': 'v',
+    'ń': 'n', 'ň': 'n', 'ǹ': 'n', 'ḿ': 'm',
+  };
+
+  /// 被汉字紧密包围的「带声调拼音片段」预归一化为无声调形式
+  ///
+  /// 只处理夹在汉字之间的片段，纯英文语境（café、naïve）绝不触碰。
+  static final RegExp _tonedSandwichPattern = RegExp(
+    '(?<=[一-龥])'
+    '([a-zA-Zāáǎàēéěè'
+    'īíǐìōóǒò'
+    'ūúǔùǖǘǚǜü'
+    'ńňǹḿ]{1,20})'
+    '(?=[一-龥])',
+  );
+
+  /// 把一段拼音里的声调字母折叠掉
+  static String foldTones(String input) {
+    if (input.isEmpty) return input;
+    final buffer = StringBuffer();
+    for (final ch in input.split('')) {
+      buffer.write(_toneFoldMap[ch] ?? ch);
+    }
+    return buffer.toString();
+  }
+
+  /// 是否含带声调字母
+  static bool _hasTone(String input) =>
+      input.split('').any(_toneFoldMap.containsKey);
+
   /// 智能对单行小说正文执行拼音和谐脱敏自愈
   static String restorePinyin(String text) {
     if (text.isEmpty) return text;
@@ -393,6 +457,14 @@ class PinyinHarmonizer {
     }
 
     var result = text;
+
+    // 阶段零：把夹在汉字之间的带声调拼音折叠成无声调形式，
+    // 让后续所有规则（字典 / 夹缝探测 / 语境单字）都能正常命中。
+    result = result.replaceAllMapped(_tonedSandwichPattern, (m) {
+      final token = m.group(1)!;
+      return _hasTone(token) ? foldTones(token) : token;
+    });
+
     final activeMap = _activeRulesMap;
 
     // 阶段一：解包形如 [zhengfu]、(jingcha)、【sharen】、*guojia* 等被符号包围的拼音

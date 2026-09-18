@@ -280,7 +280,10 @@ class _WebDavConfigSheetState extends State<WebDavConfigSheet> {
                         ),
                       ],
                     ),
-                    if (_lastSyncTime != null) ...[
+                    // 账号密码为空时不展示"上次云端对齐"，
+                    // 否则未配置的用户会误以为已经同步过
+                    if (_lastSyncTime != null &&
+                        _buildCurrentConfig().isConfigured) ...[
                       const Divider(height: 14.0),
                       Row(
                         children: [
