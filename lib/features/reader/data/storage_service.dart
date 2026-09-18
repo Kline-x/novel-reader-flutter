@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../sources/services/pinyin_harmonizer.dart';
 import '../engine/page_models.dart';
 
 /// 书架书籍元数据模型
@@ -565,7 +566,7 @@ class StorageService {
         }
       }
 
-      return lines;
+      return PinyinHarmonizer.restoreParagraphs(lines);
     } catch (_) {
       return null;
     }

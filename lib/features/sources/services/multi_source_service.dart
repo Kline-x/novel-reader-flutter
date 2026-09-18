@@ -77,16 +77,19 @@ class MultiSourceService {
     final aggregatedList = await Future.wait(searchFutures);
     final allResults = aggregatedList.expand((list) => list).toList();
 
-    // 根据书名与作者去重，保留延迟较低的优先结果
+    // 根据书名与作者去重，择优保留（相关度优先，相同相关度下保留低延迟源）
     final Map<String, BookSearchResult> dedupeMap = {};
     for (final item in allResults) {
       final key = '${item.title.trim()}::${item.author.trim()}';
       if (!dedupeMap.containsKey(key)) {
         dedupeMap[key] = item;
       } else {
-        // 若当前结果延迟更低，则择优更新
         final existing = dedupeMap[key]!;
-        if ((item.latencyMs ?? 9999) < (existing.latencyMs ?? 9999)) {
+        final scoreExisting = calculateRelevance(existing, keyword);
+        final scoreItem = calculateRelevance(item, keyword);
+        if (scoreItem > scoreExisting ||
+            (scoreItem == scoreExisting &&
+                (item.latencyMs ?? 9999) < (existing.latencyMs ?? 9999))) {
           dedupeMap[key] = item;
         }
       }
@@ -162,8 +165,14 @@ class MultiSourceService {
     // 8. 最新章节进度/完整度加权（通过提取章节名中的数字判定）
     if (book.latestChapter != null) {
       final match = RegExp(r'第\s*(\d+)\s*章').firstMatch(book.latestChapter!);
+      int? chNum;
       if (match != null) {
-        final chNum = int.tryParse(match.group(1)!) ?? 0;
+        chNum = int.tryParse(match.group(1)!);
+      } else {
+        chNum = SourceParser.extractChapterNumber(book.latestChapter!) ??
+            int.tryParse(RegExp(r'(\d+)').firstMatch(book.latestChapter!)?.group(1) ?? '');
+      }
+      if (chNum != null) {
         if (chNum >= 700) {
           score += 500;
         } else if (chNum >= 500) {

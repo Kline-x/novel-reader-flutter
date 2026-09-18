@@ -185,6 +185,31 @@ class VersionCheckService {
     'https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/version_manifest.json',
   ];
 
+  /// 国内 GitHub Release 代理镜像加速节点列表 (方案 1：国内全自动代理镜像加速)
+  static const List<String> gitHubProxyMirrors = [
+    'https://ghproxy.net/',
+    'https://mirror.ghproxy.com/',
+    'https://gh-proxy.com/',
+  ];
+
+  /// 生成国内高可用加速下载候选列表（方案 1：GitHub Release 镜像代理全自动加速）
+  static List<String> buildAcceleratedDownloadUrls(String? originalUrl) {
+    if (originalUrl == null || originalUrl.trim().isEmpty) return [];
+    final url = originalUrl.trim();
+    final result = <String>[];
+
+    // 若目标链接为 GitHub 资源链接，自动优先注入国内高性能代理镜像
+    if (url.contains('github.com') || url.contains('githubusercontent.com')) {
+      for (final mirror in gitHubProxyMirrors) {
+        result.add('$mirror$url');
+      }
+    }
+
+    // 将原始链接排入候选队列（作为备用或海外网络兜底）
+    result.add(url);
+    return result;
+  }
+
   /// 预置的默认 Mock 最新稳定版本信息 (1.0.1+2, 跨平台完整配置)
   static const AppVersionInfo defaultMockVersion = AppVersionInfo(
     versionCode: 2,
@@ -198,7 +223,7 @@ class VersionCheckService {
         downloadUrl:
             'https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-v1.0.1.apk',
         backupUrl:
-            'https://download.fastgit.org/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-v1.0.1.apk',
+            'https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-v1.0.1.apk',
         fileSize: 28450120,
         installMode: 'in_app_apk',
       ),
@@ -331,11 +356,11 @@ class VersionCheckService {
 
     bool downloadSuccess = false;
     final platformInfo = info.currentPlatformInfo;
-    final candidates = [
-      if (platformInfo?.downloadUrl != null) platformInfo!.downloadUrl!,
-      if (platformInfo?.backupUrl != null) platformInfo!.backupUrl!,
-      info.downloadUrl,
-    ];
+    final candidates = <String>{
+      ...buildAcceleratedDownloadUrls(platformInfo?.backupUrl),
+      ...buildAcceleratedDownloadUrls(platformInfo?.downloadUrl),
+      ...buildAcceleratedDownloadUrls(info.downloadUrl),
+    }.toList();
 
     for (final url in candidates) {
       try {

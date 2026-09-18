@@ -6,6 +6,7 @@ import '../models/chapter_item.dart';
 import '../models/source_rule.dart';
 import 'builtin_sources.dart';
 import 'network_client.dart';
+import 'pinyin_harmonizer.dart';
 
 /// 书源与规则解析引擎 (source_parser.dart)
 /// 解析 SourceRule，实现 searchBooks、fetchToc、fetchChapterContent
@@ -233,12 +234,13 @@ class SourceParser {
 
   /// 清洗段落、智能语义断行、过滤广告噪音并输出标准段落列表
   static List<String> cleanAndFilterParagraphs(String rawContent) {
-    // 1. 扩充涵盖 40+ 种主流网文广告、防盗标记与站点牛皮癣黑名单正则
+    // 1. 扩充涵盖 46+ 种主流网文广告、防盗标记与站点牛皮癣黑名单正则
     final noisePatterns = [
       RegExp(r'请记住本书首发域名.*', caseSensitive: false),
       RegExp(r'天才一秒记住.*', caseSensitive: false),
       RegExp(r'最新网址[：:].*', caseSensitive: false),
-      RegExp(r'手机站全新改版升级地址.*', caseSensitive: false),
+      RegExp(r'.*(?:最新网址发布页|最新发布页|最新域名发布页).*', caseSensitive: false),
+      RegExp(r'.*(?:手机站全新改版升级地址|手机版访问).*', caseSensitive: false),
       RegExp(r'\(本章完\)', caseSensitive: false),
       RegExp(r'（本章完）', caseSensitive: false),
       RegExp(r'点击下一页继续阅读.*', caseSensitive: false),
@@ -248,12 +250,11 @@ class SourceParser {
       RegExp(r'加入书签.*方便阅读.*', caseSensitive: false),
       RegExp(r'请务必保存书签.*', caseSensitive: false),
       RegExp(r'章节错误.*点此举报.*', caseSensitive: false),
-      RegExp(r'投推荐票.*月票.*', caseSensitive: false),
-      RegExp(r'求月票.*求推荐.*', caseSensitive: false),
+      RegExp(r'.*(?:投推荐票|投月票|求月票|求推荐票|求花花|求打赏|求收藏|求全订).*', caseSensitive: false),
       RegExp(r'https?://[^\s]+', caseSensitive: false),
       RegExp(r'www\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\.\-]+', caseSensitive: false),
       RegExp(r'笔趣阁.*版权所有.*', caseSensitive: false),
-      RegExp(r'.*(?:[0-9a-zA-Z]{3,}\.com|[0-9a-zA-Z]{3,}\.net|[0-9a-zA-Z]{3,}\.org).*', caseSensitive: false),
+      RegExp(r'.*(?:[0-9a-zA-Z]{3,}\.com|[0-9a-zA-Z]{3,}\.net|[0-9a-zA-Z]{3,}\.org|[0-9a-zA-Z]{3,}\.cc|[0-9a-zA-Z]{3,}\.me).*', caseSensitive: false),
       RegExp(r'.*免费提供.*(?:全文阅读|在线阅读).*', caseSensitive: false),
       RegExp(r'.*(?:全文字更新|更新速度最快|最新章节更新).*', caseSensitive: false),
       RegExp(r'.*(?:无广告|无弹窗|极速阅读).*', caseSensitive: false),
@@ -261,13 +262,33 @@ class SourceParser {
       RegExp(r'.*本站所有小说为转载作品.*', caseSensitive: false),
       RegExp(r'.*(?:上一页|返回目录|下一页).*', caseSensitive: false),
       RegExp(r'.*(?:思兔阅读|鬼吹灯书屋|笔趣阁|顶点小说|飘天文学|天天看).*', caseSensitive: false),
-      RegExp(r'.*(?:app下载|客户端下载|下载APP).*', caseSensitive: false),
+      RegExp(r'.*(?:app下载|客户端下载|下载APP|安装APP).*', caseSensitive: false),
+      RegExp(r'.*[\u4e00-\u9fa5a-zA-Z0-9]{2,10}书城.*', caseSensitive: false),
+      RegExp(r'.*(?:永久域名|防走丢|回家地址|最新防走失).*', caseSensitive: false),
+      RegExp(r'.*(?:官方交流群|qq群|QQ交流群|书友群|读者群|粉丝群)[：:\s0-9]+.*', caseSensitive: false),
+      RegExp(r'.*(?:微信公众号|关注微信|关注公号|公众号)[：:\s\w]+.*', caseSensitive: false),
+      RegExp(r'.*(?:看完整版|精彩小说尽在|看全本小说|全本小说网).*', caseSensitive: false),
+      RegExp(r'.*(?:百度搜索|搜狗搜索|夸克搜索|谷歌搜索|360搜索).*', caseSensitive: false),
+      RegExp(r'.*(?:飞卢小说|起点中文网|纵横中文网|17k小说|晋江文学城|塔读文学).*', caseSensitive: false),
+      RegExp(r'.*(?:充值VIP|VIP章节|本章为付费章节|充值送).*', caseSensitive: false),
+      RegExp(r'.*(?:防盗版|防盗章节|防盗提示).*', caseSensitive: false),
+      RegExp(r'.*(?:手机用户请浏览|手机端请访问).*', caseSensitive: false),
+      RegExp(r'.*(?:本章字数|更新时间|字数统计)[：:\s].*', caseSensitive: false),
+      RegExp(r'.*(?:正在手打中|请稍等片刻|内容更新后|请重新刷新).*', caseSensitive: false),
+      RegExp(r'.*(?:新书求支持|新书上架|新书冲榜|求首订).*', caseSensitive: false),
+      RegExp(r'^\s*ps[：:].*', caseSensitive: false),
+      RegExp(r'^\s*PS[：:].*', caseSensitive: false),
+      RegExp(r'.*(?:欢迎收藏|感谢大家支持|求大家支持).*', caseSensitive: false),
+      RegExp(r'.*(?:欢迎访问|欢迎光临|收藏本站).*', caseSensitive: false),
+      RegExp(r'.*(?:阅读本书最新章节|阅读全文).*', caseSensitive: false),
+      RegExp(r'.*(?:请牢记|谨记网址|记住网址).*', caseSensitive: false),
     ];
 
-    // 2. 预处理段首标记：支持以全角空格或连续多空格切分段落
+    // 2. 预处理段首标记：支持以全角空格（　　）或连续多空格切分自然段落，并去除残留 HTML 容器标签
     var text = rawContent
-        .replaceAll(RegExp(r'(?:\u3000{2,}|\s{4,})'), '\n')
-        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n');
+        .replaceAll(RegExp(r'(?:(?:\u3000|[ \t]){2,}|\s{4,})'), '\n')
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</?(?:div|p|span|section|article)[^>]*>', caseSensitive: false), '\n');
 
     final rawLines = text.split(RegExp(r'\r?\n'));
     final filteredLines = <String>[];
@@ -295,7 +316,7 @@ class SourceParser {
       filteredLines.add(line);
     }
 
-    // 3. 解决“一大段不分行”：超长段落智能语义断句断段（>320字根据句末标点断段）
+    // 3. 解决“一大段不分行”：超长段落智能语义断句断段（>320字根据句末标点语义断段）
     final result = <String>[];
     for (final line in filteredLines) {
       if (line.length <= 320) {
@@ -303,8 +324,8 @@ class SourceParser {
         continue;
       }
 
-      // 超长段落：按句子终结标点（。”、！”、？”、。、！、？）拆分
-      final sentenceRegex = RegExp(r'''[^。！？…]*[。！？…]+[”"’']?|[^。！？…]+$''');
+      // 超长段落：按句子终结标点（。”、！”、？”、。、！、？）语义拆分
+      final sentenceRegex = RegExp(r'''[^。！？!?…]*[。！？!?…]+[”"’'」』]?|[^。！？!?…]+$''');
       final matches = sentenceRegex.allMatches(line);
       final buffer = StringBuffer();
 
@@ -313,7 +334,8 @@ class SourceParser {
         buffer.write(sentence);
 
         // 当当前段落累积超过 180 字且以完整句末标点结尾，断为新自然段
-        if (buffer.length >= 180 && RegExp(r'''[。！？…][”"’']?$''').hasMatch(buffer.toString().trim())) {
+        if (buffer.length >= 180 &&
+            RegExp(r'''[。！？!?…][”"’'」』]?$''').hasMatch(buffer.toString().trim())) {
           result.add(buffer.toString().trim());
           buffer.clear();
         }
@@ -327,7 +349,8 @@ class SourceParser {
       }
     }
 
-    return result;
+    // 4. 智能拼音敏感词自愈脱敏：自愈盗版书源中替换的拼音词与语境单字
+    return PinyinHarmonizer.restoreParagraphs(result);
   }
 
   /// 依据 RuleSelector 提取节点对应属性或文本
@@ -651,57 +674,97 @@ class SourceParser {
     });
   }
 
+  /// 从 HTML Document 中解析 OpenGraph 标签与详情页语义节点元数据
+  static Map<String, dynamic> parseBookDetailDoc(dom.Document doc, [SourceRule? rule]) {
+    String extractMeta(String prop) {
+      final meta = doc.querySelector('meta[property="$prop"]') ??
+          doc.querySelector('meta[name="$prop"]');
+      return meta?.attributes['content']?.trim() ?? '';
+    }
+
+    // 1. 简介解析：优先 og:description，其次 rule.detail?.description，兜底通用选择器
+    var intro = extractMeta('og:description');
+    if (intro.isEmpty) {
+      intro = extractMeta('description');
+    }
+    if (intro.isEmpty && rule?.detail?.description != null) {
+      intro = extractValue(doc.body ?? doc.documentElement!, rule!.detail!.description!);
+    }
+    if (intro.isEmpty) {
+      final el = doc.querySelector('#intro') ??
+          doc.querySelector('.intro') ??
+          doc.querySelector('.book-intro') ??
+          doc.querySelector('#bookintro') ??
+          doc.querySelector('.book_intro');
+      if (el != null) intro = el.text.trim();
+    }
+
+    // 2. 最新更新时间：优先 og:novel:update_time，其次详情页语义节点
+    var updateTime = extractMeta('og:novel:update_time');
+    if (updateTime.isEmpty) {
+      updateTime = extractMeta('og:update_time');
+    }
+    if (updateTime.isEmpty) {
+      updateTime = extractMeta('novel:update_time');
+    }
+    if (updateTime.isEmpty) {
+      final el = doc.querySelector('.update') ??
+          doc.querySelector('.uptime') ??
+          doc.querySelector('.time') ??
+          doc.querySelector('#info p:nth-child(5)') ??
+          doc.querySelector('.last-update');
+      if (el != null) {
+        updateTime = el.text.replaceAll(RegExp(r'最后更新[：:]\s*'), '').trim();
+      }
+    }
+
+    // 3. 连载/完结状态：优先 og:novel:status，其次文本语义智能判定
+    var status = extractMeta('og:novel:status');
+    if (status.isEmpty) {
+      status = extractMeta('og:status');
+    }
+    if (status.isEmpty) {
+      status = extractMeta('novel:status');
+    }
+    if (status.isEmpty) {
+      final text = doc.body?.text ?? '';
+      if (text.contains('已完结') || text.contains('全本完结') || text.contains('完本')) {
+        status = '已完结';
+      } else if (text.contains('连载')) {
+        status = '连载中';
+      }
+    }
+
+    // 4. 最新章节名：优先 og:novel:latest_chapter_name
+    var latestChapter = extractMeta('og:novel:latest_chapter_name');
+    if (latestChapter.isEmpty) {
+      latestChapter = extractMeta('og:novel:latest_chapter');
+    }
+    if (latestChapter.isEmpty) {
+      latestChapter = extractMeta('novel:latest_chapter_name');
+    }
+
+    return {
+      'intro': intro.isNotEmpty ? intro : null,
+      'updateTime': updateTime.isNotEmpty ? updateTime : null,
+      'status': status.isNotEmpty ? status : null,
+      'latestChapter': latestChapter.isNotEmpty ? latestChapter : null,
+    };
+  }
+
+  /// 方便单元测试直接传入 HTML 字符串解析元数据
+  static Map<String, dynamic> parseBookDetailHtml(String html, [SourceRule? rule]) {
+    final doc = html_parser.parse(html);
+    return parseBookDetailDoc(doc, rule);
+  }
+
   /// 抓取书籍详情页真实元数据（真实简介、最新更新时间、连载/完结状态）
   Future<Map<String, dynamic>> fetchBookDetail(SourceRule rule, String bookUrl) async {
     try {
       final fullUrl = absolutizeUrl(bookUrl, rule.baseUrl);
       final html = await _client.fetchHtml(fullUrl, defaultCharset: rule.charset);
       final doc = html_parser.parse(html);
-
-      String extractMeta(String prop) {
-        final meta = doc.querySelector('meta[property="$prop"]') ??
-            doc.querySelector('meta[name="$prop"]');
-        return meta?.attributes['content']?.trim() ?? '';
-      }
-
-      var intro = extractMeta('og:description');
-      if (intro.isEmpty) {
-        final el = doc.querySelector('#intro') ??
-            doc.querySelector('.intro') ??
-            doc.querySelector('.book-intro') ??
-            doc.querySelector('#bookintro');
-        if (el != null) intro = el.text.trim();
-      }
-
-      var updateTime = extractMeta('og:novel:update_time');
-      if (updateTime.isEmpty) {
-        final el = doc.querySelector('.update') ??
-            doc.querySelector('.uptime') ??
-            doc.querySelector('.time') ??
-            doc.querySelector('#info p:nth-child(5)');
-        if (el != null) {
-          updateTime = el.text.replaceAll(RegExp(r'最后更新[：:]\s*'), '').trim();
-        }
-      }
-
-      var status = extractMeta('og:novel:status');
-      if (status.isEmpty) {
-        final text = doc.body?.text ?? '';
-        if (text.contains('已完结') || text.contains('全本完结') || text.contains('完本')) {
-          status = '已完结';
-        } else if (text.contains('连载')) {
-          status = '连载中';
-        }
-      }
-
-      var latestChapter = extractMeta('og:novel:latest_chapter_name');
-
-      return {
-        'intro': intro.isNotEmpty ? intro : null,
-        'updateTime': updateTime.isNotEmpty ? updateTime : null,
-        'status': status.isNotEmpty ? status : null,
-        'latestChapter': latestChapter.isNotEmpty ? latestChapter : null,
-      };
+      return parseBookDetailDoc(doc, rule);
     } catch (e) {
       debugPrint('拉取书籍详情元数据失败: $e');
       return {};

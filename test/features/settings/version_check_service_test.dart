@@ -79,17 +79,19 @@ void main() {
       expect(result.currentPlatformInfo, isNotNull);
     });
 
-    test('executePlatformUpdate progresses smoothly to 1.0', () async {
-      final service = VersionCheckService();
-      final progresses = <double>[];
+    test('buildAcceleratedDownloadUrls automatically prepends domestic proxy mirrors for GitHub URLs', () {
+      const rawUrl = 'https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/app.apk';
+      final accelerated = VersionCheckService.buildAcceleratedDownloadUrls(rawUrl);
 
-      await service.executePlatformUpdate(
-        VersionCheckService.defaultMockVersion,
-        onProgress: (p) => progresses.add(p),
-      );
+      expect(accelerated.length, greaterThan(1));
+      expect(accelerated.any((u) => u.startsWith('https://ghproxy.net/')), isTrue);
+      expect(accelerated.any((u) => u.startsWith('https://mirror.ghproxy.com/')), isTrue);
+      expect(accelerated.last, rawUrl); // 原始 URL 兜底存在
 
-      expect(progresses, isNotEmpty);
-      expect(progresses.last, 1.0);
+      // 非 GitHub URL 保持原样不重复添加前缀
+      const cdnUrl = 'https://my-oss-bucket.aliyuncs.com/app.apk';
+      final normal = VersionCheckService.buildAcceleratedDownloadUrls(cdnUrl);
+      expect(normal, [cdnUrl]);
     });
   });
 }

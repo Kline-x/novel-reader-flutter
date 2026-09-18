@@ -776,11 +776,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         try {
                           final cleanName = widget.bookTitle.replaceAll(RegExp(r'[《》【】\s]'), '');
                           final searchRes = await _parser.searchBooks(chosenSource, cleanName).timeout(const Duration(seconds: 5));
-                          if (searchRes.isNotEmpty) {
-                            final match = searchRes.firstWhere(
-                              (b) => b.title == cleanName || b.title.contains(cleanName),
-                              orElse: () => searchRes.first,
-                            );
+                          final matches = searchRes.where((b) {
+                            final t = b.title.replaceAll(RegExp(r'[《》【】\s]'), '');
+                            return t == cleanName || t.contains(cleanName) || cleanName.contains(t);
+                          }).toList();
+                          if (matches.isNotEmpty) {
+                            final match = matches.first;
                             final newToc = await _parser.fetchToc(chosenSource, match.bookUrl).timeout(const Duration(seconds: 7));
                             if (newToc.isNotEmpty) {
                               setState(() {

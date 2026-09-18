@@ -376,11 +376,12 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                         try {
                           final cleanTitle = ChapterHelper.cleanTitle(_book.title);
                           final searchResults = await _parser.searchBooks(s, cleanTitle).timeout(const Duration(seconds: 5));
-                          if (searchResults.isNotEmpty) {
-                            final matched = searchResults.firstWhere(
-                              (b) => b.title == cleanTitle || b.title.contains(cleanTitle),
-                              orElse: () => searchResults.first,
-                            );
+                          final matches = searchResults.where((b) {
+                            final t = b.title.replaceAll(RegExp(r'[《》【】\s]'), '');
+                            return t == cleanTitle || t.contains(cleanTitle) || cleanTitle.contains(t);
+                          }).toList();
+                          if (matches.isNotEmpty) {
+                            final matched = matches.first;
                             final newToc = await _parser.fetchToc(s, matched.bookUrl).timeout(const Duration(seconds: 7));
                             if (newToc.isNotEmpty) {
                               if (mounted) {
