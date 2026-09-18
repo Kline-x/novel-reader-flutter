@@ -34,6 +34,11 @@ jobs:
       - name: Run Static Analysis
         run: flutter analyze
 
+      # 版本号防呆：pubspec.yaml 与 version_manifest.json 必须一致，
+      # 否则客户端会误判"有新版本"，装完又被系统当成降级拒绝安装
+      - name: Verify Version Manifest Consistency
+        run: dart run tool/sync_version_manifest.dart
+
   # 2. 排版引擎与核心逻辑测试（切半行算法、锚点保留、避头避尾）
   test:
     name: Unit & Engine Tests

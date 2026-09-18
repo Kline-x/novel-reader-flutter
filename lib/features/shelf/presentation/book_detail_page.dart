@@ -982,11 +982,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                 child: Center(
                   child: Column(
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 24.0,
                         height: 24.0,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2.0, color: Color(0xFF5B7FFF)),
+                            strokeWidth: 2.0, color: colors.accent),
                       ),
                       const SizedBox(height: 10.0),
                       Text('正在从【${_book.sourceName}】同步千章目录...',

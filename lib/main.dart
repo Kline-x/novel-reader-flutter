@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/components/docked_bottom_bar.dart';
 import 'core/components/main_scaffold.dart';
 import 'core/theme/soft_theme.dart';
 
@@ -81,6 +82,19 @@ class NovelReaderApp extends ConsumerWidget {
         theme: ThemeData(
           useMaterial3: true,
           scaffoldBackgroundColor: colors.background,
+          // 悬浮 SnackBar 抬到底栏之上，避免把整条导航栏盖住
+          snackBarTheme: SnackBarThemeData(
+            behavior: SnackBarBehavior.floating,
+            insetPadding: EdgeInsets.fromLTRB(
+              16.0,
+              8.0,
+              16.0,
+              DockedBottomBar.fadeHeight +
+                  DockedBottomBar.barContentHeight +
+                  MediaQueryData.fromView(View.of(context)).padding.bottom +
+                  8.0,
+            ),
+          ),
           colorScheme: ColorScheme.fromSeed(
             seedColor: colors.accent,
             surface: colors.surface,

@@ -73,7 +73,8 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
         : (Theme.of(context).textTheme.bodySmall?.color ??
             const Color(0xFF8F959E));
     final accentColor =
-        isDark ? const Color(0xFF7098FF) : const Color(0xFF5B7FFF);
+        widget.theme?.accent ??
+            (isDark ? const Color(0xFF2BD97C) : const Color(0xFF07C160));
 
     var displayList = widget.chapters.where((c) {
       if (_filterKeyword.isEmpty) return true;
@@ -279,7 +280,7 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       alignment: Alignment.centerLeft,
                       color: isCurrent
-                          ? const Color(0xFF5B7FFF)
+                          ? accentColor
                               .withValues(alpha: isDark ? 0.22 : 0.12)
                           : Colors.transparent,
                       child: Row(
@@ -319,7 +320,7 @@ class _CatalogDrawerState extends State<CatalogDrawer> {
     required Color accentColor,
   }) {
     final defaultColor = isCurrent
-        ? const Color(0xFF5B7FFF)
+        ? accentColor
         : (isDark ? Colors.white70 : const Color(0xFF1F2329));
 
     if (_filterKeyword.isEmpty ||

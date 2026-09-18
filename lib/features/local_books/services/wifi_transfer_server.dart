@@ -374,16 +374,32 @@ class WifiTransferServer {
     final headerText = utf8.decode(bytes.sublist(headerStart, bodyStart - 4),
         allowMalformed: true);
     String? filename;
-    final fnMatch = RegExp(r'filename\s*=\s*["' "'" r']?([^"' "'" r';\r\n]+)',
-            caseSensitive: false)
-        .firstMatch(headerText);
-    if (fnMatch != null) {
-      final rawName = fnMatch.group(1)!.trim();
+    // 优先取 RFC 5987 的 filename*=UTF-8''xxx —— 它明确标注了编码，最可靠
+    final starMatch = RegExp(
+      "filename\\*\\s*=\\s*([A-Za-z0-9-]+)'[^']*'([^;\r\n]+)",
+      caseSensitive: false,
+    ).firstMatch(headerText);
+    if (starMatch != null) {
       try {
-        filename = Uri.decodeFull(rawName);
-      } catch (_) {
-        filename = rawName;
+        filename = Uri.decodeFull(starMatch.group(2)!.trim());
+      } catch (_) {}
+    }
+    if (filename == null) {
+      final fnMatch = RegExp(r'filename\s*=\s*["' "'" r']?([^"' "'" r';\r\n]+)',
+              caseSensitive: false)
+          .firstMatch(headerText);
+      if (fnMatch != null) {
+        final rawName = fnMatch.group(1)!.trim();
+        try {
+          filename = Uri.decodeFull(rawName);
+        } catch (_) {
+          filename = rawName;
+        }
       }
+    }
+    // 非 UTF-8 客户端送来的头解码后会出现替换字符，此时宁可退回时间戳命名
+    if (filename != null && filename.contains('�')) {
+      filename = null;
     }
 
     // 寻找末尾 boundary

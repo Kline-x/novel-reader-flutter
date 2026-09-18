@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:fast_gbk/fast_gbk.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../reader/data/storage_service.dart';
 import '../models/local_chapter.dart';
@@ -49,6 +52,7 @@ class LocalBookService {
         fileName.replaceAll(RegExp(r'\.(txt|epub)$', caseSensitive: false), '');
     String author = '本地导入';
     String? coverUrl;
+    String? detectedEncoding;
     List<LocalChapter> chapters = [];
 
     if (isEpub) {
@@ -68,6 +72,7 @@ class LocalBookService {
       }
     } else {
       chapters = await TxtParserEngine.parseChapters(storedFile);
+      detectedEncoding = await _detectFileEncoding(storedFile);
     }
 
     // 保存章节目录索引至本地 meta 目录
@@ -83,6 +88,7 @@ class LocalBookService {
       'author': author,
       'filePath': storedFile.path,
       'type': isEpub ? 'epub' : 'txt',
+      'encoding': detectedEncoding,
       'coverUrl': coverUrl,
       'totalChapters': chapters.length,
     };
@@ -107,6 +113,22 @@ class LocalBookService {
     _bookImportedController.add(shelfBook);
 
     return shelfBook;
+  }
+
+  /// 对整份文件做一次编码嗅探并固化下来
+  Future<String> _detectFileEncoding(File file) async {
+    try {
+      final raf = await file.open(mode: FileMode.read);
+      final len = await file.length();
+      final sample =
+          await raf.read(len > 65536 ? 65536 : len);
+      await raf.close();
+      return TxtParserEngine.detectEncoding(Uint8List.fromList(sample)) == utf8
+          ? 'utf-8'
+          : 'gbk';
+    } catch (_) {
+      return 'utf-8';
+    }
   }
 
   /// 把导入的图书复制进应用沙盒 local_books/raw/，返回沙盒内的文件句柄。
@@ -173,7 +195,12 @@ class LocalBookService {
       if (type == 'epub') {
         return await EpubParserEngine.readChapterContent(file, chapter);
       } else {
-        return await TxtParserEngine.readChapterContent(file, chapter);
+        // 复用导入时固化的编码：按单章切片再嗅探一次，
+        // 遇到刚好是合法 UTF-8 的 GBK 片段仍可能判错
+        final encName = meta['encoding'] as String?;
+        final enc = encName == 'gbk' ? gbk : (encName == 'utf-8' ? utf8 : null);
+        return await TxtParserEngine.readChapterContent(file, chapter,
+            encoding: enc);
       }
     } catch (e) {
       return ['\u3000\u3000（读取章节内容失败: $e）'];

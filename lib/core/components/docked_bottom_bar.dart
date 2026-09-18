@@ -12,6 +12,19 @@ import '../theme/soft_theme.dart';
 /// 3. 【双态图标】：选中 Filled / 未选中 Outlined，配合 200ms 缩放切换；
 /// 4. 【舒展均分】：三等分均布，44dp 最小触控热区与按压弹性缩放。
 class DockedBottomBar extends StatefulWidget {
+  /// 顶部渐隐带高度：内容从这里平滑没入底栏，替代分割线
+  static const double fadeHeight = 28.0;
+  static const double barContentHeight = 58.0;
+
+  /// 底栏实际占据的总高度（含渐隐带与系统手势安全区）。
+  /// 页面内的滚动列表必须按这个值预留底部内边距，否则最后一项会被压在底栏下面。
+  static double totalHeight(BuildContext context) =>
+      fadeHeight + barContentHeight + MediaQuery.paddingOf(context).bottom;
+
+  /// 页面滚动列表建议的底部安全内边距
+  static double contentBottomPadding(BuildContext context) =>
+      totalHeight(context) + 16.0;
+
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
   final SoftColors? colors;
@@ -30,10 +43,6 @@ class DockedBottomBar extends StatefulWidget {
 class _DockedBottomBarState extends State<DockedBottomBar> {
   int? _pressingIndex;
 
-  /// 顶部渐隐带高度：内容从这里平滑没入底栏，替代分割线
-  static const double _fadeHeight = 28.0;
-  static const double _barContentHeight = 58.0;
-
   @override
   Widget build(BuildContext context) {
     final colors = widget.colors ?? SoftTheme.of(context);
@@ -48,7 +57,9 @@ class _DockedBottomBarState extends State<DockedBottomBar> {
       child: IgnorePointer(
         ignoring: false,
         child: Container(
-          height: _fadeHeight + _barContentHeight + bottomInset,
+          height: DockedBottomBar.fadeHeight +
+              DockedBottomBar.barContentHeight +
+              bottomInset,
           decoration: BoxDecoration(
             // 自上而下由完全透明过渡到背景色：没有边界，也就没有"分割线"
             gradient: LinearGradient(
@@ -63,9 +74,10 @@ class _DockedBottomBarState extends State<DockedBottomBar> {
               stops: const [0.0, 0.22, 0.46, 1.0],
             ),
           ),
-          padding: EdgeInsets.only(top: _fadeHeight, bottom: bottomInset),
+          padding: EdgeInsets.only(
+              top: DockedBottomBar.fadeHeight, bottom: bottomInset),
           child: SizedBox(
-            height: _barContentHeight,
+            height: DockedBottomBar.barContentHeight,
             child: Row(
               children: [
                 Expanded(

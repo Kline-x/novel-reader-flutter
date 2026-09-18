@@ -208,7 +208,9 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                   children: [
                     SoftButton(
                       colors: colors,
-                      isActive: _isRunning,
+                      // 此前用 isActive（accent 15% 的浅绿底）配 Colors.white 文字，
+                      // 白字浅绿底几乎看不清；改为实心 accent 底 + 白字，对比度达标
+                      isFilled: _isRunning,
                       onPressed: _isRunning
                           ? () {
                               Clipboard.setData(
@@ -235,7 +237,7 @@ class _WifiTransferDialogState extends State<WifiTransferDialog> {
                                 ? Colors.white
                                 : colors.textSecondary,
                           ),
-                          const SizedBox(width: 4.0),
+                          const SizedBox(width: 5.0),
                           Text(
                             _isCopied ? '✓ 已复制' : '复制网址',
                             style: TextStyle(

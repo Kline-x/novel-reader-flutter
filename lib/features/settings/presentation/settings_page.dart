@@ -5,6 +5,7 @@ import '../../../core/components/soft_switch.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../local_books/presentation/wifi_transfer_dialog.dart';
+import '../../../core/components/docked_bottom_bar.dart';
 import '../../reader/data/storage_service.dart';
 import '../../sync/presentation/webdav_config_sheet.dart';
 import '../services/version_check_service.dart';
@@ -159,7 +160,14 @@ class _SettingsPageState extends State<SettingsPage> {
         bottom: false,
         child: ListView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          // 底栏是 Stack 上的浮层，这里必须按其实际高度预留内边距，
+          // 否则最后一项会被压在底栏下方、文字与底栏图标重叠。
+          padding: EdgeInsets.fromLTRB(
+            20.0,
+            16.0,
+            20.0,
+            DockedBottomBar.contentBottomPadding(context),
+          ),
           children: [
             // 顶部标题
             Text(

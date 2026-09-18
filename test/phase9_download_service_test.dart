@@ -233,13 +233,18 @@ void main() {
       await tester.tapAt(const Offset(400, 400));
       await tester.pumpAndSettle();
 
-      // 验证阅读器顶部栏书名、离线与换源按钮就绪
+      // 验证阅读器顶部栏书名、换源与「更多」入口就绪
+      // 顶栏精简后：换源/书签为图标按钮，离线缓存收进「更多」菜单
       expect(find.text('《道诡异仙》'), findsOneWidget);
-      expect(find.text('离线'), findsOneWidget);
-      expect(find.text('换源'), findsOneWidget);
+      expect(find.byKey(const ValueKey('reader_top_source_btn')),
+          findsOneWidget);
+      final moreBtn = find.byKey(const ValueKey('reader_top_more_btn'));
+      expect(moreBtn, findsOneWidget);
 
-      // 点击「离线」按钮，呼出 DownloadSheet
-      await tester.tap(find.text('离线'));
+      // 「更多」→「离线缓存」，呼出 DownloadSheet
+      await tester.tap(moreBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('离线缓存'));
       await tester.pumpAndSettle();
 
       expect(find.text('离线下载调度中心'), findsOneWidget);
