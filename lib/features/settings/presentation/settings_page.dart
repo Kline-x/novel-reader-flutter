@@ -56,8 +56,8 @@ class _SettingsPageState extends State<SettingsPage> {
       });
       try {
         ProviderScope.containerOf(context, listen: false)
-            .read(isFollowingSystemProvider.notifier)
-            .setFollow(isSys);
+            .read(themeModeProvider.notifier)
+            .setFollowSystem(isSys);
       } catch (_) {}
     }
   }
@@ -272,31 +272,76 @@ class _SettingsPageState extends State<SettingsPage> {
                         setState(() {
                           _followSystem = val;
                         });
-                        final platformBrightness =
-                            MediaQuery.of(context).platformBrightness;
-                        if (val) {
-                          await _storageService.setGlobalTheme('system');
-                        } else {
-                          await _storageService.setGlobalTheme(
-                              ThemeNotifier.paletteToString(colors.type));
-                        }
-                        if (!mounted) return;
                         try {
                           final container = ProviderScope.containerOf(
                               this.context,
                               listen: false);
-                          container
-                              .read(isFollowingSystemProvider.notifier)
-                              .setFollow(val);
-                          container
-                              .read(themeProvider.notifier)
-                              .setFollowSystem(val,
-                                  currentBrightness: platformBrightness);
+                          await container
+                              .read(themeModeProvider.notifier)
+                              .setFollowSystem(val);
                         } catch (_) {}
                       },
                     ),
                   ),
-                  Divider(height: 16.0, color: colors.borderSubtle),
+                  if (!_followSystem) ...[
+                    Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('当前显示模式',
+                          style: TextStyle(
+                              color: colors.textPrimary, fontSize: 14.0, fontWeight: FontWeight.w600)),
+                      subtitle: Text(colors.isDark ? '已切换为夜间模式' : '已切换为日间模式',
+                          style: TextStyle(
+                              fontSize: 11.5, color: colors.textSecondary)),
+                      trailing: GestureDetector(
+                        key: const ValueKey('btn_toggle_light_dark_manual'),
+                        onTap: () async {
+                          try {
+                            final container = ProviderScope.containerOf(
+                                this.context,
+                                listen: false);
+                            await container
+                                .read(themeModeProvider.notifier)
+                                .toggleLightDark();
+                          } catch (_) {}
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 6.0),
+                          decoration: BoxDecoration(
+                            color: colors.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10.0),
+                            border: Border.all(
+                              color: colors.accent.withValues(alpha: 0.3),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                colors.isDark
+                                    ? Icons.dark_mode_rounded
+                                    : Icons.light_mode_rounded,
+                                size: 15.0,
+                                color: colors.accent,
+                              ),
+                              const SizedBox(width: 4.0),
+                              Text(
+                                colors.isDark ? '暗夜深色' : '清爽浅色',
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  Divider(height: 16.0, thickness: 0.5, color: colors.borderSubtle),
                   Text(
                     '意境色彩雅集 · Modern Soft UI',
                     style: TextStyle(
@@ -316,7 +361,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         subtitle: '宋瓷天青 · 首选',
                         palette: SoftPaletteType.mistyJade,
                         accentColor: const Color(0xFF236B58),
-                        bgPreview: const Color(0xFFF8FAF7),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF111814)
+                            : const Color(0xFFF8FAF7),
                         isSelected: currentTheme == SoftPaletteType.mistyJade ||
                             currentTheme == SoftPaletteType.beanGreen ||
                             currentTheme == SoftPaletteType.paper,
@@ -330,8 +377,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         title: '暖杏流光',
                         subtitle: '暖阳蜜蜡 · 温润',
                         palette: SoftPaletteType.warmAmber,
-                        accentColor: const Color(0xFFB8621B),
-                        bgPreview: const Color(0xFFFAF8F5),
+                        accentColor: const Color(0xFFB86820),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF171310)
+                            : const Color(0xFFFAF7F2),
                         isSelected: currentTheme == SoftPaletteType.warmAmber ||
                             currentTheme == SoftPaletteType.twilightAmber ||
                             currentTheme == SoftPaletteType.parchment,
@@ -349,8 +398,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         title: '霁月清辉',
                         subtitle: '天光月华 · 澄澈',
                         palette: SoftPaletteType.moonSilver,
-                        accentColor: const Color(0xFF3A6289),
-                        bgPreview: const Color(0xFFF8F9FA),
+                        accentColor: const Color(0xFF6D599A),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF15121F)
+                            : const Color(0xFFF9F8FC),
                         isSelected: currentTheme == SoftPaletteType.moonSilver ||
                             currentTheme == SoftPaletteType.violetOrchid,
                         colors: colors,
@@ -361,10 +412,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         aliasKey: const ValueKey('theme_chip_darkJade'),
                         legacyKey: const ValueKey('theme_chip_night'),
                         title: '极夜星芒',
-                        subtitle: '纯黑极光 · OLED',
+                        subtitle: colors.isDark ? '纯黑极光 · OLED' : '钛金冰川 · 极客',
                         palette: SoftPaletteType.darkJade,
-                        accentColor: const Color(0xFF38D9A9),
-                        bgPreview: const Color(0xFF0A0D10),
+                        accentColor: colors.isDark
+                            ? const Color(0xFF38D9A9)
+                            : const Color(0xFF0D9488),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF111412)
+                            : const Color(0xFFF8F9FA),
                         isSelected: currentTheme == SoftPaletteType.darkJade ||
                             currentTheme == SoftPaletteType.auroraSpace ||
                             currentTheme == SoftPaletteType.night,
@@ -402,7 +457,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                   ),
-                  Divider(height: 1, color: colors.border),
+                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text('阅读时保持屏幕常亮',
@@ -417,7 +472,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                   ),
-                  Divider(height: 1, color: colors.border),
+                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
                   GestureDetector(
                     key: const ValueKey('settings_pinyin_rules_tile'),
                     behavior: HitTestBehavior.opaque,
@@ -485,7 +540,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                   ),
-                  Divider(height: 1, color: colors.border),
+                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
                   GestureDetector(
                     key: const ValueKey('settings_wifi_transfer_tile'),
                     behavior: HitTestBehavior.opaque,
@@ -629,27 +684,26 @@ class _SettingsPageState extends State<SettingsPage> {
     required bool isSelected,
     required SoftColors colors,
   }) {
-    final isDarkCard = palette == SoftPaletteType.auroraSpace ||
-        palette == SoftPaletteType.night ||
-        palette == SoftPaletteType.darkJade;
-
-    // 意境卡片文字高对比度保证：深色卡片使用亮白文字，浅色宣纸卡片使用浓墨深色文字，根治深色模式下的“白底白字”
+    // 意境卡片文字高对比度保证：跟随当前全局明暗模式，深色下使用亮白文字，浅色下使用浓墨深字
+    final bool isDarkCard = colors.isDark;
     final Color cardTitleColor =
-        isDarkCard ? const Color(0xFFF0F4F2) : const Color(0xFF17211C);
+        isDarkCard ? const Color(0xFFF5F5F7) : const Color(0xFF111827);
     final Color cardSubtitleColor =
-        isDarkCard ? const Color(0xFF8DA297) : const Color(0xFF586B62);
+        isDarkCard ? const Color(0xFFA1A1A6) : const Color(0xFF6E6E73);
 
     Widget cardBody = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: isDarkCard ? const Color(0xFF141C18) : bgPreview,
+        color: bgPreview,
         borderRadius:
             BorderRadius.circular(SoftDecorations.squircleSubCardRadius),
         border: Border.all(
           color: isSelected
               ? colors.accent
-              : colors.border.withValues(alpha: 0.8),
-          width: isSelected ? 2.0 : 1.0,
+              : (colors.isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05)),
+          width: isSelected ? 1.5 : 0.5,
         ),
         boxShadow: isSelected
             ? SoftDecorations.glowShadows(colors.accent)
@@ -737,12 +791,8 @@ class _SettingsPageState extends State<SettingsPage> {
         key: key,
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          setState(() => _followSystem = false);
-          _storageService
-              .setGlobalTheme(ThemeNotifier.paletteToString(palette));
           try {
             final container = ProviderScope.containerOf(context, listen: false);
-            container.read(isFollowingSystemProvider.notifier).setFollow(false);
             container.read(themeProvider.notifier).setPalette(palette);
           } catch (_) {}
         },

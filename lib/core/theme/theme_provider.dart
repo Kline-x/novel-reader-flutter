@@ -2,52 +2,36 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/reader/data/storage_service.dart';
 import 'soft_theme.dart';
 
 /// 全局主题与四大意境状态提供者 (theme_provider.dart)
-class ThemeNotifier extends StateNotifier<SoftPaletteType>
-    with WidgetsBindingObserver {
+/// 核心模型：四大意境 (ThemeMood) 与明暗模式 (ThemeMode: system / light / dark) 完全正交！
+/// - 开启跟随系统时：系统白天 -> 所选意境日间版；系统黑夜 -> 所选意境夜间版；意境永不丢失；
+/// - 关闭跟随系统时：手动指定日间或夜间，可任意搭配四大意境色彩。
+
+class ThemeNotifier extends StateNotifier<SoftPaletteType> {
   ThemeNotifier() : super(SoftPaletteType.mistyJade) {
-    WidgetsBinding.instance.addObserver(this);
     _loadInitialTheme();
   }
 
-  bool _isFollowingSystem = false;
-  bool get isFollowingSystem => _isFollowingSystem;
-
-  /// 当前系统亮度
-  static Brightness get systemBrightness =>
-      PlatformDispatcher.instance.platformBrightness;
-
-  /// 系统亮度对应的配色（浅色默认翠竹微雨，深色默认极夜星芒）
-  static SoftPaletteType paletteForBrightness(Brightness b) =>
-      b == Brightness.dark ? SoftPaletteType.darkJade : SoftPaletteType.mistyJade;
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  /// 系统深浅色切换时实时跟随
-  @override
-  void didChangePlatformBrightness() {
-    if (!_isFollowingSystem) return;
-    final next = paletteForBrightness(systemBrightness);
-    if (state != next) {
-      state = next;
-    }
-  }
+  static const String _keySelectedMood = 'novel_reader_selected_mood';
 
   Future<void> _loadInitialTheme() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final moodStr = prefs.getString(_keySelectedMood);
+      if (moodStr != null) {
+        final type = stringToPalette(moodStr);
+        if (type != null) {
+          state = type;
+          return;
+        }
+      }
+      // 兼容历史老字段
       final themeStr = await StorageService().getGlobalTheme();
-      if (themeStr == 'system') {
-        _isFollowingSystem = true;
-        state = paletteForBrightness(systemBrightness);
-      } else {
-        _isFollowingSystem = false;
+      if (themeStr != 'system' && themeStr != 'light' && themeStr != 'dark') {
         final type = stringToPalette(themeStr);
         if (type != null) {
           state = type;
@@ -56,24 +40,15 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
     } catch (_) {}
   }
 
-  void setPalette(SoftPaletteType type) {
-    _isFollowingSystem = false;
+  Future<void> setPalette(SoftPaletteType type) async {
     state = type;
-    StorageService().setGlobalTheme(paletteToString(type));
-  }
-
-  void setFollowSystem(bool follow, {Brightness? currentBrightness}) {
-    _isFollowingSystem = follow;
-    if (follow) {
-      StorageService().setGlobalTheme('system');
-      state = paletteForBrightness(currentBrightness ?? systemBrightness);
-    } else {
-      StorageService().setGlobalTheme(paletteToString(state));
-    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keySelectedMood, paletteToString(type));
+    } catch (_) {}
   }
 
   void nextPalette() {
-    _isFollowingSystem = false;
     const values = [
       SoftPaletteType.mistyJade,
       SoftPaletteType.warmAmber,
@@ -82,8 +57,7 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
       SoftPaletteType.paper,
     ];
     final nextIndex = (values.indexOf(state) + 1) % values.length;
-    state = values[nextIndex];
-    StorageService().setGlobalTheme(paletteToString(state));
+    setPalette(values[nextIndex]);
   }
 
   static SoftPaletteType? stringToPalette(String str) {
@@ -139,47 +113,137 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
         return 'paper';
     }
   }
+
+  /// 当前系统亮度
+  static Brightness get systemBrightness =>
+      PlatformDispatcher.instance.platformBrightness;
 }
 
-class FollowSystemNotifier extends StateNotifier<bool> {
-  FollowSystemNotifier() : super(false) {
-    _load();
+/// 明暗模式状态管理 (system / light / dark)
+class ThemeModeNotifier extends StateNotifier<ThemeMode>
+    with WidgetsBindingObserver {
+  ThemeModeNotifier() : super(ThemeMode.system) {
+    WidgetsBinding.instance.addObserver(this);
+    _loadInitialMode();
   }
 
-  Future<void> _load() async {
+  static const String _keyThemeMode = 'novel_reader_theme_mode';
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    if (state == ThemeMode.system) {
+      // 触发依赖它的 Provider 刷新
+      state = ThemeMode.system;
+    }
+  }
+
+  Future<void> _loadInitialMode() async {
     try {
-      final themeStr = await StorageService().getGlobalTheme();
-      state = themeStr == 'system';
+      final prefs = await SharedPreferences.getInstance();
+      final modeStr = prefs.getString(_keyThemeMode);
+      if (modeStr != null) {
+        if (modeStr == 'light') {
+          state = ThemeMode.light;
+        } else if (modeStr == 'dark') {
+          state = ThemeMode.dark;
+        } else {
+          state = ThemeMode.system;
+        }
+        return;
+      }
+
+      // 兼容老版本
+      final legacy = await StorageService().getGlobalTheme();
+      if (legacy == 'system') {
+        state = ThemeMode.system;
+      } else if (legacy == 'dark' || legacy == 'night') {
+        state = ThemeMode.dark;
+      } else {
+        // 默认跟随系统
+        state = ThemeMode.system;
+      }
     } catch (_) {}
   }
 
-  void setFollow(bool follow) {
-    state = follow;
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final modeStr = mode == ThemeMode.light
+          ? 'light'
+          : (mode == ThemeMode.dark ? 'dark' : 'system');
+      await prefs.setString(_keyThemeMode, modeStr);
+      await StorageService().setGlobalTheme(modeStr);
+    } catch (_) {}
+  }
+
+  Future<void> setFollowSystem(bool follow) async {
+    if (follow) {
+      await setThemeMode(ThemeMode.system);
+    } else {
+      // 关闭跟随系统时，默认保持当前系统实际呈现的明暗模式
+      final isDark =
+          PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+      await setThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
+    }
+  }
+
+  Future<void> toggleLightDark() async {
+    if (state == ThemeMode.dark) {
+      await setThemeMode(ThemeMode.light);
+    } else {
+      await setThemeMode(ThemeMode.dark);
+    }
   }
 }
 
-final isFollowingSystemProvider =
-    StateNotifierProvider<FollowSystemNotifier, bool>((ref) {
-  return FollowSystemNotifier();
-});
-
+/// 核心提供者定义
 final themeProvider =
     StateNotifierProvider<ThemeNotifier, SoftPaletteType>((ref) {
   return ThemeNotifier();
 });
 
+final themeModeProvider =
+    StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
+  return ThemeModeNotifier();
+});
+
+/// 是否跟随系统深浅色
+final isFollowingSystemProvider = Provider<bool>((ref) {
+  final mode = ref.watch(themeModeProvider);
+  return mode == ThemeMode.system;
+});
+
+/// 当前是否为深色模式（结合模式设置与系统亮度）
+final isDarkModeProvider = Provider<bool>((ref) {
+  final mode = ref.watch(themeModeProvider);
+  if (mode == ThemeMode.system) {
+    return PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+  }
+  return mode == ThemeMode.dark;
+});
+
+/// 合成最终当前生效的 SoftColors（意境 × 明暗完全联动）
 final softColorsProvider = Provider<SoftColors>((ref) {
   final paletteType = ref.watch(themeProvider);
-  final isFollowing = ref.watch(isFollowingSystemProvider);
+  final mode = ref.watch(themeModeProvider);
 
   final bool isDark;
-  if (isFollowing) {
-    isDark = ThemeNotifier.systemBrightness == Brightness.dark;
-  } else {
-    isDark = paletteType == SoftPaletteType.darkJade ||
+  if (mode == ThemeMode.system) {
+    isDark = PlatformDispatcher.instance.platformBrightness == Brightness.dark ||
         paletteType == SoftPaletteType.auroraSpace ||
+        paletteType == SoftPaletteType.darkJade ||
         paletteType == SoftPaletteType.night;
+  } else {
+    isDark = mode == ThemeMode.dark;
   }
 
   return SoftColors.fromType(paletteType, isDark: isDark);
 });
+

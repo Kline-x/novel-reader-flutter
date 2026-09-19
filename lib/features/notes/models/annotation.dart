@@ -111,3 +111,49 @@ class Annotation {
     );
   }
 }
+
+/// 划线选区维度模式
+enum AnnotationSelectionMode {
+  word('字/词', '🎯 选字'),
+  sentence('单句', '📄 选句'),
+  paragraph('整段', '📑 选段'),
+  line('单行', '📏 选行');
+
+  final String label;
+  final String badgeText;
+  const AnnotationSelectionMode(this.label, this.badgeText);
+}
+
+/// 某一种选区维度的候选项
+class AnnotationCandidate {
+  final String text;
+  final int charStart;
+  final int charEnd;
+  final AnnotationSelectionMode mode;
+
+  const AnnotationCandidate({
+    required this.text,
+    required this.charStart,
+    required this.charEnd,
+    required this.mode,
+  });
+}
+
+/// 划线选区上下文（包含各维度的预置候选及段落全文，用于微调扩缩）
+class AnnotationSelectionContext {
+  final AnnotationCandidate? wordCandidate;
+  final AnnotationCandidate? sentenceCandidate;
+  final AnnotationCandidate? paragraphCandidate;
+  final AnnotationCandidate? lineCandidate;
+  final String? fullContextText;
+  final int contextBaseOffset;
+
+  const AnnotationSelectionContext({
+    this.wordCandidate,
+    this.sentenceCandidate,
+    this.paragraphCandidate,
+    this.lineCandidate,
+    this.fullContextText,
+    this.contextBaseOffset = 0,
+  });
+}

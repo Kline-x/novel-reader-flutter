@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,10 +37,10 @@ class ReaderViewport extends StatefulWidget {
   final void Function(int charOffset, String pageSnippet)? onProgressChanged;
   final VoidCallback? onToggleBookmark;
   final VoidCallback? onOpenNotes;
-  /// 长按划线回调：带上用户真正按到的那一行文本与字符区间。
-  /// 此前是无参回调，阅读页只能拿本章第一段来划线——
-  /// 不管按在哪里，划的永远是章节开头那句。
+  /// 长按划线回调：带上用户真正按到的文本与起止字符区间（保持三参数向下兼容）
   final void Function(String text, int charStart, int charEnd)? onAddAnnotation;
+  /// 多维选区回调：提供字/句/段四维候选与微调上下文
+  final void Function(AnnotationSelectionContext selectionContext)? onAddAnnotationContext;
   final VoidCallback? onAddToShelf;
   final bool isInShelf;
   final List<Annotation> annotations;
@@ -71,6 +72,7 @@ class ReaderViewport extends StatefulWidget {
     this.onToggleBookmark,
     this.onOpenNotes,
     this.onAddAnnotation,
+    this.onAddAnnotationContext,
     this.onAddToShelf,
     this.isInShelf = false,
     this.annotations = const [],
@@ -214,7 +216,8 @@ class _ReaderViewportState extends State<ReaderViewport>
         widget.turnMode != oldWidget.turnMode ||
         widget.initialCharOffset != oldWidget.initialCharOffset) {
       if (widget.chapterTitle != oldWidget.chapterTitle ||
-          widget.initialCharOffset != oldWidget.initialCharOffset) {
+          widget.initialCharOffset != oldWidget.initialCharOffset ||
+          (oldWidget.paragraphs.isEmpty && widget.paragraphs.isNotEmpty)) {
         _activeCharOffset = widget.initialCharOffset;
         if (widget.initialCharOffset >= 999999 ||
             widget.initialCharOffset == -1) {
@@ -300,9 +303,8 @@ class _ReaderViewportState extends State<ReaderViewport>
       }
     });
 
-    if (_pageController.hasClients) {
-      _pageController.jumpToPage(_currentPageIndex);
-    }
+    // 严禁在此处同步调用 jumpToPage，避免因底层 PageView 尺寸尚未更新被强行 clamp 到 0！
+    // 统一交由 postFrameCallback 在完成 layout 后安全执行。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (_pageController.hasClients &&
@@ -342,7 +344,7 @@ class _ReaderViewportState extends State<ReaderViewport>
     }
   }
 
-  /// 把长按坐标映射到具体行，取该行的文本与字符区间用于划线
+  /// 把长按坐标映射到具体字符与语义维度（字、句、段、行），支持精准自由划线
   void _handleLongPress(Offset pos, PagingConfig config) {
     final cb = widget.onAddAnnotation;
     if (cb == null) return;
@@ -361,13 +363,124 @@ class _ReaderViewportState extends State<ReaderViewport>
       return;
     }
 
-    // PagePainter 的排版起点：正文顶边，首页还要跳过章节大标题
+    // 1. 纵向命中：定位到具体行
     final startY = config.padTop + (page.isFirstPage ? config.titleHeight : 0.0);
     final rawIndex = ((pos.dy - startY) / config.lineHeight).floor();
     final lineIndex = rawIndex.clamp(0, page.lines.length - 1);
     final line = page.lines[lineIndex];
 
-    cb(line.text.trim(), line.charStart, line.charEnd);
+    // 2. 横向命中：定位到该行内具体字符索引
+    final lineText = line.text;
+    final relativeX = math.max(0.0, pos.dx - config.hPad);
+    int hitCharInLine = 0;
+    double curX = line.isFirstLineOfPara ? (config.fontSize * 2.0) : 0.0;
+    for (int i = 0; i < lineText.length; i++) {
+      final code = lineText.codeUnitAt(i);
+      final charW = (code < 128) ? config.fontSize * 0.55 : config.fontSize;
+      if (relativeX < curX + charW * 0.7) {
+        hitCharInLine = i;
+        break;
+      }
+      curX += charW;
+      hitCharInLine = i;
+    }
+    if (lineText.isNotEmpty) {
+      hitCharInLine = hitCharInLine.clamp(0, lineText.length - 1);
+    }
+    final hitCharOffset = line.charStart + hitCharInLine;
+
+    // 3. 段落级上下文提取（寻找所属段落起止与完整文本）
+    final pIndex = line.paragraphIndex;
+    final rawPara = (pIndex >= 0 && pIndex < widget.paragraphs.length)
+        ? widget.paragraphs[pIndex]
+        : lineText;
+
+    int paraCharStart = line.charStart;
+    int paraCharEnd = line.charEnd;
+    for (final p in _pages) {
+      for (final l in p.lines) {
+        if (l.paragraphIndex == pIndex) {
+          if (l.isFirstLineOfPara) paraCharStart = l.charStart;
+          if (l.isLastLineOfPara) paraCharEnd = l.charEnd;
+        }
+      }
+    }
+
+    // 4. 计算四维语义候选
+    // (A) 单行
+    final lineCandidate = AnnotationCandidate(
+      text: lineText.trim(),
+      charStart: line.charStart,
+      charEnd: line.charEnd,
+      mode: AnnotationSelectionMode.line,
+    );
+
+    // (B) 选字/词
+    final maxOffsetInPara = math.max<int>(0, rawPara.length - 1);
+    final int relHitInPara =
+        (hitCharOffset - paraCharStart).clamp(0, maxOffsetInPara).toInt();
+    final wordText = (relHitInPara < rawPara.length)
+        ? rawPara.substring(relHitInPara, math.min<int>(relHitInPara + 1, rawPara.length))
+        : (lineText.isNotEmpty ? lineText[hitCharInLine] : '');
+    final wordCandidate = AnnotationCandidate(
+      text: wordText,
+      charStart: hitCharOffset,
+      charEnd: math.min<int>(hitCharOffset + 1, paraCharEnd),
+      mode: AnnotationSelectionMode.word,
+    );
+
+    // (C) 整段
+    final paraCandidate = AnnotationCandidate(
+      text: rawPara.trim(),
+      charStart: paraCharStart,
+      charEnd: paraCharEnd,
+      mode: AnnotationSelectionMode.paragraph,
+    );
+
+    // (D) 智能单句（前后寻找标点 。！？；…\n 和 .!?;）
+    const puncts = '。！？；…\n.!?;';
+    int sentStart = 0;
+    for (int i = relHitInPara - 1; i >= 0; i--) {
+      if (puncts.contains(rawPara[i])) {
+        sentStart = i + 1;
+        break;
+      }
+    }
+    int sentEnd = rawPara.length;
+    for (int i = relHitInPara; i < rawPara.length; i++) {
+      if (puncts.contains(rawPara[i])) {
+        sentEnd = i + 1;
+        if (sentEnd < rawPara.length && '”’）》〉"\''.contains(rawPara[sentEnd])) {
+          sentEnd++;
+        }
+        break;
+      }
+    }
+    final sentText = (sentStart < sentEnd && sentEnd <= rawPara.length)
+        ? rawPara.substring(sentStart, sentEnd).trim()
+        : lineText.trim();
+    final sentenceCandidate = AnnotationCandidate(
+      text: sentText.isNotEmpty ? sentText : lineText.trim(),
+      charStart: paraCharStart + sentStart,
+      charEnd: paraCharStart + sentEnd,
+      mode: AnnotationSelectionMode.sentence,
+    );
+
+    final selectionContext = AnnotationSelectionContext(
+      wordCandidate: wordCandidate,
+      sentenceCandidate: sentenceCandidate,
+      paragraphCandidate: paraCandidate,
+      lineCandidate: lineCandidate,
+      fullContextText: rawPara,
+      contextBaseOffset: paraCharStart,
+    );
+
+    widget.onAddAnnotationContext?.call(selectionContext);
+    cb(
+      sentenceCandidate.text.isNotEmpty ? sentenceCandidate.text : line.text.trim(),
+      sentenceCandidate.charStart,
+      sentenceCandidate.charEnd,
+    );
   }
 
   void _handleTap(TapUpDetails details, Size size) {
@@ -653,6 +766,10 @@ class _ReaderViewportState extends State<ReaderViewport>
             physics: const BouncingScrollPhysics(),
             itemCount: _pages.length,
             onPageChanged: (index) {
+              // 关键防洗拦截：若当前目标页处于后段，而底层初始化瞬态派发了 0，严禁洗刷真实进度
+              if (_currentPageIndex > 0 && index == 0 && _pages.length > 1) {
+                return;
+              }
               setState(() => _currentPageIndex = index);
               _notifyProgress();
             },
@@ -1199,6 +1316,32 @@ class _ReaderViewportState extends State<ReaderViewport>
                   ),
                   const SizedBox(width: 8.0),
                 ],
+                if (widget.onAddToShelf != null) ...[
+                  _buildSublimeTopBtn(
+                    key: const ValueKey('reader_top_shelf_btn'),
+                    icon: widget.isInShelf
+                        ? Icons.bookmark_added_rounded
+                        : Icons.library_add_outlined,
+                    tooltip: widget.isInShelf ? '已在书架' : '加入书架',
+                    softColors: softColors,
+                    highlightColor:
+                        widget.isInShelf ? softColors.accent : null,
+                    onTap: () {
+                      if (!widget.isInShelf) {
+                        widget.onAddToShelf!();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('《${widget.bookTitle}》已在书架中'),
+                            duration: const Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8.0),
+                ],
                 _buildTopOverflowMenu(softColors),
               ],
             ),
@@ -1510,23 +1653,6 @@ class _ReaderViewportState extends State<ReaderViewport>
   /// 低频操作收进「更多」菜单，给书名让出呼吸空间
   Widget _buildTopOverflowMenu(SoftColors softColors) {
     final entries = <PopupMenuEntry<String>>[];
-    if (widget.onAddToShelf != null) {
-      entries.add(PopupMenuItem<String>(
-        value: 'shelf',
-        enabled: !widget.isInShelf,
-        child: Row(children: [
-          Icon(
-            widget.isInShelf
-                ? Icons.check_circle_rounded
-                : Icons.library_add_outlined,
-            size: 18.0,
-            color: widget.isInShelf ? softColors.accent : null,
-          ),
-          const SizedBox(width: 10.0),
-          Text(widget.isInShelf ? '已入架' : '加入书架'),
-        ]),
-      ));
-    }
     if (widget.onOpenNotes != null) {
       entries.add(const PopupMenuItem<String>(
         value: 'notes',

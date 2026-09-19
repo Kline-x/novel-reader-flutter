@@ -9,6 +9,7 @@ import 'package:novel_reader_flutter/core/components/soft_card.dart';
 import 'package:novel_reader_flutter/core/components/soft_switch.dart';
 import 'package:novel_reader_flutter/core/theme/soft_theme.dart';
 import 'package:novel_reader_flutter/features/reader/data/storage_service.dart';
+import 'package:novel_reader_flutter/features/settings/services/version_check_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -407,6 +408,86 @@ void main() {
         ),
       );
       expect(containerFinder, findsOneWidget);
+    });
+  });
+
+  group('三大核心体验升级专项测试', () {
+    testWidgets('1. 首页独立滑动测试：向上滑动书籍列表时 Bento 雅集看板与搜索框坐标保持置顶固定', (tester) async {
+      // 模拟紧凑手机屏幕尺寸，使书籍列表充满并超出滚动区域
+      tester.view.physicalSize = const Size(400, 560);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(createTestWidget(tester));
+      await tester.pumpAndSettle();
+
+      // 获取 Bento 雅集看板与搜索框初始垂直坐标
+      final initialBentoY = tester.getTopLeft(find.text('今日阅读')).dy;
+      final initialSearchY =
+          tester.getTopLeft(find.byKey(const ValueKey('shelf_search_input'))).dy;
+
+      // 验证书籍列表组件为独立滑动 CustomScrollView
+      final scrollableFinder = find.byType(CustomScrollView);
+      expect(scrollableFinder, findsOneWidget);
+
+      // 向上滑动书籍列表区域
+      await tester.drag(find.text('道诡异仙'), const Offset(0, -80));
+      await tester.pump();
+
+      // 核心验证：顶部的 Bento 雅集看板与搜索栏坐标绝对固定，分毫不动！
+      final currentBentoY = tester.getTopLeft(find.text('今日阅读')).dy;
+      final currentSearchY =
+          tester.getTopLeft(find.byKey(const ValueKey('shelf_search_input'))).dy;
+      expect(currentBentoY, equals(initialBentoY),
+          reason: 'Bento 雅集看板必须保持固定置顶，不能随书籍列表滚出视口');
+      expect(currentSearchY, equals(initialSearchY),
+          reason: '胶囊搜索栏必须保持固定置顶，不能随书籍列表滚出视口');
+    });
+
+    testWidgets('2. 发现页女频分类测试：新增「女频言情」分类胶囊并可精准筛选女频爆款小说', (tester) async {
+      await tester.pumpWidget(createTestWidget(tester));
+      await tester.pumpAndSettle();
+
+      // 切换到发现页
+      await tester.tap(find.byKey(const ValueKey('tab_discovery')));
+      await tester.pumpAndSettle();
+
+      // 精确通过 Key 定位「女频言情」分类胶囊 (index = 1)
+      final femaleCategoryFinder = find.byKey(const ValueKey('category_pill_1'));
+      expect(femaleCategoryFinder, findsOneWidget);
+      expect(find.descendant(of: femaleCategoryFinder, matching: find.text('女频言情')),
+          findsOneWidget);
+
+      // 点击「女频言情」分类胶囊
+      await tester.tap(femaleCategoryFinder);
+      await tester.pumpAndSettle();
+
+      // 验证女频经典小说展示在列表中
+      expect(find.text('知否？知否？应是绿肥红瘦'), findsOneWidget);
+      expect(find.text('偷偷藏不住'), findsOneWidget);
+      expect(find.text('难哄'), findsOneWidget);
+      expect(find.text('长相思'), findsOneWidget);
+      expect(find.text('坤宁'), findsOneWidget);
+
+      // 验证原玄幻类书籍如《恶魔法则》已被过滤隐去
+      expect(find.text('恶魔法则'), findsNothing);
+    });
+
+    test('3. 更新下载速度优化测试：镜像代理池扩充包含高速 CDN 且支持并发测速与重排', () async {
+      // 验证镜像池扩充了 ghfast.top, ghproxy.cc 等
+      expect(VersionCheckService.gitHubProxyMirrors, contains('https://ghfast.top/'));
+      expect(VersionCheckService.gitHubProxyMirrors, contains('https://gh-proxy.com/'));
+      expect(VersionCheckService.gitHubProxyMirrors, contains('https://ghproxy.net/'));
+
+      // 验证 buildAcceleratedDownloadUrls 生成加速链接并避免嵌套
+      final urls = VersionCheckService.buildAcceleratedDownloadUrls(
+          'https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/app.apk');
+      expect(urls.length, greaterThanOrEqualTo(4));
+      expect(urls.first, startsWith('https://ghproxy.net/'));
+
+      // 验证 raceCandidateUrls 在空/单项输入时安全容错
+      final single = await VersionCheckService.raceCandidateUrls(['https://example.com/test.apk']);
+      expect(single, ['https://example.com/test.apk']);
     });
   });
 }

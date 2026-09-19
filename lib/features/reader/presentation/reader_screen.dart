@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../local_books/services/local_book_service.dart';
 import '../../shelf/models/book_item.dart';
 import '../../sources/services/builtin_sources.dart';
@@ -28,7 +30,7 @@ import 'typography_drawer.dart';
 
 /// 完整全功能阅读器页面 (reader_screen.dart)
 /// 组装排版视口、手势翻页、目录抽屉、排版抽屉与换源弹窗
-class ReaderScreen extends StatefulWidget {
+class ReaderScreen extends ConsumerStatefulWidget {
   final String bookId;
   final String bookTitle;
   final String author;
@@ -53,10 +55,11 @@ class ReaderScreen extends StatefulWidget {
   });
 
   @override
-  State<ReaderScreen> createState() => _ReaderScreenState();
+  ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
-class _ReaderScreenState extends State<ReaderScreen> {
+class _ReaderScreenState extends ConsumerState<ReaderScreen>
+    with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final StorageService _storage = StorageService();
   final DownloadService _downloadService = DownloadService();
@@ -68,6 +71,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   bool _isInShelf = false;
   List<Annotation> _annotations = [];
   double _ttsMiniOffsetY = 0.0;
+  AnnotationSelectionContext? _pendingSelectionContext;
 
   /// 当前页首行文本，用于书签摘要（避免每条书签都显示本章第一段）
   String _currentPageSnippet = '';
@@ -91,6 +95,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // 启用全局统一的透明沉浸式布局，不隐藏系统栏，消除页面跳转与进退砸落 (解决 1.4 / T1)
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _currentChapterIndex = widget.initialChapterIndex;
@@ -104,7 +109,27 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _fontSize = s.fontSize;
     _lineHeight = s.lineHeight;
     final tIdx = s.themeIndex.clamp(0, ReaderThemeOption.presets.length - 1);
-    _theme = ReaderThemeOption.presets[tIdx];
+    var initTheme = ReaderThemeOption.presets[tIdx];
+
+    // 全局明暗与跟随系统自适应初始化（支持单元测试环境优雅降级）
+    bool isDarkGlobal = false;
+    bool followSystem = true;
+    try {
+      isDarkGlobal = ref.read(isDarkModeProvider);
+      followSystem = ref.read(isFollowingSystemProvider);
+    } catch (_) {
+      isDarkGlobal =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+              Brightness.dark;
+    }
+    if (isDarkGlobal && !initTheme.isDark) {
+      initTheme = ReaderThemeOption.presets
+          .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+    } else if (!isDarkGlobal && initTheme.isDark && followSystem) {
+      initTheme = ReaderThemeOption.presets[0];
+    }
+    _theme = initTheme;
+
     _turnMode = PageTurnMode.values.firstWhere(
       (m) => m.name == s.turnMode,
       orElse: () => PageTurnMode.slide,
@@ -144,11 +169,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   void dispose() {
-    _storage.saveReadingProgress(
-      widget.bookId,
-      chapterIndex: _currentChapterIndex,
-      charOffset: _currentCharOffset,
-    );
+    if (_currentChapterIndex > 0 || _currentCharOffset > 0) {
+      _storage.saveReadingProgress(
+        widget.bookId,
+        chapterIndex: _currentChapterIndex,
+        charOffset: _currentCharOffset,
+      );
+    }
     // 累加本次阅读实际时长至今日统计
     final durationSec = DateTime.now().difference(_sessionStartTime).inSeconds;
     _storage.addReadingSeconds(durationSec);
@@ -168,7 +195,36 @@ class _ReaderScreenState extends State<ReaderScreen> {
         ),
       );
     });
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    final systemDark =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark;
+    bool follow = true;
+    try {
+      follow = ref.read(isFollowingSystemProvider);
+    } catch (_) {}
+    if (follow && mounted) {
+      if (systemDark && !_theme.isDark) {
+        setState(() {
+          _theme = ReaderThemeOption.presets
+              .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+        });
+        _applySystemBarTheme();
+        _persistSettings();
+      } else if (!systemDark && _theme.isDark) {
+        setState(() {
+          _theme = ReaderThemeOption.presets[0];
+        });
+        _applySystemBarTheme();
+        _persistSettings();
+      }
+    }
   }
 
   Future<void> _checkShelfStatus() async {
@@ -234,12 +290,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _initChaptersAndContent() async {
-    // 1. 优先使用外部显式指定的章节与偏移（例如从目录跳转或笔记定位）
+    // 1. 优先读取持久化的真实进度作为对照
+    final savedProgress = await _storage.getReadingProgress(widget.bookId);
+
     if (widget.initialChapterIndex > 0 || widget.initialCharOffset > 0) {
       _currentChapterIndex = widget.initialChapterIndex;
       _currentCharOffset = widget.initialCharOffset;
+      // 若外部未提供具体字符偏移（为0），但数据库中存在对应章节的精准偏移，予以恢复
+      if (_currentCharOffset <= 0 &&
+          savedProgress != null &&
+          savedProgress.chapterIndex == _currentChapterIndex &&
+          savedProgress.charOffset > 0) {
+        _currentCharOffset = savedProgress.charOffset;
+      }
     } else {
-      final savedProgress = await _storage.getReadingProgress(widget.bookId);
       if (savedProgress != null) {
         _currentChapterIndex = savedProgress.chapterIndex;
         _currentCharOffset = savedProgress.charOffset;
@@ -561,12 +625,34 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Future<void> _loadSettings() async {
     final s = await _storage.getReaderSettings();
     if (mounted) {
+      bool isDarkGlobal = false;
+      bool followSystem = true;
+      try {
+        isDarkGlobal = ref.read(isDarkModeProvider);
+        followSystem = ref.read(isFollowingSystemProvider);
+      } catch (_) {
+        isDarkGlobal =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                Brightness.dark;
+      }
+
       setState(() {
         _fontSize = s.fontSize;
         _lineHeight = s.lineHeight;
         final tIdx =
             s.themeIndex.clamp(0, ReaderThemeOption.presets.length - 1);
-        _theme = ReaderThemeOption.presets[tIdx];
+        var targetTheme = ReaderThemeOption.presets[tIdx];
+
+        // 核心修复：跟随系统必须对阅读页生效，深色模式绝不被浅色历史偏好覆盖
+        if (followSystem || isDarkGlobal) {
+          if (isDarkGlobal && !targetTheme.isDark) {
+            targetTheme = ReaderThemeOption.presets
+                .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+          } else if (!isDarkGlobal && targetTheme.isDark && followSystem) {
+            targetTheme = ReaderThemeOption.presets[0];
+          }
+        }
+        _theme = targetTheme;
         _turnMode = PageTurnMode.values.firstWhere(
           (m) => m.name == s.turnMode,
           orElse: () => PageTurnMode.slide,
@@ -590,16 +676,22 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _toggleNightMode() {
+    final nextDark = !_theme.isDark;
     setState(() {
-      if (_theme.isDark) {
-        _theme = ReaderThemeOption.presets[0]; // 浅色纸白/羊皮纸
-      } else {
+      if (nextDark) {
         _theme = ReaderThemeOption.presets
             .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+      } else {
+        _theme = ReaderThemeOption.presets[0]; // 浅色纸白/羊皮纸
       }
     });
     _applySystemBarTheme();
     _persistSettings();
+    try {
+      ref.read(themeModeProvider.notifier).setThemeMode(
+            nextDark ? ThemeMode.dark : ThemeMode.light,
+          );
+    } catch (_) {}
   }
 
   Future<void> _nextChapter() async {
@@ -1342,7 +1434,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   /// [lineText] / [charStart] / [charEnd] 来自用户长按命中的那一行；
   /// charStart 为 -1 表示拿不到行坐标（如滚动模式），此时退回段落首句。
-  void _openAddAnnotation(String lineText, int charStart, int charEnd) async {
+  void _openAddAnnotation(
+    String lineText,
+    int charStart,
+    int charEnd, {
+    AnnotationSelectionContext? selectionContext,
+  }) async {
     final currentTitle =
         _chapters.isNotEmpty && _currentChapterIndex < _chapters.length
             ? _chapters[_currentChapterIndex].title
@@ -1368,6 +1465,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       charEnd: end,
       selectedText: excerpt,
       isDark: _theme.isDark,
+      selectionContext: selectionContext,
     );
 
     if (result != null) {
@@ -1388,6 +1486,26 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听全局深浅模式变化（系统变化或设置切换），实现阅读页跟随系统
+    try {
+      ref.listen<bool>(isDarkModeProvider, (previous, isDark) {
+        if (isDark && !_theme.isDark) {
+          setState(() {
+            _theme = ReaderThemeOption.presets
+                .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+          });
+          _applySystemBarTheme();
+          _persistSettings();
+        } else if (!isDark && _theme.isDark) {
+          setState(() {
+            _theme = ReaderThemeOption.presets[0];
+          });
+          _applySystemBarTheme();
+          _persistSettings();
+        }
+      });
+    } catch (_) {}
+
     final isLocal =
         widget.bookId.startsWith('local_') || (widget.book?.isLocal ?? false);
     final currentTitle =
@@ -1457,7 +1575,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
               },
               onToggleBookmark: _toggleBookmark,
               onOpenNotes: _openNotesSheet,
-              onAddAnnotation: _openAddAnnotation,
+              onAddAnnotationContext: (ctx) {
+                _pendingSelectionContext = ctx;
+              },
+              onAddAnnotation: (text, start, end) {
+                final ctx = _pendingSelectionContext;
+                _pendingSelectionContext = null;
+                _openAddAnnotation(text, start, end, selectionContext: ctx);
+              },
               isBookmarked: _isCurrentPageBookmarked,
             ),
             Positioned(

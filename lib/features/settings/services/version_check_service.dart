@@ -286,11 +286,13 @@ class VersionCheckService {
     'https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/version_manifest.json',
   ];
 
-  /// 国内 GitHub Release 代理镜像加速节点列表 (方案 1：国内全自动代理镜像加速)
+  /// 国内 GitHub Release 代理镜像加速节点列表 (扩充全国多线路高可用代理矩阵)
   static const List<String> gitHubProxyMirrors = [
     'https://ghproxy.net/',
-    'https://mirror.ghproxy.com/',
+    'https://ghfast.top/',
     'https://gh-proxy.com/',
+    'https://mirror.ghproxy.com/',
+    'https://ghproxy.cc/',
   ];
 
   /// 生成国内高可用加速下载候选列表（方案 1：GitHub Release 镜像代理全自动加速）
@@ -320,6 +322,51 @@ class VersionCheckService {
     // 将纯净目标链接排入候选队列（作为备用或海外网络兜底）
     result.add(cleanUrl);
     return result.toSet().toList();
+  }
+
+  /// 对一组候选下载节点并发发起轻量测速探测，按首包/握手耗时从快到慢重排候选队列
+  static Future<List<String>> raceCandidateUrls(
+    List<String> urls, {
+    Duration timeout = const Duration(milliseconds: 1500),
+  }) async {
+    if (urls.length <= 1) return urls;
+
+    final results = <String, int>{};
+    final futures = <Future<void>>[];
+
+    for (final url in urls) {
+      futures.add(() async {
+        final sw = Stopwatch()..start();
+        try {
+          final dio = Dio(BaseOptions(
+            connectTimeout: timeout,
+            receiveTimeout: timeout,
+            headers: {'range': 'bytes=0-1024'},
+          ));
+          final res = await dio.head(url);
+          if (res.statusCode == 200 || res.statusCode == 206) {
+            results[url] = sw.elapsedMilliseconds;
+          }
+        } catch (_) {
+          // 探测失败或超时，排在后面
+        }
+      }());
+    }
+
+    await Future.wait(futures);
+
+    if (results.isEmpty) {
+      return urls;
+    }
+
+    final sorted = urls.toList()
+      ..sort((a, b) {
+        final tA = results[a] ?? 999999;
+        final tB = results[b] ?? 999999;
+        return tA.compareTo(tB);
+      });
+
+    return sorted;
   }
 
   /// 预置的默认 Mock 最新稳定版本信息 (1.0.1+2002, 跨平台完整配置)
@@ -488,7 +535,7 @@ class VersionCheckService {
   /// - 其他：打开默认浏览器直达发布地址。
   Future<void> executePlatformUpdate(
     AppVersionInfo info, {
-    required void Function(double progress) onProgress,
+    required void Function(double progress, [String? speedText]) onProgress,
     CancelToken? cancelToken,
   }) async {
     final platformInfo = info.currentPlatformInfo;
@@ -498,9 +545,9 @@ class VersionCheckService {
       final targetStore = platformInfo?.storeUrl ??
           platformInfo?.backupUrl ??
           'itms-apps://itunes.apple.com/app/id6478901234';
-      onProgress(0.5);
+      onProgress(0.5, null);
       await openExternalUrl(targetStore);
-      onProgress(1.0);
+      onProgress(1.0, null);
       return;
     }
 
@@ -509,9 +556,9 @@ class VersionCheckService {
       final marketUrl = platformInfo?.storeUrl ??
           'appmarket://details?id=com.kline.novelreader';
       if (platformInfo?.installMode == 'app_market') {
-        onProgress(0.5);
+        onProgress(0.5, null);
         await openExternalUrl(marketUrl);
-        onProgress(1.0);
+        onProgress(1.0, null);
         return;
       }
     }
@@ -527,19 +574,19 @@ class VersionCheckService {
     }
 
     // 4. 桌面端 / Web 端：打开下载直链或官网
-    onProgress(0.5);
+    onProgress(0.5, null);
     await openExternalUrl(info.downloadUrl);
-    onProgress(1.0);
+    onProgress(1.0, null);
   }
 
   /// 使用 Dio 流式下载 APK 并唤起 Android 覆盖安装
   ///
   /// - [info]: 待更新的版本信息
-  /// - [onProgress]: 下载进度回调 (0.0 ~ 1.0)
+  /// - [onProgress]: 下载进度与速率回调 (progress: 0.0 ~ 1.0, speedText: '3.5 MB/s')
   /// - [cancelToken]: 可选的取消令牌
   Future<void> downloadAndInstallApk(
     AppVersionInfo info, {
-    required void Function(double progress) onProgress,
+    required void Function(double progress, [String? speedText]) onProgress,
     CancelToken? cancelToken,
   }) async {
     final tempDir = await getTemporaryDirectory();
@@ -550,25 +597,49 @@ class VersionCheckService {
     bool downloadSuccess = false;
     // 按设备 ABI 选择匹配的安装包，避免 v7a 设备下到 arm64 包装不上
     final platformInfo = info.currentPlatformInfo?.resolveForAbis(deviceAbis);
-    final candidates = <String>{
+    final rawCandidates = <String>{
       ...buildAcceleratedDownloadUrls(platformInfo?.backupUrl),
       ...buildAcceleratedDownloadUrls(platformInfo?.downloadUrl),
       ...buildAcceleratedDownloadUrls(info.downloadUrl),
     }.toList();
+
+    // 核心提速优化 1：启动大文件下载前，并发对全部镜像节点执行测速探测，优先选用响应最快的高速节点
+    final candidates = await raceCandidateUrls(rawCandidates);
 
     for (final url in candidates) {
       if (cancelToken?.isCancelled == true) {
         return;
       }
       try {
+        int lastReceived = 0;
+        int lastTimestamp = DateTime.now().millisecondsSinceEpoch;
+        double currentSpeedMB = 0.0;
+
         final response = await _dio.download(
           url,
           saveFile.path,
           cancelToken: cancelToken,
+          options: Options(
+            receiveTimeout: const Duration(seconds: 40),
+            sendTimeout: const Duration(seconds: 15),
+          ),
           onReceiveProgress: (received, total) {
             if (total > 0) {
+              final now = DateTime.now().millisecondsSinceEpoch;
+              final timeDelta = now - lastTimestamp;
+              if (timeDelta >= 700) {
+                final bytesDelta = received - lastReceived;
+                currentSpeedMB =
+                    (bytesDelta / (timeDelta / 1000.0)) / (1024 * 1024);
+                lastReceived = received;
+                lastTimestamp = now;
+              }
+
               final progress = (received / total).clamp(0.0, 1.0);
-              onProgress(progress);
+              final speedStr = currentSpeedMB > 0.05
+                  ? '${currentSpeedMB.toStringAsFixed(1)} MB/s'
+                  : '';
+              onProgress(progress, speedStr.isNotEmpty ? speedStr : null);
             }
           },
         );
@@ -603,14 +674,11 @@ class VersionCheckService {
     }
 
     if (!downloadSuccess) {
-      // 此前这里会伪造一个文本文件充当 APK、仿真进度到 100% 再唤起系统安装器，
-      // 用户在断网时就会看到"下载完成"后紧跟"解析软件包时出现问题"。
-      // 现在直接抛错，由 UI 层给出可理解的失败提示。
       throw Exception('所有下载节点均不可用或安装包校验失败，请检查网络后重试');
     }
 
     // 确保进度标记为 100%
-    onProgress(1.0);
+    onProgress(1.0, null);
 
     // 唤起系统安装器
     await installApk(saveFile.path);

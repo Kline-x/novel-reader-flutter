@@ -223,8 +223,8 @@ class DownloadService {
     final queue = Queue<ChapterItem>.from(pendingChapters);
     _taskQueues[bookId] = queue;
 
-    // 启动并发工作池（默认 3 个并发 worker）
-    const concurrency = 3;
+    // 启动高并发工作池（由 3 个并发 worker 提升至 6 个，大幅缩减批量下载时间）
+    const concurrency = 6;
     final workers = <Future<void>>[];
     for (var i = 0; i < concurrency; i++) {
       workers.add(_runWorker(bookId, bookTitle, totalTarget));

@@ -260,8 +260,25 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
     }
   }
 
-  void _openReader({int? chapterIndex}) {
-    final targetCh = chapterIndex ?? _currentChapterIndex;
+  Future<void> _openReader({int? chapterIndex}) async {
+    var targetCh = chapterIndex ?? _currentChapterIndex;
+    var targetOffset = chapterIndex != null ? 0 : _currentCharOffset;
+
+    if (chapterIndex == null) {
+      final prog = await _storageService.getReadingProgress(_book.id);
+      if (prog != null) {
+        targetCh = prog.chapterIndex;
+        targetOffset = prog.charOffset;
+        if (mounted) {
+          setState(() {
+            _currentChapterIndex = targetCh;
+            _currentCharOffset = targetOffset;
+          });
+        }
+      }
+    }
+
+    if (!mounted) return;
     Navigator.of(context)
         .push(
       MaterialPageRoute(
@@ -270,7 +287,7 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
           bookTitle: _book.title,
           author: _book.author,
           initialChapterIndex: targetCh,
-          initialCharOffset: chapterIndex != null ? 0 : _currentCharOffset,
+          initialCharOffset: targetOffset,
           bookUrl: _book.bookUrl,
           sourceName: _book.sourceName,
           sourceId: _book.sourceId,
@@ -355,7 +372,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                   physics: const BouncingScrollPhysics(),
                   itemCount: sources.length,
                   separatorBuilder: (_, __) => Divider(
-                      height: 1.0, color: colors.border.withValues(alpha: 0.5)),
+                      height: 0.5,
+                      thickness: 0.5,
+                      color: colors.borderSubtle),
                   itemBuilder: (context, index) {
                     final s = sources[index];
                     final isCurrent = s.name == _book.sourceName;
@@ -1268,9 +1287,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
   Widget _buildStatDivider(SoftColors colors) {
     return Container(
-      width: 1.0,
-      height: 24.0,
-      color: colors.border,
+      width: 0.5,
+      height: 20.0,
+      color: colors.borderSubtle,
     );
   }
 
@@ -1325,13 +1344,12 @@ class _BookDetailTocHeaderDelegate extends SliverPersistentHeaderDelegate {
           height: 46.0,
           decoration: BoxDecoration(
             color: (isDark ? colors.background : colors.surface)
-                .withValues(alpha: isDark ? 0.88 : 0.92),
-            border: Border(
-              bottom: BorderSide(
-                color: colors.border.withValues(alpha: isDark ? 0.3 : 0.5),
-                width: 0.8,
-              ),
-            ),
+                .withValues(alpha: (overlapsContent || shrinkOffset > 0)
+                    ? (isDark ? 0.88 : 0.92)
+                    : 0.0),
+            boxShadow: (overlapsContent || shrinkOffset > 0)
+                ? SoftDecorations.softShadows(colors, elevation: 0.5)
+                : null,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Row(

@@ -66,46 +66,46 @@ class SoftColors {
   });
 
   // ===================== 1. 苍岚烟雨 (mistyJade) =====================
-  /// 苍岚烟雨 · 日间 (Light) - 宋瓷天青
+  /// 苍岚烟雨 · 日间 (Light) - 宋瓷天青 (Apple 级纯净通透玉白)
   static const mistyJadeLight = SoftColors(
     type: SoftPaletteType.mistyJade,
     title: '苍岚烟雨',
-    subtitle: '宋瓷天青 · 雨后山色极度静谧',
+    subtitle: '宋瓷天青 · 雨后山色极度清朗',
     background: Color(0xFFF8FAF7),
-    surface: Color(0xFFEEF3EE),
+    surface: Color(0xFFF0F5F2),
     card: Color(0xFFFFFFFF),
-    textPrimary: Color(0xFF17211C),
-    textSecondary: Color(0xFF586B62),
-    textTertiary: Color(0xFF92A39B),
+    textPrimary: Color(0xFF111C16),
+    textSecondary: Color(0xFF53675D),
+    textTertiary: Color(0xFF8A9E94),
     accent: Color(0xFF236B58),
-    accentSoft: Color(0x17236B58), // ~9% 柔青
-    accentGlow: Color(0x38236B58), // ~22% 微晕
-    border: Color(0x0D17211C),
-    borderSubtle: Color(0x0D17211C), // rgba(23, 33, 28, 0.05)
-    borderInner: Color(0xE6FFFFFF), // 90% 白玉内高光 (rgba(255, 255, 255, 0.9))
+    accentSoft: Color(0x14236B58),
+    accentGlow: Color(0x30236B58),
+    border: Color(0x0A000000), // 0.5dp 极淡微羽化，告别显 low 的粗线
+    borderSubtle: Color(0x08000000),
+    borderInner: Color(0xE6FFFFFF),
     isDark: false,
-    meshGlow1: Color(0x59BBF7D0),
-    meshGlow2: Color(0x47FED7AA),
-    meshGlow3: Color(0x4DBAE6FD),
+    meshGlow1: Color(0x40A7F3D0),
+    meshGlow2: Color(0x33FED7AA),
+    meshGlow3: Color(0x38BAE6FD),
   );
 
-  /// 苍岚烟雨 · 夜间 (Dark) - 墨玉深夜
+  /// 苍岚烟雨 · 夜间 (Dark) - 墨玉深夜 (Apple OLED 极致纯黑)
   static const mistyJadeDark = SoftColors(
     type: SoftPaletteType.mistyJade,
     title: '苍岚烟雨',
     subtitle: '宋瓷天青 · 墨玉生机夜读深空',
-    background: Color(0xFF0C110E),
-    surface: Color(0xFF141C18),
-    card: Color(0xFF1B2420),
-    textPrimary: Color(0xFFE2ECE7),
+    background: Color(0xFF000000),
+    surface: Color(0xFF111814),
+    card: Color(0xFF19221D),
+    textPrimary: Color(0xFFF0F5F2),
     textSecondary: Color(0xFF8DA297),
     textTertiary: Color(0xFF5B7066),
-    accent: Color(0xFF38D9A9),
-    accentSoft: Color(0x1F38D9A9), // ~12%
-    accentGlow: Color(0x4738D9A9), // ~28%
-    border: Color(0x1AFFFFFF),
-    borderSubtle: Color(0x0FFFFFFF), // 6%
-    borderInner: Color(0x0DFFFFFF), // 5%
+    accent: Color(0xFF34D399),
+    accentSoft: Color(0x1F34D399),
+    accentGlow: Color(0x4734D399),
+    border: Color(0x14FFFFFF),
+    borderSubtle: Color(0x0DFFFFFF),
+    borderInner: Color(0x0DFFFFFF),
     isDark: true,
     meshGlow1: Color(0x1A10B981),
     meshGlow2: Color(0x1414B8A6),
@@ -113,45 +113,45 @@ class SoftColors {
   );
 
   // ===================== 2. 暮色暖珀 (twilightAmber / warmAmber) =====================
-  /// 暮色暖珀 · 日间 (Light) - 焦糖蜜金
+  /// 暮色暖珀 · 日间 (Light) - 焦糖蜜金 (纯净暖阳白，彻底告别发灰浑浊)
   static const twilightAmberLight = SoftColors(
     type: SoftPaletteType.twilightAmber,
     title: '暮色暖珀',
-    subtitle: '焦糖蜜金 · 古典羊皮纸温意',
+    subtitle: '焦糖蜜金 · 暖阳宣纸温润明亮',
     background: Color(0xFFFAF7F2),
-    surface: Color(0xFFF2EDE4),
+    surface: Color(0xFFF4EFE9),
     card: Color(0xFFFFFFFF),
-    textPrimary: Color(0xFF231B15),
-    textSecondary: Color(0xFF736458),
-    textTertiary: Color(0xFF9E8E82),
+    textPrimary: Color(0xFF1F1813),
+    textSecondary: Color(0xFF6B5D52),
+    textTertiary: Color(0xFF9E8F84),
     accent: Color(0xFFB86820),
-    accentSoft: Color(0x17B86820), // ~9%
-    accentGlow: Color(0x38B86820), // ~22%
-    border: Color(0x0D231B15),
-    borderSubtle: Color(0x0D231B15), // rgba(35, 27, 21, 0.05)
-    borderInner: Color(0xE6FFFFFF), // 90% 白玉内高光
+    accentSoft: Color(0x14B86820),
+    accentGlow: Color(0x30B86820),
+    border: Color(0x0A000000),
+    borderSubtle: Color(0x08000000),
+    borderInner: Color(0xF2FFFFFF),
     isDark: false,
-    meshGlow1: Color(0x59FED7AA),
-    meshGlow2: Color(0x40FDE68A),
-    meshGlow3: Color(0x40EDE9FE),
+    meshGlow1: Color(0x40FED7AA),
+    meshGlow2: Color(0x33FDE68A),
+    meshGlow3: Color(0x33EDE9FE),
   );
 
-  /// 暮色暖珀 · 夜间 (Dark) - 炭火微烛
+  /// 暮色暖珀 · 夜间 (Dark) - 炭火微烛 (Apple OLED 纯黑)
   static const twilightAmberDark = SoftColors(
     type: SoftPaletteType.twilightAmber,
     title: '暮色暖珀',
     subtitle: '焦糖蜜金 · 炭火微烛夜读安眠',
-    background: Color(0xFF120F0D),
-    surface: Color(0xFF1C1814),
-    card: Color(0xFF26201B),
-    textPrimary: Color(0xFFEFE8E2),
+    background: Color(0xFF000000),
+    surface: Color(0xFF171310),
+    card: Color(0xFF221C17),
+    textPrimary: Color(0xFFF5EFEB),
     textSecondary: Color(0xFFA8988C),
     textTertiary: Color(0xFF6E6055),
-    accent: Color(0xFFEAA055),
-    accentSoft: Color(0x24EAA055), // ~14%
-    accentGlow: Color(0x4DEAA055), // ~30%
-    border: Color(0x1AFFFFFF),
-    borderSubtle: Color(0x0FFFFFFF),
+    accent: Color(0xFFE89A4B),
+    accentSoft: Color(0x24E89A4B),
+    accentGlow: Color(0x4DE89A4B),
+    border: Color(0x14FFFFFF),
+    borderSubtle: Color(0x0DFFFFFF),
     borderInner: Color(0x0DFFFFFF),
     isDark: true,
     meshGlow1: Color(0x1AD97706),
@@ -160,45 +160,45 @@ class SoftColors {
   );
 
   // ===================== 3. 紫陌幽兰 (violetOrchid / moonSilver) =====================
-  /// 紫陌幽兰 · 日间 (Light) - 典雅丝帛
+  /// 紫陌幽兰 · 日间 (Light) - 典雅丝帛 (通透浅月光白)
   static const violetOrchidLight = SoftColors(
     type: SoftPaletteType.violetOrchid,
     title: '紫陌幽兰',
     subtitle: '幽兰丁香 · 宣州丝帛墨卷风度',
     background: Color(0xFFF9F8FC),
-    surface: Color(0xFFF0EEF7),
+    surface: Color(0xFFF2EFF7),
     card: Color(0xFFFFFFFF),
-    textPrimary: Color(0xFF1D1926),
-    textSecondary: Color(0xFF635C73),
-    textTertiary: Color(0xFF9790A6),
+    textPrimary: Color(0xFF1A1624),
+    textSecondary: Color(0xFF655C75),
+    textTertiary: Color(0xFF988FA8),
     accent: Color(0xFF6D599A),
-    accentSoft: Color(0x176D599A), // ~9%
-    accentGlow: Color(0x386D599A), // ~22%
-    border: Color(0x0D1D1926),
-    borderSubtle: Color(0x0D1D1926), // 5%
-    borderInner: Color(0xE6FFFFFF), // 90%
+    accentSoft: Color(0x146D599A),
+    accentGlow: Color(0x306D599A),
+    border: Color(0x0A000000),
+    borderSubtle: Color(0x08000000),
+    borderInner: Color(0xF2FFFFFF),
     isDark: false,
-    meshGlow1: Color(0x59DDD6FE),
-    meshGlow2: Color(0x40BAE6FD),
-    meshGlow3: Color(0x38FECDD3),
+    meshGlow1: Color(0x40DDD6FE),
+    meshGlow2: Color(0x33BAE6FD),
+    meshGlow3: Color(0x30FECDD3),
   );
 
-  /// 紫陌幽兰 · 夜间 (Dark) - 静夜紫罗兰
+  /// 紫陌幽兰 · 夜间 (Dark) - 静夜紫罗兰 (Apple OLED 纯黑)
   static const violetOrchidDark = SoftColors(
     type: SoftPaletteType.violetOrchid,
     title: '紫陌幽兰',
     subtitle: '幽兰丁香 · 静夜紫罗兰澄澈深邃',
-    background: Color(0xFF100E16),
-    surface: Color(0xFF1A1724),
-    card: Color(0xFF231F30),
-    textPrimary: Color(0xFFECE8F5),
+    background: Color(0xFF000000),
+    surface: Color(0xFF15121F),
+    card: Color(0xFF1E1A2C),
+    textPrimary: Color(0xFFF3EFFF),
     textSecondary: Color(0xFFA299B5),
     textTertiary: Color(0xFF6C6380),
     accent: Color(0xFFA78BFA),
-    accentSoft: Color(0x24A78BFA), // ~14%
-    accentGlow: Color(0x4DA78BFA), // ~30%
-    border: Color(0x1AFFFFFF),
-    borderSubtle: Color(0x0FFFFFFF),
+    accentSoft: Color(0x24A78BFA),
+    accentGlow: Color(0x4DA78BFA),
+    border: Color(0x14FFFFFF),
+    borderSubtle: Color(0x0DFFFFFF),
     borderInner: Color(0x0DFFFFFF),
     isDark: true,
     meshGlow1: Color(0x1F8B5CF6),
@@ -207,36 +207,62 @@ class SoftColors {
   );
 
   // ===================== 4. 极夜星芒 (auroraSpace / darkJade) =====================
-  /// 极夜星芒 · 纯粹暗夜 (OLED 深空)
-  static const auroraSpace = SoftColors(
+  /// 极夜星芒 · 日间 (Light) - Apple 钛金属极客风 (高冷极简，通透干练)
+  static const auroraSpaceLight = SoftColors(
+    type: SoftPaletteType.auroraSpace,
+    title: '极夜星芒',
+    subtitle: '钛金冰川 · 冷萃极简极客清爽',
+    background: Color(0xFFF8F9FA),
+    surface: Color(0xFFEEF0F2),
+    card: Color(0xFFFFFFFF),
+    textPrimary: Color(0xFF111827),
+    textSecondary: Color(0xFF4B5563),
+    textTertiary: Color(0xFF9CA3AF),
+    accent: Color(0xFF0D9488),
+    accentSoft: Color(0x140D9488),
+    accentGlow: Color(0x300D9488),
+    border: Color(0x0A000000),
+    borderSubtle: Color(0x08000000),
+    borderInner: Color(0xF2FFFFFF),
+    isDark: false,
+    meshGlow1: Color(0x38CCFBF1),
+    meshGlow2: Color(0x2EE0E7FF),
+    meshGlow3: Color(0x2EF3E8FF),
+  );
+
+  /// 极夜星芒 · 夜间 (Dark) - OLED 纯黑极光
+  static const auroraSpaceDark = SoftColors(
     type: SoftPaletteType.auroraSpace,
     title: '极夜星芒',
     subtitle: '纯黑极光 · 钛墨深空纯粹沉浸',
     background: Color(0xFF0C110E),
-    surface: Color(0xFF141C18),
-    card: Color(0xFF1B2420),
-    textPrimary: Color(0xFFE2ECE7),
+    surface: Color(0xFF131A16),
+    card: Color(0xFF1B231F),
+    textPrimary: Color(0xFFF0F5F2),
     textSecondary: Color(0xFF8DA297),
     textTertiary: Color(0xFF5B7066),
     accent: Color(0xFF38D9A9),
-    accentSoft: Color(0x1F38D9A9), // ~12%
-    accentGlow: Color(0x4738D9A9), // ~28%
-    border: Color(0x1AFFFFFF),
-    borderSubtle: Color(0x0FFFFFFF),
-    borderInner: Color(0x0DFFFFFF), // 5%
+    accentSoft: Color(0x1F38D9A9),
+    accentGlow: Color(0x4738D9A9),
+    border: Color(0x14FFFFFF),
+    borderSubtle: Color(0x0DFFFFFF),
+    borderInner: Color(0x0DFFFFFF),
     isDark: true,
     meshGlow1: Color(0x1A10B981),
     meshGlow2: Color(0x1414B8A6),
     meshGlow3: Color(0x146366F1),
   );
 
+  // 兼容老引用
+  static const auroraSpace = auroraSpaceDark;
+
   // ===================== 5. 水墨玄素 (paper) =====================
   static const paper = SoftColors(
     type: SoftPaletteType.paper,
     title: '水墨玄素',
     subtitle: '水墨纯粹 · 纸白黛墨专注于文',
-    background: Color(0xFFF7F7F7),
-    surface: Color(0xFFEFEFEF),
+    background: Color(0xFFF8F9FA),
+    surface: Color(0xFFF1F3F5),
     card: Color(0xFFFFFFFF),
     textPrimary: Color(0xFF14161B),
     textSecondary: Color(0xFF6E7480),
@@ -244,13 +270,13 @@ class SoftColors {
     accent: Color(0xFF17211C),
     accentSoft: Color(0x1417211C),
     accentGlow: Color(0x2817211C),
-    border: Color(0x0F14161B),
-    borderSubtle: Color(0x1A14161B),
-    borderInner: Color(0xE6FFFFFF),
+    border: Color(0x0A000000),
+    borderSubtle: Color(0x08000000),
+    borderInner: Color(0xF2FFFFFF),
     isDark: false,
-    meshGlow1: Color(0x2E000000),
-    meshGlow2: Color(0x1F000000),
-    meshGlow3: Color(0x1F000000),
+    meshGlow1: Color(0x24000000),
+    meshGlow2: Color(0x18000000),
+    meshGlow3: Color(0x18000000),
   );
 
   // 默认静态常量映射
@@ -263,31 +289,30 @@ class SoftColors {
   static const moonSilver = violetOrchidLight;
   static const moonSilverLight = violetOrchidLight;
   static const moonSilverDark = violetOrchidDark;
-  static const darkJade = auroraSpace;
+  static const darkJade = auroraSpaceDark;
 
   // 向前兼容老配置映射
   static const parchment = twilightAmber;
   static const beanGreen = mistyJade;
-  static const night = auroraSpace;
+  static const night = auroraSpaceDark;
 
   /// 根据主题类型和深浅模式解析对应色彩
   static SoftColors fromType(SoftPaletteType type, {bool? isDark}) {
-    final effectiveDark = isDark ?? false;
     switch (type) {
       case SoftPaletteType.mistyJade:
       case SoftPaletteType.beanGreen:
-        return effectiveDark ? mistyJadeDark : mistyJadeLight;
+        return (isDark ?? false) ? mistyJadeDark : mistyJadeLight;
       case SoftPaletteType.twilightAmber:
       case SoftPaletteType.warmAmber:
       case SoftPaletteType.parchment:
-        return effectiveDark ? twilightAmberDark : twilightAmberLight;
+        return (isDark ?? false) ? twilightAmberDark : twilightAmberLight;
       case SoftPaletteType.violetOrchid:
       case SoftPaletteType.moonSilver:
-        return effectiveDark ? violetOrchidDark : violetOrchidLight;
+        return (isDark ?? false) ? violetOrchidDark : violetOrchidLight;
       case SoftPaletteType.auroraSpace:
       case SoftPaletteType.darkJade:
       case SoftPaletteType.night:
-        return auroraSpace;
+        return (isDark ?? true) ? auroraSpaceDark : auroraSpaceLight;
       case SoftPaletteType.paper:
         return paper;
     }
@@ -303,7 +328,7 @@ class SoftColors {
     mistyJadeLight,
     warmAmberLight,
     moonSilverLight,
-    darkJade,
+    auroraSpaceLight,
   ];
 }
 
