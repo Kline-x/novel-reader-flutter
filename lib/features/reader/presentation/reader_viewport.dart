@@ -1273,23 +1273,32 @@ class _ReaderViewportState extends State<ReaderViewport>
                     ),
                   ],
                 ),
-                const SizedBox(height: 8.0),
-                // 核心功能按键：目录、听书、日间/夜间、排版
+                // 核心功能按键：目录、听书、笔记、日间/夜间、排版
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildActionButton(
+                      key: const ValueKey('reader_bottom_catalog_btn'),
                       icon: Icons.format_list_bulleted_rounded,
                       label: '目录',
                       onTap: widget.onOpenCatalog,
                     ),
                     if (widget.onOpenTts != null)
                       _buildActionButton(
+                        key: const ValueKey('reader_bottom_tts_btn'),
                         icon: Icons.headphones_rounded,
                         label: '听书',
                         onTap: widget.onOpenTts!,
                       ),
+                    if (widget.onOpenNotes != null)
+                      _buildActionButton(
+                        key: const ValueKey('reader_bottom_notes_btn'),
+                        icon: Icons.rate_review_outlined,
+                        label: '笔记',
+                        onTap: widget.onOpenNotes!,
+                      ),
                     _buildActionButton(
+                      key: const ValueKey('reader_bottom_theme_btn'),
                       icon: isDark
                           ? Icons.light_mode_rounded
                           : Icons.dark_mode_rounded,
@@ -1299,6 +1308,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                       },
                     ),
                     _buildActionButton(
+                      key: const ValueKey('reader_bottom_typography_btn'),
                       icon: Icons.text_fields_rounded,
                       label: '排版',
                       onTap: widget.onOpenTypography,
@@ -1429,15 +1439,17 @@ class _ReaderViewportState extends State<ReaderViewport>
   }
 
   Widget _buildActionButton({
+    Key? key,
     required IconData icon,
     required String label,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
+      key: key,
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 6.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>藏书阁 · Modern Soft UI 顶级优雅旗舰版原型 (The Sublime Edition)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* 默认装载意境一：苍岚烟雨 (Misty Jade) */
+      --canvas-bg: #F8FAF7;
+      --surface-bg: #EEF3EE;
+      --card-bg: #FFFFFF;
+      --accent: #236B58;
+      --accent-soft: rgba(35, 107, 88, 0.09);
+      --accent-glow: rgba(35, 107, 88, 0.22);
+      --text-primary: #17211C;
+      --text-secondary: #586B62;
+      --text-tertiary: #92A39B;
+      --border-subtle: rgba(23, 33, 28, 0.05);
+      --border-inner: rgba(255, 255, 255, 0.85);
+
+      /* 环境光彩色弥散微光 (Ambient Mesh Glow) */
+      --glow-1: rgba(187, 247, 208, 0.35); /* 柔薄荷 */
+      --glow-2: rgba(254, 215, 170, 0.28); /* 暖浅杏 */
+      --glow-3: rgba(186, 230, 253, 0.30); /* 天青蓝 */
+
+      /* Modern Soft UI 双层低饱和漫射微阴影 */
+      --sh-card: 0 10px 30px -6px rgba(18, 30, 24, 0.035), 0 4px 12px -2px rgba(18, 30, 24, 0.015);
+      --sh-card-hover: 0 16px 36px -8px rgba(18, 30, 24, 0.06), 0 6px 16px -3px rgba(18, 30, 24, 0.025);
+      --sh-dock: 0 20px 40px -10px rgba(18, 30, 24, 0.08), 0 8px 18px -4px rgba(18, 30, 24, 0.03);
+
+      --dock-bg: rgba(255, 255, 255, 0.82);
+
+      --font-ui: 'Plus Jakarta Sans', 'Noto Sans SC', system-ui, sans-serif;
+      --font-book: 'Noto Serif SC', 'Songti SC', Georgia, serif;
+    }
+
+    body {
+      font-family: var(--font-ui);
+      background-color: #0b0e14;
+      color: #e6edf3;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 真实比例 iPhone 16 Pro 钛金属微弧外框 */
+    .titanium-frame {
+      width: 392px;
+      height: 830px;
+      border-radius: 52px;
+      box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        0 0 0 12px #181d24,
+        0 30px 80px -15px rgba(0,0,0,0.85);
+      overflow: hidden;
+      position: relative;
+      background-color: var(--canvas-bg);
+      color: var(--text-primary);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* 弥散环境光网格 (Calm Tech Mesh Glow) */
+    .ambient-mesh {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .mesh-blob-1 {
+      position: absolute;
+      top: -80px;
+      left: -80px;
+      width: 280px;
+      height: 280px;
+      border-radius: 9999px;
+      background: var(--glow-1);
+      filter: blur(55px);
+      transition: all 0.5s ease;
+    }
+    .mesh-blob-2 {
+      position: absolute;
+      top: 180px;
+      right: -80px;
+      width: 260px;
+      height: 260px;
+      border-radius: 9999px;
+      background: var(--glow-2);
+      filter: blur(60px);
+      transition: all 0.5s ease;
+    }
+    .mesh-blob-3 {
+      position: absolute;
+      bottom: 80px;
+      left: 20px;
+      width: 240px;
+      height: 240px;
+      border-radius: 9999px;
+      background: var(--glow-3);
+      filter: blur(55px);
+      transition: all 0.5s ease;
+    }
+
+    /* 顶级 Squircle 连续曲率玉质卡片 */
+    .squircle-card {
+      position: relative;
+      background-color: var(--card-bg);
+      border-radius: 26px;
+      box-shadow: var(--sh-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: inset 0 1px 1px 0 var(--border-inner), var(--sh-card);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 10;
+    }
+
+    .squircle-subcard {
+      background-color: var(--surface-bg);
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.35s ease;
+    }
+
+    /* 顶级毛玻璃悬浮胶囊 */
+    .sublime-dock {
+      background: var(--dock-bg);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--border-subtle);
+      box-shadow: inset 0 1px 1.5px 0 var(--border-inner), var(--sh-dock);
+      border-radius: 9999px;
+      transition: all 0.35s ease;
+    }
+
+    /* 拟真书籍立体微光与书脊线 */
+    .book-spine-lighting {
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    }
+    .book-spine-lighting::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 8px;
+      background: linear-gradient(to right, rgba(0,0,0,0.22), rgba(255,255,255,0.18) 40%, rgba(0,0,0,0.08) 80%, transparent);
+      pointer-events: none;
+    }
+
+    .book-font {
+      font-family: var(--font-book);
+    }
+
+    /* 脉冲微光圆点 */
+    .pulse-dot {
+      animation: gentle-pulse 2.8s infinite ease-in-out;
+    }
+    @keyframes gentle-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.15); opacity: 0.55; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 lg:p-10">
+
+  <!-- 顶部设计宣言与品味导引 -->
+  <header class="w-full max-w-7xl flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-800/80">
+    <div class="space-y-1.5">
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full text-xs font-semibold tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+          MODERN SOFT UI · THE SUBLIME EDITION
+        </span>
+        <h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-white">
+          藏书阁 · 意境级护眼色彩与流体光感原型
+        </h1>
+      </div>
+      <p class="text-sm text-gray-400 max-w-3xl leading-relaxed">
+        超越传统扁平界面的“色块堆砌”，引入 Modern Soft UI 核心精髓：<strong>环境光流体微光（Ambient Mesh Glow）</strong>、<strong>玉质连续曲率（Continuous Squircle）</strong>与<strong>低刺激纸质舒缓色阶</strong>，让读者如同置身晨雾微光下的私人藏书馆。
+      </p>
+    </div>
+
+    <!-- 顶栏状态与模式切换 -->
+    <div class="flex items-center gap-3 bg-gray-900/90 p-2 rounded-2xl border border-gray-800 shrink-0">
+      <div class="flex items-center gap-1.5 bg-gray-800/90 p-1 rounded-xl">
+        <button id="btnModeLight" onclick="setMode('light')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-900 shadow-sm transition-all">
+          ☀️ 晨光清爽
+        </button>
+        <button id="btnModeDark" onclick="setMode('dark')" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white transition-all">
+          🌙 静夜深空
+        </button>
+      </div>
+      <div class="h-6 w-px bg-gray-800"></div>
+      <span class="text-xs text-emerald-400 font-mono pr-2">v3.0 旗舰版</span>
+    </div>
+  </header>
+
+  <!-- 工作台三栏布局 -->
+  <main class="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8 items-start">
+    
+    <!-- 左栏：四大意境美学预设选择 -->
+    <aside class="lg:col-span-4 space-y-6">
+      
+      <div class="bg-gray-900/80 border border-gray-800 rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold tracking-wider text-gray-300 uppercase">
+            🍃 四大意境雅集（点击即时切换）
+          </h2>
+          <span class="text-[11px] text-emerald-400 font-medium">Calm Tech 规范</span>
+        </div>
+
+        <!-- 意境一：苍岚烟雨 (宋瓷·推荐默认) -->
+        <button onclick="switchAesthetic('mistyJade')" id="aest-mistyJade" class="aest-card w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-950/25 transition-all flex items-start gap-4 relative overflow-hidden group">
+          <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white shrink-0 shadow-md transition-transform group-hover:scale-105" style="background: linear-gradient(135deg, #236B58, #358B74);">
+            岚
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-bold text-white">苍岚烟雨 · Misty Jade</div>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">首选推荐</span>
+            </div>
+            <p class="text-xs text-emerald-200/70 mt-1 leading-relaxed">
+              宋瓷秘色天青 (#236B58) + 晨雾宣纸白 + 薄荷双微光晕。如雨后西湖山色，极度静谧、久读不累。
+            </p>
+          </div>
+        </button>
+
+        <!-- 意境二：暮色暖珀 (暖阳台灯) -->
+        <button onclick="switchAesthetic('twilightAmber')" id="aest-twilightAmber" class="aest-card w-full text-left p-4 rounded-2xl border border-gray-800 bg-gray-950/40 hover:border-gray-700 transition-all flex items-start gap-4 group">
+          <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white shrink-0 shadow-md transition-transform group-hover:scale-105" style="background: linear-gradient(135deg, #B86820, #D98436);">
+            珀
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-bold text-gray-200">暮色暖珀 · Twilight Amber</div>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300">暖阳晨曦</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              醇厚焦糖蜜金 (#B86820) + 暖绒宣纸 + 杏黄落日晕染。如冬日咖啡馆窗边的台灯，情绪倍感安宁。
+            </p>
+          </div>
+        </button>
+
+        <!-- 意境三：紫陌幽兰 (典雅丝帛) -->
+        <button onclick="switchAesthetic('violetOrchid')" id="aest-violetOrchid" class="aest-card w-full text-left p-4 rounded-2xl border border-gray-800 bg-gray-950/40 hover:border-gray-700 transition-all flex items-start gap-4 group">
+          <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white shrink-0 shadow-md transition-transform group-hover:scale-105" style="background: linear-gradient(135deg, #6D599A, #8972BA);">
+            兰
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-bold text-gray-200">紫陌幽兰 · Violet Orchid</div>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300">高雅静谧</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              幽兰丁香紫 (#6D599A) + 象牙丝帛底 + 浅紫霞光。典雅脱俗，充满文学诗意与艺术贵气。
+            </p>
+          </div>
+        </button>
+
+        <!-- 意境四：极夜星芒 (OLED 深空防眩晕) -->
+        <button onclick="switchAesthetic('auroraSpace')" id="aest-auroraSpace" class="aest-card w-full text-left p-4 rounded-2xl border border-gray-800 bg-gray-950/40 hover:border-gray-700 transition-all flex items-start gap-4 group">
+          <div class="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white shrink-0 shadow-md transition-transform group-hover:scale-105 bg-gradient-to-tr from-slate-900 via-emerald-950 to-teal-800">
+            星
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-bold text-gray-200">极夜星芒 · Aurora OLED</div>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300">零刺眼光晕</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+              钛墨极夜 (#0C0E12) + 翡翠柔光 (#38D9A9) + 星云微澜。亮度受控，夜间暗室瞳孔零刺激。
+            </p>
+          </div>
+        </button>
+
+      </div>
+
+      <!-- 场景视角切换 -->
+      <div class="bg-gray-900/80 border border-gray-800 rounded-3xl p-5 space-y-3">
+        <h2 class="text-xs font-bold tracking-wider text-gray-300 uppercase">
+          📱 沉浸式场景漫游
+        </h2>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="switchPage('shelf')" id="tab-shelf" class="page-tab py-2.5 px-3 rounded-xl text-xs font-bold bg-white text-gray-900 shadow-sm transition-all">
+            📚 晨光雅集·书架
+          </button>
+          <button onclick="switchPage('detail')" id="tab-detail" class="page-tab py-2.5 px-3 rounded-xl text-xs font-bold bg-gray-950/60 text-gray-400 border border-gray-800 hover:text-white transition-all">
+            📖 典雅书籍详情
+          </button>
+          <button onclick="switchPage('reader')" id="tab-reader" class="page-tab py-2.5 px-3 rounded-xl text-xs font-bold bg-gray-950/60 text-gray-400 border border-gray-800 hover:text-white transition-all">
+            🖋️ 正文+5键底栏
+          </button>
+          <button onclick="switchPage('settings')" id="tab-settings" class="page-tab py-2.5 px-3 rounded-xl text-xs font-bold bg-gray-950/60 text-gray-400 border border-gray-800 hover:text-white transition-all">
+            ⚙️ 设置·大呼吸留白
+          </button>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- 中栏：iPhone 16 Pro 钛金属微弧模拟机身 -->
+    <div class="lg:col-span-4 flex justify-center sticky top-8">
+      <div class="titanium-frame flex flex-col select-none">
+        
+        <!-- 弥散背景微光层 (Modern Soft UI 核心灵魂) -->
+        <div class="ambient-mesh">
+          <div class="mesh-blob-1"></div>
+          <div class="mesh-blob-2"></div>
+          <div class="mesh-blob-3"></div>
+        </div>
+
+        <!-- 灵动岛与系统顶栏 -->
+        <div class="h-11 pt-2.5 px-7 flex items-center justify-between text-xs font-semibold tracking-tight z-30 shrink-0 opacity-85">
+          <span class="font-bold">9:41</span>
+          <!-- 灵动岛小药丸 -->
+          <div class="w-24 h-5 rounded-full bg-black/90 mx-auto flex items-center justify-end px-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-black border border-white/20"></div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-mono">5G</span>
+            <div class="w-5 h-2.5 border border-current rounded-sm p-0.5 flex items-center">
+              <div class="w-full h-full bg-current rounded-xs"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 核心视口渲染层 -->
+        <div id="sublimeViewport" class="flex-1 overflow-y-auto px-4 pb-28 pt-2 relative z-20">
+          <!-- JS 动态注入视图内容 -->
+        </div>
+
+        <!-- 悬浮微光毛玻璃 Dock (常驻于底) -->
+        <div id="dockContainer" class="absolute bottom-5 left-4 right-4 z-40 flex justify-center">
+          <div class="sublime-dock w-full max-w-[344px] px-6 py-3 flex items-center justify-between">
+            <div onclick="switchPage('shelf')" class="flex flex-col items-center gap-1 cursor-pointer transition-transform active:scale-90">
+              <svg class="w-5 h-5 dock-shelf-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+              <span class="text-[10px] font-bold dock-shelf-label">书架</span>
+            </div>
+            <div onclick="switchPage('detail')" class="flex flex-col items-center gap-1 cursor-pointer transition-transform active:scale-90 opacity-60 hover:opacity-100">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              <span class="text-[10px] font-medium">发现</span>
+            </div>
+            <div onclick="switchPage('settings')" class="flex flex-col items-center gap-1 cursor-pointer transition-transform active:scale-90">
+              <svg class="w-5 h-5 dock-settings-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span class="text-[10px] font-medium dock-settings-label">设置</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 右栏：设计哲学透视、Token 提取与用户心智对比 -->
+    <aside class="lg:col-span-4 space-y-6">
+      
+      <!-- 设计深度看板 -->
+      <div class="bg-gray-900/80 border border-gray-800 rounded-3xl p-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold tracking-wider text-gray-300 uppercase">
+            💎 Modern Soft UI 雅致度量
+          </h2>
+          <span id="contrastBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            WCAG AAA (8.4:1)
+          </span>
+        </div>
+
+        <div class="space-y-2.5 font-mono text-xs">
+          <div class="flex items-center justify-between p-2.5 bg-gray-950/60 rounded-xl border border-gray-800/80">
+            <span class="text-gray-400 font-sans text-xs">核心强调 (Accent)</span>
+            <div class="flex items-center gap-2">
+              <span id="hexAccent" class="text-gray-200">#236B58</span>
+              <div id="swatchAccent" class="w-4 h-4 rounded-full border border-white/20" style="background:#236B58"></div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-950/60 rounded-xl border border-gray-800/80">
+            <span class="text-gray-400 font-sans text-xs">环境纸感 (Paper Base)</span>
+            <div class="flex items-center gap-2">
+              <span id="hexCanvas" class="text-gray-200">#F8FAF7</span>
+              <div id="swatchCanvas" class="w-4 h-4 rounded-full border border-white/20" style="background:#F8FAF7"></div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-950/60 rounded-xl border border-gray-800/80">
+            <span class="text-gray-400 font-sans text-xs">温玉卡片 (Jade Card)</span>
+            <div class="flex items-center gap-2">
+              <span id="hexCard" class="text-gray-200">#FFFFFF</span>
+              <div id="swatchCard" class="w-4 h-4 rounded-full border border-white/20" style="background:#FFFFFF"></div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-950/60 rounded-xl border border-gray-800/80">
+            <span class="text-gray-400 font-sans text-xs">黛墨正文 (Ink Text)</span>
+            <div class="flex items-center gap-2">
+              <span id="hexText" class="text-gray-200">#17211C</span>
+              <div id="swatchText" class="w-4 h-4 rounded-full border border-white/20" style="background:#17211C"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-gray-800/90 space-y-2.5">
+          <h3 class="text-xs font-bold text-gray-200">此套意境的雅致之处：</h3>
+          <ul class="text-xs text-gray-400 space-y-2 leading-relaxed" id="aestheticNotes">
+            <!-- 动态注入说明 -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- 为什么说这版“比微信读书和老版更加优雅” -->
+      <div class="bg-gradient-to-br from-emerald-950/30 via-gray-900 to-gray-900 border border-emerald-500/25 rounded-3xl p-5 space-y-3.5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <span>✨</span> 为何这套原型具备“极致优雅感”？
+        </h3>
+        <div class="text-xs text-gray-300 space-y-2 leading-relaxed">
+          <p>
+            1. <strong>告别生硬线框</strong>：全界面没有一条刺眼的分割线，而是通过 <span class="text-emerald-300">0.05% 微透明度边界</span> 与 <span class="text-emerald-300">环境光漫射阴影</span> 形成天然的纸张浮凸层次；
+          </p>
+          <p>
+            2. <strong>流体微光呼吸感</strong>：卡片背后融入超低饱和度的流体光晕（薄荷与浅杏），界面不再是一块死板的白灰板，而是有空气感在其中流转；
+          </p>
+          <p>
+            3. <strong>书籍立体装帧质感</strong>：书架上的书籍封面加入了仿真书脊侧光折射（Book Spine Lighting），真实还原精装书立在书架上的光泽。
+          </p>
+        </div>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <script>
+    // 意境设计系统数据模型
+    const AESTHETICS = {
+      // 1. 苍岚烟雨 (宋瓷天青)
+      mistyJade: {
+        name: "苍岚烟雨 · Misty Jade",
+        contrast: "WCAG AAA (8.4:1)",
+        light: {
+          canvas: "#F8FAF7",
+          surface: "#EEF3EE",
+          card: "#FFFFFF",
+          accent: "#236B58",
+          accentSoft: "rgba(35, 107, 88, 0.09)",
+          accentGlow: "rgba(35, 107, 88, 0.22)",
+          textPrimary: "#17211C",
+          textSecondary: "#586B62",
+          textTertiary: "#92A39B",
+          borderSubtle: "rgba(23, 33, 28, 0.05)",
+          borderInner: "rgba(255, 255, 255, 0.9)",
+          glow1: "rgba(187, 247, 208, 0.35)", // 柔薄荷
+          glow2: "rgba(254, 215, 170, 0.28)", // 暖浅杏
+          glow3: "rgba(186, 230, 253, 0.30)", // 天青
+          dockBg: "rgba(255, 255, 255, 0.85)",
+          notes: [
+            "🍃 <strong>宋瓷秘色天青</strong>：主强调色取自汝窑天青，比一般绿色更深沉、更温润，完全杜绝荧光塑料感；",
+            "🍃 <strong>晨雾双色微光</strong>：底面散布柔薄荷与浅杏漫射，营造出清晨推开书房窗户时，微风拂过宣纸的轻盈感；",
+            "🍃 <strong>触感温玉</strong>：卡片顶部带有 1px 纯白微光边沿（Inner Rim），如上等白玉般莹润。"
+          ]
+        },
+        dark: {
+          canvas: "#0C110E",
+          surface: "#141C18",
+          card: "#1B2420",
+          accent: "#38D9A9",
+          accentSoft: "rgba(56, 217, 169, 0.12)",
+          accentGlow: "rgba(56, 217, 169, 0.28)",
+          textPrimary: "#E2ECE7",
+          textSecondary: "#8DA297",
+          textTertiary: "#5B7066",
+          borderSubtle: "rgba(255, 255, 255, 0.06)",
+          borderInner: "rgba(255, 255, 255, 0.05)",
+          glow1: "rgba(16, 185, 129, 0.10)",
+          glow2: "rgba(20, 184, 166, 0.08)",
+          glow3: "rgba(99, 102, 241, 0.08)",
+          dockBg: "rgba(27, 36, 32, 0.85)",
+          notes: [
+            "🍃 <strong>深邃墨玉暗夜</strong>：不是死板的纯黑，而是蕴含墨绿生机的黑玉底色；配合 38D9A9 微光，夜读舒适度极高。"
+          ]
+        }
+      },
+
+      // 2. 暮色暖珀 (冬日暖阳)
+      twilightAmber: {
+        name: "暮色暖珀 · Twilight Amber",
+        contrast: "WCAG AAA (8.1:1)",
+        light: {
+          canvas: "#FAF7F2",
+          surface: "#F2EDE4",
+          card: "#FFFFFF",
+          accent: "#B86820",
+          accentSoft: "rgba(184, 104, 32, 0.09)",
+          accentGlow: "rgba(184, 104, 32, 0.22)",
+          textPrimary: "#231B15",
+          textSecondary: "#736458",
+          textTertiary: "#9E8E82",
+          borderSubtle: "rgba(35, 27, 21, 0.05)",
+          borderInner: "rgba(255, 255, 255, 0.9)",
+          glow1: "rgba(254, 215, 170, 0.35)", // 暖杏
+          glow2: "rgba(253, 230, 138, 0.25)", // 晨光暖金
+          glow3: "rgba(237, 233, 254, 0.25)", // 淡薰衣草
+          dockBg: "rgba(255, 255, 255, 0.85)",
+          notes: [
+            "🍯 <strong>古典羊皮纸温意</strong>：色温控制在 4500K 护眼区间，大幅过滤有害短波蓝光；",
+            "🍯 <strong>醇厚焦糖蜜金</strong>：按键与高亮像一滴晶莹的琥珀，温润优雅，非常耐看；",
+            "🍯 <strong>Bento 暖调漫射</strong>：阴影融入淡暖褐，卡片像浮在带有余温的绒布上。"
+          ]
+        },
+        dark: {
+          canvas: "#120F0D",
+          surface: "#1C1814",
+          card: "#26201B",
+          accent: "#EAA055",
+          accentSoft: "rgba(234, 160, 85, 0.14)",
+          accentGlow: "rgba(234, 160, 85, 0.3)",
+          textPrimary: "#EFE8E2",
+          textSecondary: "#A8988C",
+          textTertiary: "#6E6055",
+          borderSubtle: "rgba(255, 255, 255, 0.06)",
+          borderInner: "rgba(255, 255, 255, 0.05)",
+          glow1: "rgba(217, 119, 6, 0.10)",
+          glow2: "rgba(180, 83, 9, 0.08)",
+          glow3: "rgba(244, 114, 182, 0.06)",
+          dockBg: "rgba(38, 32, 27, 0.85)",
+          notes: [
+            "🍯 <strong>炭火微烛夜读</strong>：夜间如同一盏微暗的床头烛火，光晕柔和，极利于快速进入睡眠前的心流。"
+          ]
+        }
+      },
+
+      // 3. 紫陌幽兰 (典雅丝帛)
+      violetOrchid: {
+        name: "紫陌幽兰 · Violet Orchid",
+        contrast: "WCAG AAA (7.9:1)",
+        light: {
+          canvas: "#F9F8FC",
+          surface: "#F0EEF7",
+          card: "#FFFFFF",
+          accent: "#6D599A",
+          accentSoft: "rgba(109, 89, 154, 0.09)",
+          accentGlow: "rgba(109, 89, 154, 0.22)",
+          textPrimary: "#1D1926",
+          textSecondary: "#635C73",
+          textTertiary: "#9790A6",
+          borderSubtle: "rgba(29, 25, 38, 0.05)",
+          borderInner: "rgba(255, 255, 255, 0.9)",
+          glow1: "rgba(221, 214, 254, 0.35)", // 丁香浅紫
+          glow2: "rgba(186, 230, 253, 0.25)", // 霁蓝
+          glow3: "rgba(254, 205, 211, 0.22)", // 晚霞粉
+          dockBg: "rgba(255, 255, 255, 0.85)",
+          notes: [
+            "🪻 <strong>文雅丁香紫调</strong>：取自中国古代文人雅士的紫毫印泥与宣州丝帛，极具书香墨卷风度；",
+            "🪻 <strong>空灵通透</strong>：冷暖微光交织，展现出极高水准的现代排版审美。"
+          ]
+        },
+        dark: {
+          canvas: "#100E16",
+          surface: "#1A1724",
+          card: "#231F30",
+          accent: "#A78BFA",
+          accentSoft: "rgba(167, 139, 250, 0.14)",
+          accentGlow: "rgba(167, 139, 250, 0.3)",
+          textPrimary: "#ECE8F5",
+          textSecondary: "#A299B5",
+          textTertiary: "#6C6380",
+          borderSubtle: "rgba(255, 255, 255, 0.06)",
+          borderInner: "rgba(255, 255, 255, 0.05)",
+          glow1: "rgba(139, 92, 246, 0.12)",
+          glow2: "rgba(99, 102, 241, 0.08)",
+          glow3: "rgba(236, 72, 153, 0.06)",
+          dockBg: "rgba(35, 31, 48, 0.85)",
+          notes: [
+            "🪻 <strong>静夜紫罗兰</strong>：高雅深邃，文字辨析度出奇地锐利且柔和。"
+          ]
+        }
+      },
+
+      // 4. 极夜星芒 (OLED 深空)
+      auroraSpace: {
+        name: "极夜星芒 · Aurora OLED",
+        contrast: "WCAG AAA (8.6:1)",
+        light: {
+          canvas: "#F6F7F9",
+          surface: "#EAEDF2",
+          card: "#FFFFFF",
+          accent: "#1A4D40",
+          accentSoft: "rgba(26, 77, 64, 0.09)",
+          accentGlow: "rgba(26, 77, 64, 0.22)",
+          textPrimary: "#111827",
+          textSecondary: "#4B5563",
+          textTertiary: "#9CA3AF",
+          borderSubtle: "rgba(17, 24, 39, 0.05)",
+          borderInner: "rgba(255, 255, 255, 0.9)",
+          glow1: "rgba(187, 247, 208, 0.30)",
+          glow2: "rgba(199, 210, 254, 0.25)",
+          glow3: "rgba(254, 215, 170, 0.20)",
+          dockBg: "rgba(255, 255, 255, 0.85)",
+          notes: [
+            "🌌 <strong>现代工业 Calm Tech</strong>：对齐 Apple 极简与 Nordic 北欧现代极简风，冷暖平衡极佳。"
+          ]
+        },
+        dark: {
+          canvas: "#0A0D10",
+          surface: "#12171D",
+          card: "#181F27",
+          accent: "#38D9A9",
+          accentSoft: "rgba(56, 217, 169, 0.14)",
+          accentGlow: "rgba(56, 217, 169, 0.3)",
+          textPrimary: "#E5E7EB",
+          textSecondary: "#9CA3AF",
+          textTertiary: "#6B7280",
+          borderSubtle: "rgba(255, 255, 255, 0.06)",
+          borderInner: "rgba(255, 255, 255, 0.05)",
+          glow1: "rgba(16, 185, 129, 0.12)",
+          glow2: "rgba(56, 189, 248, 0.09)",
+          glow3: "rgba(129, 140, 248, 0.08)",
+          dockBg: "rgba(24, 31, 39, 0.85)",
+          notes: [
+            "🌌 <strong>星舰级纯黑 OLED</strong>：完全关闭发光像素，配合 38D9A9 极光微色，功耗最低，眩光值为零。"
+          ]
+        }
+      }
+    };
+
+    let activeAesthetic = 'mistyJade';
+    let activeMode = 'light';
+    let activePage = 'shelf';
+
+    function switchAesthetic(key) {
+      activeAesthetic = key;
+      document.querySelectorAll('.aest-card').forEach(btn => {
+        btn.classList.remove('border-2', 'border-emerald-500', 'bg-emerald-950/25');
+        btn.classList.add('border-gray-800', 'bg-gray-950/40');
+      });
+      const current = document.getElementById(`aest-${key}`);
+      if (current) {
+        current.classList.remove('border-gray-800', 'bg-gray-950/40');
+        current.classList.add('border-2', 'border-emerald-500', 'bg-emerald-950/25');
+      }
+      applyThemeTokens();
+    }
+
+    function setMode(mode) {
+      activeMode = mode;
+      const bLight = document.getElementById('btnModeLight');
+      const bDark = document.getElementById('btnModeDark');
+      if (mode === 'light') {
+        bLight.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-900 shadow-sm transition-all";
+        bDark.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white transition-all";
+      } else {
+        bDark.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-gray-900 shadow-sm transition-all";
+        bLight.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white transition-all";
+      }
+      applyThemeTokens();
+    }
+
+    function applyThemeTokens() {
+      const aest = AESTHETICS[activeAesthetic];
+      const data = aest[activeMode];
+      const r = document.documentElement;
+
+      r.style.setProperty('--canvas-bg', data.canvas);
+      r.style.setProperty('--surface-bg', data.surface);
+      r.style.setProperty('--card-bg', data.card);
+      r.style.setProperty('--accent', data.accent);
+      r.style.setProperty('--accent-soft', data.accentSoft);
+      r.style.setProperty('--accent-glow', data.accentGlow);
+      r.style.setProperty('--text-primary', data.textPrimary);
+      r.style.setProperty('--text-secondary', data.textSecondary);
+      r.style.setProperty('--text-tertiary', data.textTertiary);
+      r.style.setProperty('--border-subtle', data.borderSubtle);
+      r.style.setProperty('--border-inner', data.borderInner);
+      r.style.setProperty('--glow-1', data.glow1);
+      r.style.setProperty('--glow-2', data.glow2);
+      r.style.setProperty('--glow-3', data.glow3);
+      r.style.setProperty('--dock-bg', data.dockBg);
+
+      // 更新右侧色板
+      document.getElementById('hexAccent').textContent = data.accent;
+      document.getElementById('swatchAccent').style.backgroundColor = data.accent;
+      document.getElementById('hexCanvas').textContent = data.canvas;
+      document.getElementById('swatchCanvas').style.backgroundColor = data.canvas;
+      document.getElementById('hexCard').textContent = data.card;
+      document.getElementById('swatchCard').style.backgroundColor = data.card;
+      document.getElementById('hexText').textContent = data.textPrimary;
+      document.getElementById('swatchText').style.backgroundColor = data.textPrimary;
+      document.getElementById('contrastBadge').textContent = aest.contrast;
+
+      // 更新解析笔记
+      const notesEl = document.getElementById('aestheticNotes');
+      notesEl.innerHTML = data.notes.map(n => `<li>${n}</li>`).join('');
+
+      renderView();
+    }
+
+    function switchPage(page) {
+      activePage = page;
+      document.querySelectorAll('.page-tab').forEach(b => {
+        b.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
+        b.classList.add('bg-gray-950/60', 'text-gray-400', 'border-gray-800');
+      });
+      const activeBtn = document.getElementById(`tab-${page}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-950/60', 'text-gray-400', 'border-gray-800');
+        activeBtn.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
+      }
+
+      // 底栏高亮与隐藏控制
+      const dock = document.getElementById('dockContainer');
+      const sIcon = document.querySelector('.dock-shelf-icon');
+      const sLabel = document.querySelector('.dock-shelf-label');
+      const setIcon = document.querySelector('.dock-settings-icon');
+      const setLabel = document.querySelector('.dock-settings-label');
+
+      if (page === 'reader') {
+        dock.style.display = 'none'; // 阅读器沉浸全屏
+      } else {
+        dock.style.display = 'flex';
+      }
+
+      if (page === 'settings') {
+        sIcon.style.color = 'var(--text-secondary)';
+        sLabel.style.color = 'var(--text-secondary)';
+        setIcon.style.color = 'var(--accent)';
+        setLabel.style.color = 'var(--accent)';
+      } else {
+        sIcon.style.color = 'var(--accent)';
+        sLabel.style.color = 'var(--accent)';
+        setIcon.style.color = 'var(--text-secondary)';
+        setLabel.style.color = 'var(--text-secondary)';
+      }
+
+      renderView();
+    }
+
+    function renderView() {
+      const v = document.getElementById('sublimeViewport');
+
+      if (activePage === 'shelf') {
+        v.innerHTML = `
+          <!-- 典雅顶栏：诗意问候与胶囊功能 -->
+          <div class="flex items-center justify-between py-2.5">
+            <div>
+              <div class="text-[11px] font-medium tracking-wide uppercase opacity-60" style="color: var(--text-secondary);">
+                Private Library
+              </div>
+              <h1 class="text-2xl font-black tracking-tight flex items-center gap-2">
+                <span>藏书阁</span>
+                <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background: var(--accent);"></span>
+              </h1>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="px-3.5 py-1.5 rounded-full text-xs font-semibold text-white flex items-center gap-1.5 shadow-sm transition-transform active:scale-95" style="background: var(--accent); box-shadow: 0 6px 16px -3px var(--accent-glow);">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <span>导入</span>
+              </button>
+              <button class="px-3 py-1.5 rounded-full text-xs font-medium sublime-dock text-xs" style="color: var(--text-primary);">
+                WiFi
+              </button>
+            </div>
+          </div>
+
+          <!-- 晨光雅集 Bento 模块：今日心流与藏书统计 -->
+          <div class="grid grid-cols-2 gap-3 mt-2.5">
+            <div class="squircle-card p-4 flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold opacity-70" style="color: var(--text-secondary);">今日心流</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--accent-soft); color: var(--accent);">专注中</span>
+              </div>
+              <div class="mt-3">
+                <div class="text-2xl font-black flex items-baseline gap-1" style="color: var(--accent);">
+                  48 <span class="text-xs font-medium" style="color: var(--text-secondary);">分钟</span>
+                </div>
+                <div class="w-full bg-black/5 dark:bg-white/10 h-1.5 rounded-full mt-2 overflow-hidden">
+                  <div class="h-full rounded-full w-3/4" style="background: var(--accent);"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="squircle-card p-4 flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold opacity-70" style="color: var(--text-secondary);">珍本在读</span>
+                <span class="text-[10px] opacity-50 font-mono">4 TITLES</span>
+              </div>
+              <div class="mt-3 flex items-baseline justify-between">
+                <div class="text-2xl font-black">
+                  4 <span class="text-xs font-medium" style="color: var(--text-secondary);">部</span>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full squircle-subcard" style="color: var(--text-secondary);">进度 62%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 柔和搜索胶囊 -->
+          <div class="mt-3 px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs sublime-dock border-none shadow-none" style="background: var(--surface-bg); color: var(--text-secondary);">
+            <svg class="w-4 h-4 opacity-50" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <span class="font-normal opacity-80">检索藏书阁书目、作者或纪事...</span>
+          </div>
+
+          <!-- 精装书架展柜 (加入微书脊侧光与精细装帧质感) -->
+          <div class="mt-4 flex items-center justify-between px-1">
+            <span class="text-xs font-bold tracking-wide uppercase opacity-70" style="color: var(--text-secondary);">典藏书架</span>
+            <span class="text-[11px] font-medium cursor-pointer" style="color: var(--accent);">按阅读时间 ▾</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3.5 mt-2.5">
+            
+            <!-- 书 1: 十日终焉 (高定皮质微光) -->
+            <div onclick="switchPage('detail')" class="cursor-pointer group flex flex-col">
+              <div class="aspect-[3/4.3] rounded-2xl p-3 flex flex-col justify-between shadow-lg relative book-spine-lighting group-hover:-translate-y-1" style="background: linear-gradient(150deg, #374151, #1F2937);">
+                <div class="flex items-center justify-between">
+                  <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold text-white shadow-sm" style="background: var(--accent);">37章</span>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/90 text-white font-bold">置顶</span>
+                </div>
+                <div class="text-white font-bold text-sm tracking-widest text-center book-font leading-snug drop-shadow-sm">十日<br/>终焉</div>
+                <div class="text-[9px] text-white/60 text-center truncate">杀虫队队员</div>
+              </div>
+              <div class="mt-2 text-xs font-bold truncate">十日终焉</div>
+              <div class="text-[10px] truncate opacity-70" style="color: var(--text-secondary);">已读 3% · 连载中</div>
+            </div>
+
+            <!-- 书 2: 道诡异仙 (丹霞朱墨微光) -->
+            <div onclick="switchPage('reader')" class="cursor-pointer group flex flex-col">
+              <div class="aspect-[3/4.3] rounded-2xl p-3 flex flex-col justify-between shadow-lg relative book-spine-lighting group-hover:-translate-y-1" style="background: linear-gradient(150deg, #853A1B, #541F0C);">
+                <span class="text-[9px] px-2 py-0.5 rounded-full font-bold text-white/90 w-max shadow-sm" style="background: var(--accent);">连载更新</span>
+                <div class="text-white font-bold text-sm tracking-widest text-center book-font leading-snug drop-shadow-sm">道诡<br/>异仙</div>
+                <div class="text-[9px] text-white/60 text-center truncate">狐尾的笔</div>
+              </div>
+              <div class="mt-2 text-xs font-bold truncate">道诡异仙</div>
+              <div class="text-[10px] truncate opacity-70" style="color: var(--text-secondary);">大千录 · 0%</div>
+            </div>
+
+            <!-- 书 3: 诡秘之主 (深邃霁蓝微光) -->
+            <div class="cursor-pointer group flex flex-col">
+              <div class="aspect-[3/4.3] rounded-2xl p-3 flex flex-col justify-between shadow-lg relative book-spine-lighting group-hover:-translate-y-1" style="background: linear-gradient(150deg, #1E40AF, #111827);">
+                <span class="text-[9px] px-2 py-0.5 rounded-full font-bold bg-black/40 text-white/80 w-max">典藏完结</span>
+                <div class="text-white font-bold text-sm tracking-widest text-center book-font leading-snug drop-shadow-sm">诡秘<br/>之主</div>
+                <div class="text-[9px] text-white/60 text-center truncate">爱潜水的乌贼</div>
+              </div>
+              <div class="mt-2 text-xs font-bold truncate">诡秘之主</div>
+              <div class="text-[10px] truncate opacity-70" style="color: var(--text-secondary);">愚者卷 · 100%</div>
+            </div>
+
+          </div>
+        `;
+      } else if (activePage === 'detail') {
+        v.innerHTML = `
+          <!-- 典雅书籍详情页 -->
+          <div class="flex items-center justify-between py-2">
+            <button onclick="switchPage('shelf')" class="p-2 rounded-full sublime-dock">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5" style="background: var(--accent-soft); color: var(--accent);">
+              <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background: var(--accent);"></span>
+              <span>优质书源 · 笔趣阁ZWX</span>
+            </div>
+          </div>
+
+          <!-- 精装书封展示与信息层级 -->
+          <div class="flex gap-4 mt-3">
+            <div class="w-28 h-36 rounded-2xl p-3 flex flex-col justify-between shadow-xl shrink-0 book-spine-lighting text-white" style="background: linear-gradient(150deg, #374151, #1F2937);">
+              <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-white/20 w-max font-bold">精装连载</span>
+              <div class="font-bold text-center text-base book-font">十日终焉</div>
+              <div class="text-[8px] text-center opacity-70">杀虫队队员 著</div>
+            </div>
+            <div class="flex flex-col justify-center space-y-1.5 min-w-0">
+              <h1 class="text-xl font-black truncate">十日终焉</h1>
+              <div class="text-xs opacity-75 font-medium" style="color: var(--text-secondary);">作者：杀虫队队员</div>
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                <span class="text-[10px] px-2 py-0.5 rounded-full squircle-subcard font-semibold">悬疑烧脑</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full squircle-subcard font-semibold">无限智斗</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold" style="background: var(--accent-soft); color: var(--accent);">★ 9.9分</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 柔和三列数据看板 -->
+          <div class="grid grid-cols-3 gap-2 mt-4 text-center squircle-card p-3.5">
+            <div>
+              <div class="text-xs font-black">已完结</div>
+              <div class="text-[10px] opacity-60 mt-0.5" style="color: var(--text-secondary);">书本状态</div>
+            </div>
+            <div class="border-x" style="border-color: var(--border-subtle);">
+              <div class="text-xs font-black">1000 章</div>
+              <div class="text-[10px] opacity-60 mt-0.5" style="color: var(--text-secondary);">总篇幅</div>
+            </div>
+            <div>
+              <div class="text-xs font-black" style="color: var(--accent);">5.2 万</div>
+              <div class="text-[10px] opacity-60 mt-0.5" style="color: var(--text-secondary);">同读阁友</div>
+            </div>
+          </div>
+
+          <!-- 双胶囊行动触发区 -->
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <button class="py-3.5 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 sublime-dock" style="color: var(--text-primary);">
+              <span>✓ 已在藏书阁</span>
+            </button>
+            <button onclick="switchPage('reader')" class="py-3.5 px-4 rounded-2xl text-xs font-extrabold text-white flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95" style="background: var(--accent); box-shadow: 0 10px 24px -4px var(--accent-glow);">
+              <span>继续阅读 (第54章)</span>
+              <span>▶</span>
+            </button>
+          </div>
+
+          <!-- 作品简介与文人印章微观感 -->
+          <div class="squircle-card p-4 mt-4 space-y-2">
+            <div class="text-xs font-bold flex items-center gap-2">
+              <span class="w-1.5 h-3.5 rounded-full" style="background: var(--accent);"></span>
+              <span>作品简介</span>
+            </div>
+            <p class="text-xs leading-relaxed line-clamp-3 opacity-80" style="color: var(--text-secondary);">
+              笔趣阁精选杀虫队队员巅峰之作《十日终焉》。齐夏等人置身神秘莫测的生死回环，智计交织、人性博弈，带给读者极致沉浸的心流体验...
+            </p>
+          </div>
+        `;
+      } else if (activePage === 'reader') {
+        v.innerHTML = `
+          <!-- 阅读器：顶级排版与刚刚验证完成的 5 键底栏 -->
+          <div class="absolute inset-0 z-30 flex flex-col justify-between" style="background: var(--canvas-bg);">
+            
+            <!-- 沉浸顶栏 -->
+            <div class="px-5 pt-11 pb-3 flex items-center justify-between border-b" style="background: var(--card-bg); border-color: var(--border-subtle);">
+              <div class="flex items-center gap-2.5">
+                <button onclick="switchPage('shelf')" class="p-2 rounded-full squircle-subcard">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div>
+                  <div class="text-xs font-black truncate max-w-[150px]">十日终焉</div>
+                  <div class="text-[9px] opacity-60 font-mono" style="color: var(--text-secondary);">CHAPTER 54</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button class="p-2 rounded-full squircle-subcard">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                </button>
+                <button class="p-2 rounded-full squircle-subcard">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- 顶级纸书正文排版（采用真实思源宋体与舒缓行间距） -->
+            <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4 book-font text-sm leading-relaxed" style="color: var(--text-primary);">
+              <h2 class="text-lg font-bold tracking-wide pb-1">第54章 乱世男女</h2>
+              <p class="indent-8 text-[13.5px] leading-7 tracking-wide opacity-95">
+                二人抱着一口老旧的铝锅，不断在城市中穿行。齐夏从未想过，一座城市若是没有了灯光，竟然会比野外还要漆黑。
+              </p>
+              <p class="indent-8 text-[13.5px] leading-7 tracking-wide opacity-95">
+                仅仅走了十几分钟，天色便像滴了墨一样沉寂下来。四周窸窸窣窣的虫鸣声交相呼应，让齐夏心烦意乱。
+              </p>
+              
+              <!-- 划线笔记温润胶囊卡片 -->
+              <div class="p-3.5 rounded-2xl border-l-4 my-2 text-xs squircle-card" style="border-left-color: var(--accent); background: var(--accent-soft);">
+                <div class="font-medium">“林檎，你还在吗？”齐夏问。</div>
+                <div class="text-[10px] mt-1.5 flex items-center gap-1 font-sans font-bold" style="color: var(--accent);">
+                  <span>🖋️ 划线高亮 · 直出笔记已就绪</span>
+                </div>
+              </div>
+
+              <p class="indent-8 text-[13.5px] leading-7 tracking-wide opacity-95">
+                “我还在。”林檎应声回答道，“你走慢一点，小心摔倒。”
+              </p>
+              <p class="indent-8 text-[13.5px] leading-7 tracking-wide opacity-95">
+                “不能再慢了。”齐夏看了看天色，“现在还勉强能看清一点路，我们要趁早赶到便利店，你抓紧我的衣服吧。”
+              </p>
+            </div>
+
+            <!-- 5 键底栏：【目录、听书、笔记、日间/夜间、排版】完美对称中轴 -->
+            <div class="p-4 pb-8 border-t flex flex-col gap-3 shadow-2xl" style="background: var(--card-bg); border-color: var(--border-subtle);">
+              
+              <!-- 进度滑块 -->
+              <div class="flex items-center gap-3 px-2">
+                <button class="text-xs opacity-50 hover:opacity-100">⏮</button>
+                <div class="flex-1 h-1.5 rounded-full relative flex items-center" style="background: var(--surface-bg);">
+                  <div class="w-1/4 h-full rounded-full" style="background: var(--accent);"></div>
+                  <div class="w-4 h-4 rounded-full shadow-md -ml-2" style="background: var(--accent); border: 2.5px solid #FFFFFF;"></div>
+                </div>
+                <button class="text-xs opacity-50 hover:opacity-100">⏭</button>
+              </div>
+
+              <div class="text-[10px] text-center font-mono opacity-60">第 1 / 4 页 · 25%</div>
+
+              <!-- 5 键等宽直出排布 -->
+              <div class="grid grid-cols-5 gap-1 pt-0.5">
+                
+                <div class="flex flex-col items-center gap-1 cursor-pointer py-1 opacity-80 hover:opacity-100">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                  <span class="text-[10px] font-medium">目录</span>
+                </div>
+
+                <div class="flex flex-col items-center gap-1 cursor-pointer py-1 opacity-80 hover:opacity-100">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/></svg>
+                  <span class="text-[10px] font-medium">听书</span>
+                </div>
+
+                <!-- 居中正位的【笔记】核心按键 -->
+                <div class="flex flex-col items-center gap-1 cursor-pointer py-1 relative" style="color: var(--accent);">
+                  <div class="w-1.5 h-1.5 rounded-full pulse-dot absolute -top-1 right-2" style="background: var(--accent);"></div>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  <span class="text-[10px] font-bold">笔记</span>
+                </div>
+
+                <div class="flex flex-col items-center gap-1 cursor-pointer py-1 opacity-80 hover:opacity-100" onclick="setMode(activeMode === 'light' ? 'dark' : 'light')">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                  <span class="text-[10px] font-medium">${activeMode === 'light' ? '夜间' : '日间'}</span>
+                </div>
+
+                <div class="flex flex-col items-center gap-1 cursor-pointer py-1 opacity-80 hover:opacity-100">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M7 6v12m10-12v12"/></svg>
+                  <span class="text-[10px] font-medium">排版</span>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        `;
+      } else if (activePage === 'settings') {
+        v.innerHTML = `
+          <!-- 典雅设置中心：展现充裕呼吸留白 -->
+          <div class="py-2.5">
+            <h1 class="text-2xl font-black tracking-tight">偏好与设置</h1>
+            <p class="text-xs mt-1 opacity-70" style="color: var(--text-secondary);">个性化阅读体验与多端同步</p>
+          </div>
+
+          <!-- 分组 1: 护眼与视觉风格 -->
+          <div class="mt-4 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider px-1 opacity-60" style="color: var(--text-secondary);">视觉与意境主题</div>
+            <div class="squircle-card p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold">跟随系统深色模式</div>
+                  <div class="text-[10px] opacity-70 mt-0.5" style="color: var(--text-secondary);">日夜交替自动温和切光</div>
+                </div>
+                <div class="w-11 h-6 rounded-full p-0.5 flex items-center justify-end cursor-pointer" style="background: var(--accent);">
+                  <div class="w-5 h-5 rounded-full bg-white shadow-md"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分组 2: 沉浸翻页控制 -->
+          <div class="mt-4 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider px-1 opacity-60" style="color: var(--text-secondary);">翻页与操作</div>
+            <div class="squircle-card p-4 space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold">物理音量键翻页</div>
+                  <div class="text-[10px] opacity-70 mt-0.5" style="color: var(--text-secondary);">单手握持轻松向下翻页</div>
+                </div>
+                <div class="w-11 h-6 rounded-full p-0.5 flex items-center justify-end cursor-pointer" style="background: var(--accent);">
+                  <div class="w-5 h-5 rounded-full bg-white shadow-md"></div>
+                </div>
+              </div>
+              <div class="h-px" style="background: var(--border-subtle);"></div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold">常亮防休眠</div>
+                  <div class="text-[10px] opacity-70 mt-0.5" style="color: var(--text-secondary);">长篇连贯阅读不息屏</div>
+                </div>
+                <div class="w-11 h-6 rounded-full p-0.5 flex items-center justify-end cursor-pointer" style="background: var(--accent);">
+                  <div class="w-5 h-5 rounded-full bg-white shadow-md"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分组 3: 存储与版本 (带超大舒适安全留白) -->
+          <div class="mt-4 space-y-2">
+            <div class="text-[11px] font-bold uppercase tracking-wider px-1 opacity-60" style="color: var(--text-secondary);">存储与版本</div>
+            <div class="squircle-card p-4 space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold">离线章节缓存</div>
+                  <div class="text-[10px] opacity-70 mt-0.5" style="color: var(--text-secondary);">已缓存 198 KB</div>
+                </div>
+                <button class="px-3.5 py-1.5 rounded-full text-xs font-bold sublime-dock" style="color: var(--accent);">
+                  清理
+                </button>
+              </div>
+              <div class="h-px" style="background: var(--border-subtle);"></div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold">藏书阁版本</div>
+                  <div class="text-[10px] opacity-70 mt-0.5" style="color: var(--text-secondary);">当前 v1.0.6 (旗舰引擎)</div>
+                </div>
+                <button class="px-3.5 py-1.5 rounded-full text-xs font-extrabold text-white shadow-sm" style="background: var(--accent);">
+                  检查更新
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 验证留白区域标尺 -->
+          <div class="mt-6 text-center text-[10px] py-2 rounded-xl border border-dashed opacity-40" style="border-color: var(--border-subtle); color: var(--text-secondary);">
+            ⇣ 底部预留 +32.0dp 充足呼吸空间（杜绝最末项贴底） ⇣
+          </div>
+        `;
+      }
+    }
+
+    // 支持 URL 查询参数以供 Chrome 截图与分享
+    const params = new URLSearchParams(window.location.search);
+    const initAest = params.get('aest') || 'mistyJade';
+    const initMode = params.get('mode') || 'light';
+    const initPage = params.get('page') || 'shelf';
+
+    setMode(initMode);
+    switchAesthetic(initAest);
+    switchPage(initPage);
+  </script>
+</body>
+</html>

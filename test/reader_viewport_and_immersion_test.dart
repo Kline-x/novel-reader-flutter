@@ -164,5 +164,63 @@ void main() {
       await tester.pumpAndSettle();
       expect(bookmarkTapped, isTrue);
     });
+
+    testWidgets('3.2 阅读器底栏直出「笔记」一级入口并正常响应点击测试', (tester) async {
+      bool notesOpened = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReaderViewport(
+              paragraphs: const ['正文测试内容。'],
+              bookTitle: '测试书名',
+              chapterTitle: '第一章',
+              initialCharOffset: 0,
+              turnMode: PageTurnMode.slide,
+              theme: ReaderThemeOption.paper,
+              fontSize: 18.0,
+              lineHeight: 1.6,
+              isLoading: false,
+              hasError: false,
+              annotations: const [],
+              isInShelf: true,
+              onAddToShelf: () {},
+              onRetry: () {},
+              onBack: () {},
+              onOpenCatalog: () {},
+              onOpenTypography: () {},
+              onOpenTts: () {},
+              onToggleTheme: () {},
+              onNextChapter: () {},
+              onPreviousChapter: () {},
+              onProgressChanged: (_, __) {},
+              onToggleBookmark: () {},
+              onOpenNotes: () {
+                notesOpened = true;
+              },
+              onAddAnnotation: (_, __, ___) {},
+              isBookmarked: false,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 点击中心呼出阅读菜单
+      await tester.tapAt(const Offset(400.0, 400.0));
+      await tester.pumpAndSettle();
+
+      // 验证底栏中直接渲染了「笔记」按钮
+      final notesBtn = find.byKey(const ValueKey('reader_bottom_notes_btn'));
+      expect(notesBtn, findsOneWidget);
+
+      // 点击底栏「笔记」
+      await tester.tap(notesBtn);
+      await tester.pumpAndSettle();
+
+      // 验证直达触发 onOpenNotes
+      expect(notesOpened, isTrue);
+    });
   });
 }

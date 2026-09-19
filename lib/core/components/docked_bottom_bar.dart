@@ -21,9 +21,9 @@ class DockedBottomBar extends StatefulWidget {
   static double totalHeight(BuildContext context) =>
       fadeHeight + barContentHeight + MediaQuery.paddingOf(context).bottom;
 
-  /// 页面滚动列表建议的底部安全内边距
+  /// 页面滚动列表建议的底部安全内边距（含渐隐带、系统手势条安全区与 32dp 舒展留白）
   static double contentBottomPadding(BuildContext context) =>
-      totalHeight(context) + 16.0;
+      totalHeight(context) + 32.0;
 
   final int currentIndex;
   final ValueChanged<int> onTabSelected;

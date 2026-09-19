@@ -1,8 +1,8 @@
 {
-  "versionCode": 6004,
-  "versionName": "1.0.6",
-  "publishDate": "2026-09-18",
-  "releaseNotes": "1、修复本地导入与 WiFi 传书大文件不分章；\n2、修复检查更新误报新版本，安装包按 ABI 分发并校验完整性；\n3、换源不再串书，目录抓取失败不再伪造假目录；\n4、底部导航栏与阅读器顶栏重做，深色模式跟随系统；\n5、去掉电量、评分、字数等假数据；\n6、修复拼音自愈规则转义与声调还原。",
+  "versionCode": 4005,
+  "versionName": "1.0.7",
+  "publishDate": "2026-09-19",
+  "releaseNotes": "1、阅读器底部控制栏直出「划线与笔记」一级入口，高频笔记一步直达；\n2、全局底部大呼吸留白优化（+32dp），消除页面滚动最末项贴底压迫感；\n3、Modern Soft UI 旗舰版设计系统与原型架构就绪。",
   "isForceUpdate": false,
   "platforms": {
     "android": {
