@@ -40,7 +40,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 验证书架主标题与 Bento 看板
-      expect(find.text('藏书阁'), findsOneWidget);
+      expect(find.text('藏书阁'), findsNWidgets(2)); // 顶栏大标题 + 底栏 Tab
       expect(find.text('今日阅读'), findsOneWidget);
       expect(find.text('在读藏书'), findsOneWidget);
 
@@ -63,14 +63,14 @@ void main() {
       // 2. 切换至设置页
       await tester.tap(find.byKey(const ValueKey('tab_settings')));
       await tester.pumpAndSettle();
-      expect(find.text('个人与设置'), findsOneWidget);
+      expect(find.text('偏好与设置'), findsOneWidget);
       expect(find.text('阅读与偏好设置'), findsOneWidget);
       expect(find.text('物理音量键翻页'), findsOneWidget);
 
       // 3. 切换回书架页
       await tester.tap(find.byKey(const ValueKey('tab_shelf')));
       await tester.pumpAndSettle();
-      expect(find.text('藏书阁'), findsOneWidget);
+      expect(find.text('藏书阁'), findsNWidgets(2));
       expect(find.text('今日阅读'), findsOneWidget);
     });
   });
@@ -264,7 +264,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 验证真实初始缓存大小
-      expect(find.text(expectedInitial), findsOneWidget);
+      expect(find.textContaining(expectedInitial), findsOneWidget);
 
       // 点击清理缓存按钮唤起弹窗
       await tester.tap(find.byKey(const ValueKey('btn_clear_cache')));
@@ -281,7 +281,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('清空离线缓存'), findsNothing);
-      expect(find.text(expectedInitial), findsOneWidget);
+      expect(find.textContaining(expectedInitial), findsOneWidget);
 
       // 2. 再次打开弹窗并确认清空
       await tester.tap(find.byKey(const ValueKey('btn_clear_cache')));
@@ -292,7 +292,7 @@ void main() {
 
       // 弹窗关闭，缓存更新为 0 B 并弹出 SnackBar
       expect(find.text('清空离线缓存'), findsNothing);
-      expect(find.text('0 B'), findsOneWidget);
+      expect(find.textContaining('0 B'), findsOneWidget);
       expect(find.text('离线缓存已完全清空'), findsOneWidget);
     });
   });

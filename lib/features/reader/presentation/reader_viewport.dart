@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../notes/models/annotation.dart';
+import '../../../core/theme/soft_theme.dart';
 import '../data/storage_service.dart';
 import '../engine/page_models.dart';
 import '../engine/reader_layout_engine.dart';
@@ -1079,95 +1080,126 @@ class _ReaderViewportState extends State<ReaderViewport>
     );
   }
 
-  /// 顶部操作栏
+  /// 顶部沉浸操作栏（1:1 像素级对齐原型 modern_soft_ui_sublime_v3.html）
   Widget _buildTopMenu(BuildContext context) {
     final isDark = widget.theme.isDark;
+    final softColors = SoftTheme.of(context).withBrightness(dark: isDark);
+
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
+          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
           child: Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 8.0,
               bottom: 10.0,
-              left: 8.0,
-              right: 8.0,
+              left: 16.0,
+              right: 16.0,
             ),
             decoration: BoxDecoration(
-              color: (isDark ? const Color(0xFF16181A) : Colors.white)
-                  .withValues(alpha: 0.94),
+              color: softColors.card.withValues(alpha: isDark ? 0.90 : 0.95),
               border: Border(
                 bottom: BorderSide(
-                  color: (isDark ? Colors.white : Colors.black)
-                      .withValues(alpha: 0.08),
+                  color: softColors.borderSubtle,
+                  width: 1.0,
                 ),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
                   offset: const Offset(0, 4),
-                  blurRadius: 12,
+                  blurRadius: 16,
                 ),
               ],
             ),
             child: Row(
               children: [
+                // 原型：圆形微浮雕返回键 p-2 rounded-full squircle-subcard
                 GestureDetector(
                   onTap: widget.onBack,
                   behavior: HitTestBehavior.opaque,
                   child: Container(
-                    width: 32.0,
-                    height: 32.0,
+                    width: 36.0,
+                    height: 36.0,
                     alignment: Alignment.center,
-                    child: Icon(Icons.arrow_back_ios_new,
-                        color: widget.theme.textColor, size: 18),
-                  ),
-                ),
-                const SizedBox(width: 4.0),
-                Expanded(
-                  child: Text(
-                    widget.bookTitle,
-                    style: TextStyle(
-                      color: widget.theme.textColor,
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w600,
+                    decoration: BoxDecoration(
+                      color: softColors.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: softColors.borderSubtle,
+                        width: 1.0,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    child: Icon(Icons.arrow_back_ios_new_rounded,
+                        color: softColors.textPrimary, size: 15),
                   ),
                 ),
                 const SizedBox(width: 12.0),
-                // 右侧功能区：只保留高频的「换源」「书签」，
-                // 其余（加入书架 / 笔记 / 离线）收进「更多」菜单。
-                // 此前 5 个胶囊挤在一行、与书名几乎无间距，指尖很难点准。
+                // 原型：双行书名与章节副标
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.bookTitle,
+                        style: TextStyle(
+                          color: softColors.textPrimary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1.5),
+                      Text(
+                        widget.chapterTitle.isNotEmpty
+                            ? widget.chapterTitle.toUpperCase()
+                            : 'CHAPTER ${_currentPageIndex + 1}',
+                        style: TextStyle(
+                          color: softColors.textSecondary.withValues(alpha: 0.75),
+                          fontSize: 9.5,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10.0),
+                // 右侧圆形微浮雕功能键：换源、书签、更多
                 if (widget.onOpenSourceSwitcher != null) ...[
-                  _buildTopIconButton(
+                  _buildSublimeTopBtn(
                     key: const ValueKey('reader_top_source_btn'),
                     icon: Icons.swap_horiz_rounded,
                     tooltip: '换源',
-                    isDark: isDark,
+                    softColors: softColors,
                     onTap: widget.onOpenSourceSwitcher!,
                   ),
                   const SizedBox(width: 8.0),
                 ],
                 if (widget.onToggleBookmark != null) ...[
-                  _buildTopIconButton(
+                  _buildSublimeTopBtn(
                     key: const ValueKey('reader_top_bookmark_btn'),
                     icon: widget.isBookmarked
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
                     tooltip: widget.isBookmarked ? '取消书签' : '加书签',
-                    isDark: isDark,
+                    softColors: softColors,
                     highlightColor:
-                        widget.isBookmarked ? const Color(0xFFE5A93C) : null,
+                        widget.isBookmarked ? softColors.accent : null,
                     onTap: widget.onToggleBookmark!,
                   ),
                   const SizedBox(width: 8.0),
                 ],
-                _buildTopOverflowMenu(isDark),
+                _buildTopOverflowMenu(softColors),
               ],
             ),
           ),
@@ -1176,13 +1208,14 @@ class _ReaderViewportState extends State<ReaderViewport>
     );
   }
 
-  /// 底部控制面板
+  /// 底部控制面板（1:1 像素级对齐原型 modern_soft_ui_sublime_v3.html）
   Widget _buildBottomMenu(BuildContext context) {
     final isDark = widget.theme.isDark;
+    final softColors = SoftTheme.of(context).withBrightness(dark: isDark);
     final total = _pages.isEmpty ? 1 : _pages.length;
     final current = (_currentPageIndex + 1).clamp(1, total);
-    // 无缝流式没有"页"的概念，显示页码与页码滑块既无意义也不会跟随滚动
     final isScrollMode = widget.turnMode == PageTurnMode.scroll;
+    final percent = ((current / (total > 0 ? total : 1)) * 100).toInt();
 
     return Positioned(
       bottom: 0,
@@ -1190,36 +1223,41 @@ class _ReaderViewportState extends State<ReaderViewport>
       right: 0,
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
+          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
           child: Container(
             padding: EdgeInsets.only(
-              top: 16.0,
+              top: 14.0,
               bottom: MediaQuery.of(context).padding.bottom + 12.0,
-              left: 20.0,
-              right: 20.0,
+              left: 18.0,
+              right: 18.0,
             ),
             decoration: BoxDecoration(
-              color: (isDark ? const Color(0xFF16181A) : Colors.white)
-                  .withValues(alpha: 0.94),
+              color: softColors.card.withValues(alpha: isDark ? 0.90 : 0.95),
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24.0)),
+                  const BorderRadius.vertical(top: Radius.circular(26.0)),
+              border: Border(
+                top: BorderSide(
+                  color: softColors.borderSubtle,
+                  width: 1.0,
+                ),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  offset: const Offset(0, -4),
-                  blurRadius: 18,
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                  offset: const Offset(0, -6),
+                  blurRadius: 24,
                 ),
               ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 进度滑块
+                // 进度滑块：左⏮ 右⏭，中轴轨道
                 Row(
                   children: [
                     IconButton(
                       icon: Icon(Icons.skip_previous_rounded,
-                          color: widget.theme.textColor),
+                          color: softColors.textSecondary, size: 20),
                       onPressed: widget.onPreviousChapter,
                       tooltip: '上一章',
                     ),
@@ -1228,38 +1266,50 @@ class _ReaderViewportState extends State<ReaderViewport>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (!isScrollMode)
-                          Slider(
-                            value: current.toDouble(),
-                            min: 1.0,
-                            max: (total > 1 ? total : 1).toDouble(),
-                            activeColor: widget.theme.accent,
-                            inactiveColor: widget.theme.subTextColor
-                                .withValues(alpha: 0.3),
-                            onChanged: total > 1
-                                ? (val) {
-                                    final target = val.round() - 1;
-                                    if (target != _currentPageIndex) {
-                                      if (widget.turnMode ==
-                                          PageTurnMode.slide) {
-                                        _pageController.jumpToPage(target);
-                                      } else {
-                                        setState(
-                                            () => _currentPageIndex = target);
-                                        // 非 slide 模式不会触发 onPageChanged，
-                                        // 需手动上报进度，否则拖动滑块后进度不落盘
-                                        _notifyProgress();
+                            SliderTheme(
+                              data: SliderThemeData(
+                                trackHeight: 3.0,
+                                activeTrackColor: softColors.accent,
+                                inactiveTrackColor: softColors.surface,
+                                thumbColor: softColors.accent,
+                                overlayColor:
+                                    softColors.accent.withValues(alpha: 0.12),
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 6.0,
+                                  elevation: 2.0,
+                                ),
+                              ),
+                              child: Slider(
+                                value: current.toDouble(),
+                                min: 1.0,
+                                max: (total > 1 ? total : 1).toDouble(),
+                                onChanged: total > 1
+                                    ? (val) {
+                                        final target = val.round() - 1;
+                                        if (target != _currentPageIndex) {
+                                          if (widget.turnMode ==
+                                              PageTurnMode.slide) {
+                                            _pageController.jumpToPage(target);
+                                          } else {
+                                            setState(
+                                                () => _currentPageIndex = target);
+                                            _notifyProgress();
+                                          }
+                                        }
                                       }
-                                    }
-                                  }
-                                : null,
-                          ),
+                                    : null,
+                              ),
+                            ),
                           Text(
                             isScrollMode
                                 ? '本章已读 ${_scrollPercentLabel()}'
-                                : '第 $current / $total 页',
+                                : '第 $current / $total 页 · $percent%',
                             style: TextStyle(
-                              fontSize: 11.0,
-                              color: widget.theme.subTextColor,
+                              fontSize: 10.5,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w600,
+                              color: softColors.textSecondary
+                                  .withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -1267,50 +1317,53 @@ class _ReaderViewportState extends State<ReaderViewport>
                     ),
                     IconButton(
                       icon: Icon(Icons.skip_next_rounded,
-                          color: widget.theme.textColor),
+                          color: softColors.textSecondary, size: 20),
                       onPressed: widget.onNextChapter,
                       tooltip: '下一章',
                     ),
                   ],
                 ),
-                // 核心功能按键：目录、听书、笔记、日间/夜间、排版
+                const SizedBox(height: 6.0),
+                // 5 键等宽直出排布：目录、听书、居中【笔记】脉冲点、日间/夜间、排版
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildActionButton(
+                    _buildSublimeBottomBtn(
                       key: const ValueKey('reader_bottom_catalog_btn'),
                       icon: Icons.format_list_bulleted_rounded,
                       label: '目录',
+                      softColors: softColors,
                       onTap: widget.onOpenCatalog,
                     ),
                     if (widget.onOpenTts != null)
-                      _buildActionButton(
+                      _buildSublimeBottomBtn(
                         key: const ValueKey('reader_bottom_tts_btn'),
                         icon: Icons.headphones_rounded,
                         label: '听书',
+                        softColors: softColors,
                         onTap: widget.onOpenTts!,
                       ),
-                    if (widget.onOpenNotes != null)
-                      _buildActionButton(
-                        key: const ValueKey('reader_bottom_notes_btn'),
-                        icon: Icons.rate_review_outlined,
-                        label: '笔记',
-                        onTap: widget.onOpenNotes!,
-                      ),
-                    _buildActionButton(
+                    // 居中正位的【笔记】核心按键，带脉冲呼吸点 pulse-dot
+                    _buildSublimeCenterNoteBtn(
+                      softColors: softColors,
+                      onTap: widget.onOpenNotes,
+                    ),
+                    _buildSublimeBottomBtn(
                       key: const ValueKey('reader_bottom_theme_btn'),
                       icon: isDark
                           ? Icons.light_mode_rounded
                           : Icons.dark_mode_rounded,
                       label: isDark ? '日间' : '夜间',
+                      softColors: softColors,
                       onTap: () {
                         widget.onToggleTheme?.call();
                       },
                     ),
-                    _buildActionButton(
+                    _buildSublimeBottomBtn(
                       key: const ValueKey('reader_bottom_typography_btn'),
                       icon: Icons.text_fields_rounded,
                       label: '排版',
+                      softColors: softColors,
                       onTap: widget.onOpenTypography,
                     ),
                   ],
@@ -1323,16 +1376,18 @@ class _ReaderViewportState extends State<ReaderViewport>
     );
   }
 
-  /// 顶栏图标按钮：紧凑但不拥挤，保持足够触控热区
-  Widget _buildTopIconButton({
+  /// 原型 1:1 圆形微浮雕顶栏小键
+  Widget _buildSublimeTopBtn({
     required Key key,
     required IconData icon,
     required String tooltip,
-    required bool isDark,
+    required SoftColors softColors,
     required VoidCallback onTap,
     Color? highlightColor,
   }) {
-    final base = highlightColor ?? widget.theme.textColor;
+    final baseColor = highlightColor ?? softColors.textPrimary;
+    final isHighlighted = highlightColor != null;
+
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
@@ -1340,23 +1395,120 @@ class _ReaderViewportState extends State<ReaderViewport>
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          width: 34.0,
-          height: 34.0,
+          width: 36.0,
+          height: 36.0,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: highlightColor != null
-                ? highlightColor.withValues(alpha: 0.16)
-                : (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(10.0),
+            color: isHighlighted ? softColors.accentSoft : softColors.surface,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isHighlighted
+                  ? softColors.accent.withValues(alpha: 0.3)
+                  : softColors.borderSubtle,
+              width: 1.0,
+            ),
           ),
-          child: Icon(icon, size: 17.0, color: base),
+          child: Icon(icon, size: 17.0, color: baseColor),
         ),
       ),
     );
   }
 
+  /// 原型 1:1 底栏等宽功能键
+  Widget _buildSublimeBottomBtn({
+    required Key key,
+    required IconData icon,
+    required String label,
+    required SoftColors softColors,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      key: key,
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 21.0, color: softColors.textSecondary),
+            const SizedBox(height: 3.5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10.0,
+                fontWeight: FontWeight.w500,
+                color: softColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 原型 1:1 居中正位【笔记】键（带脉冲呼吸点 pulse-dot）
+  Widget _buildSublimeCenterNoteBtn({
+    required SoftColors softColors,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      key: const ValueKey('reader_bottom_notes_btn'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.edit_note_rounded,
+                  size: 22.0,
+                  color: softColors.accent,
+                ),
+                const SizedBox(height: 3.5),
+                Text(
+                  '笔记',
+                  style: TextStyle(
+                    fontSize: 10.0,
+                    fontWeight: FontWeight.bold,
+                    color: softColors.accent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 呼吸微光红/绿点 (w-1.5 h-1.5 rounded-full pulse-dot)
+          Positioned(
+            top: 2.0,
+            right: 2.0,
+            child: Container(
+              width: 6.0,
+              height: 6.0,
+              decoration: BoxDecoration(
+                color: softColors.accent,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: softColors.accentGlow,
+                    blurRadius: 4.0,
+                    spreadRadius: 1.0,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 低频操作收进「更多」菜单，给书名让出呼吸空间
-  Widget _buildTopOverflowMenu(bool isDark) {
+  Widget _buildTopOverflowMenu(SoftColors softColors) {
     final entries = <PopupMenuEntry<String>>[];
     if (widget.onAddToShelf != null) {
       entries.add(PopupMenuItem<String>(
@@ -1368,7 +1520,7 @@ class _ReaderViewportState extends State<ReaderViewport>
                 ? Icons.check_circle_rounded
                 : Icons.library_add_outlined,
             size: 18.0,
-            color: widget.isInShelf ? Colors.green : null,
+            color: widget.isInShelf ? softColors.accent : null,
           ),
           const SizedBox(width: 10.0),
           Text(widget.isInShelf ? '已入架' : '加入书架'),
@@ -1401,7 +1553,12 @@ class _ReaderViewportState extends State<ReaderViewport>
       key: const ValueKey('reader_top_more_btn'),
       tooltip: '更多',
       padding: EdgeInsets.zero,
-      color: isDark ? const Color(0xFF232529) : Colors.white,
+      color: softColors.card,
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0),
+        side: BorderSide(color: softColors.borderSubtle),
+      ),
       itemBuilder: (_) => entries,
       onSelected: (v) {
         switch (v) {
@@ -1417,15 +1574,19 @@ class _ReaderViewportState extends State<ReaderViewport>
         }
       },
       child: Container(
-        width: 34.0,
-        height: 34.0,
+        width: 36.0,
+        height: 36.0,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(10.0),
+          color: softColors.surface,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: softColors.borderSubtle,
+            width: 1.0,
+          ),
         ),
         child: Icon(Icons.more_horiz_rounded,
-            size: 18.0, color: widget.theme.textColor),
+            size: 18.0, color: softColors.textPrimary),
       ),
     );
   }
@@ -1436,32 +1597,5 @@ class _ReaderViewportState extends State<ReaderViewport>
     if (total <= 0) return '0%';
     final pct = ((_activeCharOffset / total) * 100).clamp(0.0, 100.0);
     return '${pct.toStringAsFixed(0)}%';
-  }
-
-  Widget _buildActionButton({
-    Key? key,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      key: key,
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 6.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: widget.theme.textColor, size: 22.0),
-            const SizedBox(height: 4.0),
-            Text(
-              label,
-              style: TextStyle(color: widget.theme.textColor, fontSize: 12.0),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

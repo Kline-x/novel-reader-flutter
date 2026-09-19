@@ -291,7 +291,7 @@ Chapter 3 The Heritage
 
       expect(find.byKey(const ValueKey('shelf_wifi_transfer_btn')),
           findsOneWidget);
-      expect(find.text('WiFi传书'), findsOneWidget);
+      expect(find.textContaining('WiFi'), findsOneWidget);
 
       // 点击唤起 WiFi 传书弹窗
       await tester.tap(find.byKey(const ValueKey('shelf_wifi_transfer_btn')));

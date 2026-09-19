@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/reader/data/storage_service.dart';
 import 'soft_theme.dart';
 
-/// 全局主题提供者 (theme_provider.dart)
+/// 全局主题与四大意境状态提供者 (theme_provider.dart)
 class ThemeNotifier extends StateNotifier<SoftPaletteType>
     with WidgetsBindingObserver {
-  ThemeNotifier() : super(SoftPaletteType.parchment) {
+  ThemeNotifier() : super(SoftPaletteType.mistyJade) {
     WidgetsBinding.instance.addObserver(this);
     _loadInitialTheme();
   }
@@ -20,9 +20,9 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
   static Brightness get systemBrightness =>
       PlatformDispatcher.instance.platformBrightness;
 
-  /// 系统亮度对应的配色
+  /// 系统亮度对应的配色（浅色默认翠竹微雨，深色默认极夜星芒）
   static SoftPaletteType paletteForBrightness(Brightness b) =>
-      b == Brightness.dark ? SoftPaletteType.night : SoftPaletteType.parchment;
+      b == Brightness.dark ? SoftPaletteType.darkJade : SoftPaletteType.mistyJade;
 
   @override
   void dispose() {
@@ -31,9 +31,6 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
   }
 
   /// 系统深浅色切换时实时跟随
-  ///
-  /// 此前全工程没有任何地方监听 platformBrightness，
-  /// 系统切换深色模式后应用毫无反应。
   @override
   void didChangePlatformBrightness() {
     if (!_isFollowingSystem) return;
@@ -48,9 +45,6 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
       final themeStr = await StorageService().getGlobalTheme();
       if (themeStr == 'system') {
         _isFollowingSystem = true;
-        // 关键修复：此前这里只置了标志位，没有按系统亮度设置 state，
-        // 于是 state 永远停留在构造时的 parchment（浅色），
-        // 导致"跟随系统深色模式"开着也永远是浅色。
         state = paletteForBrightness(systemBrightness);
       } else {
         _isFollowingSystem = false;
@@ -80,7 +74,13 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
 
   void nextPalette() {
     _isFollowingSystem = false;
-    const values = SoftPaletteType.values;
+    const values = [
+      SoftPaletteType.mistyJade,
+      SoftPaletteType.warmAmber,
+      SoftPaletteType.moonSilver,
+      SoftPaletteType.darkJade,
+      SoftPaletteType.paper,
+    ];
     final nextIndex = (values.indexOf(state) + 1) % values.length;
     state = values[nextIndex];
     StorageService().setGlobalTheme(paletteToString(state));
@@ -88,17 +88,32 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
 
   static SoftPaletteType? stringToPalette(String str) {
     switch (str.toLowerCase()) {
+      case 'mistyjade':
+      case 'jade':
+      case 'beangreen':
+      case 'green':
+        return SoftPaletteType.mistyJade;
+      case 'warmamber':
+      case 'twilightamber':
+      case 'amber':
+      case 'parchment':
+      case 'cream':
+        return SoftPaletteType.warmAmber;
+      case 'moonsilver':
+      case 'violetorchid':
+      case 'orchid':
+      case 'silver':
+      case 'moon':
+        return SoftPaletteType.moonSilver;
+      case 'darkjade':
+      case 'auroraspace':
+      case 'aurora':
+      case 'night':
+      case 'dark':
+        return SoftPaletteType.darkJade;
       case 'paper':
       case 'white':
         return SoftPaletteType.paper;
-      case 'parchment':
-        return SoftPaletteType.parchment;
-      case 'beangreen':
-      case 'green':
-        return SoftPaletteType.beanGreen;
-      case 'night':
-      case 'dark':
-        return SoftPaletteType.night;
       default:
         return null;
     }
@@ -106,17 +121,47 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType>
 
   static String paletteToString(SoftPaletteType type) {
     switch (type) {
+      case SoftPaletteType.mistyJade:
+      case SoftPaletteType.beanGreen:
+        return 'mistyJade';
+      case SoftPaletteType.warmAmber:
+      case SoftPaletteType.twilightAmber:
+      case SoftPaletteType.parchment:
+        return 'warmAmber';
+      case SoftPaletteType.moonSilver:
+      case SoftPaletteType.violetOrchid:
+        return 'moonSilver';
+      case SoftPaletteType.darkJade:
+      case SoftPaletteType.auroraSpace:
+      case SoftPaletteType.night:
+        return 'darkJade';
       case SoftPaletteType.paper:
         return 'paper';
-      case SoftPaletteType.parchment:
-        return 'parchment';
-      case SoftPaletteType.beanGreen:
-        return 'beanGreen';
-      case SoftPaletteType.night:
-        return 'night';
     }
   }
 }
+
+class FollowSystemNotifier extends StateNotifier<bool> {
+  FollowSystemNotifier() : super(false) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final themeStr = await StorageService().getGlobalTheme();
+      state = themeStr == 'system';
+    } catch (_) {}
+  }
+
+  void setFollow(bool follow) {
+    state = follow;
+  }
+}
+
+final isFollowingSystemProvider =
+    StateNotifierProvider<FollowSystemNotifier, bool>((ref) {
+  return FollowSystemNotifier();
+});
 
 final themeProvider =
     StateNotifierProvider<ThemeNotifier, SoftPaletteType>((ref) {
@@ -125,5 +170,16 @@ final themeProvider =
 
 final softColorsProvider = Provider<SoftColors>((ref) {
   final paletteType = ref.watch(themeProvider);
-  return SoftColors.fromType(paletteType);
+  final isFollowing = ref.watch(isFollowingSystemProvider);
+
+  final bool isDark;
+  if (isFollowing) {
+    isDark = ThemeNotifier.systemBrightness == Brightness.dark;
+  } else {
+    isDark = paletteType == SoftPaletteType.darkJade ||
+        paletteType == SoftPaletteType.auroraSpace ||
+        paletteType == SoftPaletteType.night;
+  }
+
+  return SoftColors.fromType(paletteType, isDark: isDark);
 });

@@ -31,7 +31,7 @@ class ReaderThemeOption {
     required this.textColor,
     required this.subTextColor,
     required this.isDark,
-    this.accent = const Color(0xFF07C160),
+    this.accent = const Color(0xFF236B58),
   });
 
   static const ReaderThemeOption paper = ReaderThemeOption(
@@ -41,6 +41,7 @@ class ReaderThemeOption {
     textColor: Color(0xFF23262B),
     subTextColor: Color(0xFF555B66), // WCAG 4.5:1 高对比度灰阶
     isDark: false,
+    accent: Color(0xFF236B58),
   );
 
   static const ReaderThemeOption cream = ReaderThemeOption(
@@ -50,6 +51,7 @@ class ReaderThemeOption {
     textColor: Color(0xFF3B3225),
     subTextColor: Color(0xFF5A5043), // 调校为深暖褐灰，对比度 > 5.0:1
     isDark: false,
+    accent: Color(0xFFB86820),
   );
 
   static const ReaderThemeOption green = ReaderThemeOption(
@@ -59,6 +61,7 @@ class ReaderThemeOption {
     textColor: Color(0xFF1B2E1E),
     subTextColor: Color(0xFF3D5341), // 调校为墨绿深色次级文本，清晰可辨
     isDark: false,
+    accent: Color(0xFF236B58),
   );
 
   static const ReaderThemeOption ink = ReaderThemeOption(
@@ -68,7 +71,7 @@ class ReaderThemeOption {
     textColor: Color(0xFFC9CCD8),
     subTextColor: Color(0xFF9096A8),
     isDark: true,
-    accent: Color(0xFF2BD97C),
+    accent: Color(0xFF38D9A9),
   );
 
   static const ReaderThemeOption night = ReaderThemeOption(
@@ -78,7 +81,7 @@ class ReaderThemeOption {
     textColor: Color(0xFFB8BCC9),
     subTextColor: Color(0xFF888D9C),
     isDark: true,
-    accent: Color(0xFF2BD97C),
+    accent: Color(0xFF38D9A9),
   );
 
   static const ReaderThemeOption defaultTheme = paper;

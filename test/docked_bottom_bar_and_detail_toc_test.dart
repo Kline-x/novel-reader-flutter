@@ -16,8 +16,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  group('DockedBottomBar 无界沉浸贴底导航栏测试', () {
-    testWidgets('DockedBottomBar 渐隐无分割线、贴底与高度属性验证', (tester) async {
+  group('DockedBottomBar SublimeFloatingDock 1:1 原型悬浮胶囊导航栏测试', () {
+    testWidgets('DockedBottomBar 悬浮胶囊、毛玻璃、全圆角与高度属性验证', (tester) async {
       int selectedTab = 0;
 
       await tester.pumpWidget(
@@ -40,7 +40,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. 验证 DockedBottomBar 存在且包含 Positioned(bottom: 0)
+      // 1. 验证 DockedBottomBar 存在且包含 Positioned(bottom: 20 + 34, left: 16, right: 16)
       final barFinder = find.byType(DockedBottomBar);
       expect(barFinder, findsOneWidget);
 
@@ -49,48 +49,26 @@ void main() {
         matching: find.byWidgetPredicate(
           (w) =>
               w is Positioned &&
-              w.bottom == 0.0 &&
-              w.left == 0.0 &&
-              w.right == 0.0,
+              w.bottom == 54.0 &&
+              w.left == 16.0 &&
+              w.right == 16.0,
         ),
       );
       expect(positionedFinder, findsOneWidget);
 
-      // 2. 【零分割线】不得存在任何顶部 BorderSide —— 那条横线正是要消灭的目标；
-      //    同时不再使用 BackdropFilter，避免模糊区硬边在内容上留下可见接缝。
-      final borderedContainers = find.descendant(
-        of: barFinder,
-        matching: find.byWidgetPredicate((w) {
-          if (w is! Container) return false;
-          final deco = w.decoration;
-          return deco is BoxDecoration && deco.border != null;
-        }),
-      );
-      expect(borderedContainers, findsNothing);
+      // 2. 1:1 原型规范：具备 BackdropFilter(blur: 24.0) 毛玻璃质感
       expect(
         find.descendant(of: barFinder, matching: find.byType(BackdropFilter)),
-        findsNothing,
+        findsOneWidget,
       );
 
-      // 3. 验证整体高度为 渐隐带 28.0 + 内容 58.0 + 安全区 34.0 = 120.0
-      final gradientFinder = find.descendant(
-        of: barFinder,
-        matching: find.byWidgetPredicate((w) {
-          if (w is! Container) return false;
-          final deco = w.decoration;
-          return deco is BoxDecoration && deco.gradient is LinearGradient;
-        }),
-      );
-      expect(gradientFinder, findsOneWidget);
-      expect(tester.getSize(gradientFinder).height, 120.0);
-
-      // 4. 验证 3 个 Tab 项存在且可正常点击切换
+      // 3. 验证 3 个 Tab 项存在且对应 1:1 原型文案：藏书阁、文渊寻踪、偏好设置
       expect(find.byKey(const ValueKey('tab_shelf')), findsOneWidget);
       expect(find.byKey(const ValueKey('tab_discovery')), findsOneWidget);
       expect(find.byKey(const ValueKey('tab_settings')), findsOneWidget);
-      expect(find.text('书架'), findsOneWidget);
-      expect(find.text('发现'), findsOneWidget);
-      expect(find.text('设置'), findsOneWidget);
+      expect(find.text('藏书阁'), findsOneWidget);
+      expect(find.text('文渊寻踪'), findsOneWidget);
+      expect(find.text('偏好设置'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('tab_discovery')));
       expect(selectedTab, 1);
@@ -108,17 +86,17 @@ void main() {
 
       expect(find.byType(DockedBottomBar), findsOneWidget);
 
-      // 切换至发现
+      // 切换至文渊寻踪 (发现)
       await tester.tap(find.byKey(const ValueKey('tab_discovery')));
       await tester.pumpAndSettle();
       expect(find.text('探索好书'), findsOneWidget);
 
-      // 切换至设置
+      // 切换至偏好设置
       await tester.tap(find.byKey(const ValueKey('tab_settings')));
       await tester.pumpAndSettle();
-      expect(find.text('个人与设置'), findsOneWidget);
+      expect(find.text('偏好与设置'), findsOneWidget);
 
-      // 切换回书架
+      // 切换回藏书阁 (书架)
       await tester.tap(find.byKey(const ValueKey('tab_shelf')));
       await tester.pumpAndSettle();
       expect(find.text('今日阅读'), findsOneWidget);

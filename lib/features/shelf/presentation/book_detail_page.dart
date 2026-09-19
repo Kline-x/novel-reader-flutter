@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/components/ambient_mesh_background.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
@@ -496,7 +497,8 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      body: CustomScrollView(
+      body: AmbientMeshBackground(
+        child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           // 1. SliverAppBar 沉浸吸顶大顶部区域
@@ -514,19 +516,18 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                   key: const ValueKey('detail_back_btn'),
                   onTap: () => Navigator.of(context).maybePop(),
                   child: Container(
-                    width: 38.0,
-                    height: 38.0,
+                    width: 36.0,
+                    height: 36.0,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: (isDark ? colors.surface : colors.card)
-                          .withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(12.0),
-                      boxShadow:
-                          SoftDecorations.softShadows(colors, elevation: 0.8),
+                      color: colors.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colors.borderSubtle),
                     ),
                     child: Icon(
-                      Icons.chevron_left_rounded,
+                      Icons.arrow_back_ios_new_rounded,
                       color: colors.textPrimary,
-                      size: 22.0,
+                      size: 15.0,
                     ),
                   ),
                 ),
@@ -540,13 +541,11 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                     onTap: _openSourceSwitcher,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10.0, vertical: 6.0),
+                          horizontal: 12.0, vertical: 6.0),
                       decoration: BoxDecoration(
-                        color: (isDark ? colors.surface : colors.card)
-                            .withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(12.0),
-                        boxShadow:
-                            SoftDecorations.softShadows(colors, elevation: 0.6),
+                        color: colors.accentSoft,
+                        borderRadius: BorderRadius.circular(SoftDecorations.pillRadius),
+                        border: Border.all(color: colors.borderSubtle),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -554,22 +553,29 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                           Container(
                             width: 6.0,
                             height: 6.0,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF10B981),
+                            decoration: BoxDecoration(
+                              color: colors.accent,
                               shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colors.accentGlow,
+                                  blurRadius: 4.0,
+                                  spreadRadius: 1.0,
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 6.0),
                           Text(
-                            _book.sourceName,
+                            '优质书源 · ${_book.sourceName}',
                             style: TextStyle(
-                              fontSize: 12.0,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.bold,
                               color: colors.accent,
                             ),
                           ),
                           const SizedBox(width: 2.0),
-                          Icon(Icons.arrow_drop_down,
+                          Icon(Icons.arrow_drop_down_rounded,
                               color: colors.accent, size: 16.0),
                         ],
                       ),
@@ -772,7 +778,7 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                   const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
               child: Row(
                 children: [
-                  // 加入书架 / 已在书架
+                  // 加入书架 / 已在书架 (原型 sublime-dock)
                   Expanded(
                     flex: 4,
                     child: GestureDetector(
@@ -782,16 +788,15 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                         height: 48.0,
                         decoration: BoxDecoration(
                           color: _isInShelf
-                              ? colors.accent
-                                  .withValues(alpha: isDark ? 0.25 : 0.15)
-                              : colors.card,
+                              ? colors.accentSoft
+                              : colors.surface,
                           borderRadius: BorderRadius.circular(16.0),
                           border: Border.all(
-                            color: _isInShelf ? colors.accent : colors.border,
-                            width: _isInShelf ? 1.5 : 1.0,
+                            color: _isInShelf
+                                ? colors.accent.withValues(alpha: 0.35)
+                                : colors.borderSubtle,
+                            width: 1.0,
                           ),
-                          boxShadow: SoftDecorations.softShadows(colors,
-                              elevation: 0.8),
                         ),
                         alignment: Alignment.center,
                         child: Row(
@@ -799,18 +804,18 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                           children: [
                             Icon(
                               _isInShelf
-                                  ? Icons.check_circle_rounded
+                                  ? Icons.check_rounded
                                   : Icons.add_rounded,
-                              size: 18.0,
+                              size: 16.0,
                               color: _isInShelf
                                   ? colors.accent
                                   : colors.textPrimary,
                             ),
-                            const SizedBox(width: 6.0),
+                            const SizedBox(width: 5.0),
                             Text(
-                              _isInShelf ? '已在书架' : '加入书架',
+                              _isInShelf ? '已在藏书阁' : '加入藏书阁',
                               style: TextStyle(
-                                fontSize: 14.0,
+                                fontSize: 13.0,
                                 fontWeight: FontWeight.bold,
                                 color: _isInShelf
                                     ? colors.accent
@@ -823,9 +828,9 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                     ),
                   ),
 
-                  const SizedBox(width: 14.0),
+                  const SizedBox(width: 12.0),
 
-                  // 开始阅读 / 继续阅读
+                  // 开始阅读 / 继续阅读 (原型 accent 实心胶囊，带 accent-glow 软微光)
                   Expanded(
                     flex: 6,
                     child: GestureDetector(
@@ -834,20 +839,14 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                       child: Container(
                         height: 48.0,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              colors.accent,
-                              Color.lerp(
-                                      colors.accent, Colors.blueAccent, 0.4) ??
-                                  colors.accent,
-                            ],
-                          ),
+                          color: colors.accent,
                           borderRadius: BorderRadius.circular(16.0),
                           boxShadow: [
                             BoxShadow(
-                              color: colors.accent.withValues(alpha: 0.35),
-                              offset: const Offset(0, 4),
-                              blurRadius: 12,
+                              color: colors.accentGlow,
+                              offset: const Offset(0, 8),
+                              blurRadius: 20,
+                              spreadRadius: -2,
                             ),
                           ],
                         ),
@@ -860,14 +859,14 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
                                   ? '继续阅读 (第${_currentChapterIndex + 1}章)'
                                   : '开始阅读',
                               style: const TextStyle(
-                                fontSize: 15.0,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
                                 color: Colors.white,
                               ),
                             ),
                             const SizedBox(width: 6.0),
                             const Icon(Icons.play_arrow_rounded,
-                                size: 20.0, color: Colors.white),
+                                size: 18.0, color: Colors.white),
                           ],
                         ),
                       ),
@@ -1217,6 +1216,7 @@ class _BookDetailPageState extends ConsumerState<BookDetailPage> {
               ),
           ],
         ],
+      ),
       ),
     );
   }

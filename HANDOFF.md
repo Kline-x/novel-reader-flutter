@@ -1,6 +1,6 @@
 # 接手文档 — 藏书阁（Flutter / 纯血鸿蒙版）
 
-更新时间：2026-09-19　　当前分支：`main`　　当前版本：`v1.0.7+4005`
+更新时间：2026-09-19　　当前分支：`feature/modern-soft-ui-sublime-v3`　　当前版本：`v1.0.8+6005`
 
 > **这份文档是自包含的**：读完即可开工，不必先看其他文档。
 > 项目物理路径：`/Users/yang/Documents/code/vibCoding/novel_reader_flutter`
@@ -86,10 +86,16 @@
       2. **全局安全滚动大呼吸留白优化**：将 `contentBottomPadding` 提升 `+32.0dp`，彻底消除页面滚动最末项贴近悬浮胶囊底栏的压迫感；
       3. **Modern Soft UI v3.0 顶级优雅旗舰版设计系统与原型体系**：确立苍岚烟雨、暮色暖珀、紫陌幽兰、极夜星芒四大意境与流体环境光设计；
       4. **全量自动化门禁与真机 E2E 验证**：`flutter analyze` 0 issues，`flutter test` 197/197 100% 通过，Redmi K60 真机存证归档。
+    - **阶段 21（Modern Soft UI Sublime v3 顶级优雅旗舰版 1:1 像素级还原、四大意境色彩与零缺陷真机 E2E 交付）**：
+      1. **底栏 1:1 重构为悬浮微光药丸胶囊 (`SublimeFloatingDock`)**：严格对照 HTML 原型实现 9999dp 纯净药丸形态、磨砂毛玻璃微高光、微阴影与双侧 20dp 安全收边；选中项采用微光药丸胶囊高亮包裹与动态水滴指示器，配合微凸起触觉动效；`contentBottomPadding` 动态避让保证长列表滚动到底部拥有完美呼吸留白；
+      2. **色彩系统四大意境 Token 1:1 校正与深浅双模无缝绑定 (`SoftTheme` / `ThemeProvider`)**：苍岚烟雨、暮色暖珀、紫陌幽兰、极夜星芒四大意境色彩与深浅模式无缝联动；彻底根除浅色意境卡片在深色模式下的“白底白字”对比度缺陷，达 WCAG AAA 顶级标准；解耦系统深色模式与意境卡片选中态，卡片随时保留高亮对勾与柔光；
+      3. **阅读器顶底栏与 5 键正位微光呼吸点 1:1 还原 (`ReaderViewport`)**：顶栏双行小标题沉浸居中；底栏 5 键对称排布，居中正位【笔记】按钮正上方悬浮脉冲呼吸绿微光点（`pulse-dot`）；排版面板完整覆盖字号刻度滑轨、行距、翻页与 5 款微晕染纸张底色；
+      4. **全量自动化门禁与真机 E2E 零缺陷闭环**：`flutter analyze` 0 issues，`flutter test` 206/206 测试 100% 通过；在 Redmi K60 真机上完成全链路扩大半径深度排查，21 项高清真机证据链全量归档至 `docs/evidence/`。
 2. **全量自动化验证存证**：
    - `flutter analyze`：**0 issues found!**（0 error, 0 warning）
-   - `flutter test`：**197/197 个测试用例 100% 全部通过**（全绿无跳过）。
+   - `flutter test`：**206/206 个测试用例 100% 全部通过**（全绿无跳过）。
 3. **下一步演进计划**：
-   - 当前 v1.0.7 正式版已发布并推送至远端主干；
-   - 新建分支 `feature/modern-soft-ui-sublime-v3`，按照 `modern_soft_ui_sublime_v3.html` 原型标准全面开启设计系统重构。
+   - 本次改动已在 Redmi K60 真实设备上完成全链路扩大半径排查，达到零缺陷标准；
+   - 组织规范的 Conventional Commit 并推送到远程分支 `feature/modern-soft-ui-sublime-v3`；
+   - 准备与主干分支合并并推进后续发布。
 
