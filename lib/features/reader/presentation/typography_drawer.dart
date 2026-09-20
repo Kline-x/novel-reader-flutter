@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/soft_theme.dart';
 import 'reader_page_theme.dart';
 
 /// 行距三档相对字号的倍数：紧凑 / 舒适 / 宽松。
@@ -62,7 +63,10 @@ class TypographyDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = currentTheme.isDark;
-    final accent = currentTheme.accent;
+    // 面板的深浅跟随「阅读主题」（阅读器可能是深墨而应用是日间），
+    // 但滑块、选中态这些控件强调色跟随「应用主题」——
+    // 此前一律用阅读主题的 accent，导致应用是冰蓝、这个面板却是墨绿。
+    final accent = SoftTheme.of(context).accent;
 
     // 行距三档基于当前字号推算。此前用"数值差 < 1.0"判定选中，
     // 导致三档经常一个都不高亮；改为永远高亮"最接近的一档"。
@@ -177,21 +181,24 @@ class TypographyDrawer extends StatelessWidget {
                   value: spacingOptions[0],
                   isSelected: nearestSpacingIndex == 0,
                   subTextColor: subTextColor,
-                  isDark: isDark),
+                  isDark: isDark,
+                  accent: accent),
               const SizedBox(width: 12.0),
               _buildLineSpacingChip(
                   label: '舒适',
                   value: spacingOptions[1],
                   isSelected: nearestSpacingIndex == 1,
                   subTextColor: subTextColor,
-                  isDark: isDark),
+                  isDark: isDark,
+                  accent: accent),
               const SizedBox(width: 12.0),
               _buildLineSpacingChip(
                   label: '宽松',
                   value: spacingOptions[2],
                   isSelected: nearestSpacingIndex == 2,
                   subTextColor: subTextColor,
-                  isDark: isDark),
+                  isDark: isDark,
+                  accent: accent),
             ],
           ),
           const SizedBox(height: 16.0),
@@ -318,8 +325,8 @@ class TypographyDrawer extends StatelessWidget {
     required double value,
     required Color subTextColor,
     required bool isDark,
+    required Color accent,
   }) {
-    final accent = currentTheme.accent;
     return GestureDetector(
       onTap: () => onLineHeightChanged(value),
       child: Container(

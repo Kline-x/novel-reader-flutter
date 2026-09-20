@@ -204,505 +204,565 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: colors.background,
       body: AmbientMeshBackground(
         child: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // 折叠标题：静止时是大标题，一滚就收成贴顶的小标题条。
-            // 设置是线性清单，没有搜索/排序这类要随时够得着的控件，
-            // 所以不像书架页那样钉住一整块；但标题整个滑走会让人
-            // 失去「我在哪一页」的锚点，两大平台的惯例都是收拢而非消失。
-            CollapsingHeader.sliver(
-              colors: colors,
-              title: '偏好与设置',
-              subtitle: '个性化阅读体验与多端同步',
-              onTapCollapsed: _scrollToTop,
-            ),
-            SliverPadding(
-              // 底栏是 Stack 上的浮层，这里必须按其实际高度预留内边距，
-              // 否则最后一项会被压在底栏下方、文字与底栏图标重叠。
-              padding: EdgeInsets.fromLTRB(
-                20.0,
-                8.0,
-                20.0,
-                DockedBottomBar.contentBottomPadding(context),
+          bottom: false,
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // 折叠标题：静止时是大标题，一滚就收成贴顶的小标题条。
+              // 设置是线性清单，没有搜索/排序这类要随时够得着的控件，
+              // 所以不像书架页那样钉住一整块；但标题整个滑走会让人
+              // 失去「我在哪一页」的锚点，两大平台的惯例都是收拢而非消失。
+              CollapsingHeader.sliver(
+                colors: colors,
+                title: '偏好与设置',
+                subtitle: '个性化阅读体验与多端同步',
+                onTapCollapsed: _scrollToTop,
               ),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-
-            // 1. 用户/设备 Bento 看板
-            SoftCard(
-              colors: colors,
-              padding: const EdgeInsets.all(18.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52.0,
-                    height: 52.0,
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: colors.borderSubtle),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text('📖', style: TextStyle(fontSize: 24.0)),
-                  ),
-                  const SizedBox(width: 14.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '藏书阁 阁友',
-                          style: TextStyle(
-                            fontSize: 16.0,
-                            fontWeight: FontWeight.bold,
-                            color: colors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4.0),
-                        // 这里原先写死「已累计心流阅读 38.5 小时 · 典藏 4 部珍本」，
-                        // 全新安装、书架为空时也照样显示，是纯假数据。
-                        // 现在读真实的累计阅读时长与书架数量。
-                        Text(
-                          _buildReadingSummary(),
-                          style: TextStyle(
-                              fontSize: 12.0, color: colors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16.0),
-
-            // 2. 外观与意境主题 (原型 1:1)
-            _buildSectionHeader('视觉与意境主题', colors),
-            SoftCard(
-              colors: colors,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('跟随系统深色模式',
-                        style: TextStyle(
-                            color: colors.textPrimary, fontSize: 14.0, fontWeight: FontWeight.w600)),
-                    subtitle: Text('日夜交替自动温和切光',
-                        style: TextStyle(
-                            fontSize: 11.5, color: colors.textSecondary)),
-                    trailing: SoftSwitch(
-                      key: const ValueKey('switch_follow_system_theme'),
-                      value: _followSystem,
+              SliverPadding(
+                // 底栏是 Stack 上的浮层，这里必须按其实际高度预留内边距，
+                // 否则最后一项会被压在底栏下方、文字与底栏图标重叠。
+                padding: EdgeInsets.fromLTRB(
+                  20.0,
+                  8.0,
+                  20.0,
+                  DockedBottomBar.contentBottomPadding(context),
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // 1. 用户/设备 Bento 看板
+                    SoftCard(
                       colors: colors,
-                      onChanged: (val) async {
-                        setState(() {
-                          _followSystem = val;
-                        });
-                        try {
-                          final container = ProviderScope.containerOf(
-                              this.context,
-                              listen: false);
-                          await container
-                              .read(themeModeProvider.notifier)
-                              .setFollowSystem(val);
-                        } catch (_) {}
-                      },
-                    ),
-                  ),
-                  if (!_followSystem) ...[
-                    Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text('当前显示模式',
-                          style: TextStyle(
-                              color: colors.textPrimary, fontSize: 14.0, fontWeight: FontWeight.w600)),
-                      subtitle: Text(colors.isDark ? '已切换为夜间模式' : '已切换为日间模式',
-                          style: TextStyle(
-                              fontSize: 11.5, color: colors.textSecondary)),
-                      trailing: GestureDetector(
-                        key: const ValueKey('btn_toggle_light_dark_manual'),
-                        onTap: () async {
-                          try {
-                            final container = ProviderScope.containerOf(
-                                this.context,
-                                listen: false);
-                            await container
-                                .read(themeModeProvider.notifier)
-                                .toggleLightDark();
-                          } catch (_) {}
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0, vertical: 6.0),
-                          decoration: BoxDecoration(
-                            color: colors.accent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10.0),
-                            border: Border.all(
-                              color: colors.accent.withValues(alpha: 0.3),
-                              width: 0.5,
+                      padding: const EdgeInsets.all(18.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 52.0,
+                            height: 52.0,
+                            decoration: BoxDecoration(
+                              color: colors.surface,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: colors.borderSubtle),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Text('📖',
+                                style: TextStyle(fontSize: 24.0)),
+                          ),
+                          const SizedBox(width: 14.0),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '藏书阁 阁友',
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4.0),
+                                // 这里原先写死「已累计心流阅读 38.5 小时 · 典藏 4 部珍本」，
+                                // 全新安装、书架为空时也照样显示，是纯假数据。
+                                // 现在读真实的累计阅读时长与书架数量。
+                                Text(
+                                  _buildReadingSummary(),
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: colors.textSecondary),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                colors.isDark
-                                    ? Icons.dark_mode_rounded
-                                    : Icons.light_mode_rounded,
-                                size: 15.0,
-                                color: colors.accent,
-                              ),
-                              const SizedBox(width: 4.0),
-                              Text(
-                                colors.isDark ? '暗夜深色' : '清爽浅色',
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // 2. 外观与意境主题 (原型 1:1)
+                    _buildSectionHeader('视觉与意境主题', colors),
+                    SoftCard(
+                      colors: colors,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('跟随系统深色模式',
                                 style: TextStyle(
-                                  fontSize: 12.0,
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.accent,
-                                ),
-                              ),
-                            ],
+                                    color: colors.textPrimary,
+                                    fontSize: 14.0,
+                                    fontWeight: FontWeight.w600)),
+                            subtitle: Text('日夜交替自动温和切光',
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: colors.textSecondary)),
+                            trailing: SoftSwitch(
+                              key: const ValueKey('switch_follow_system_theme'),
+                              value: _followSystem,
+                              colors: colors,
+                              onChanged: (val) async {
+                                setState(() {
+                                  _followSystem = val;
+                                });
+                                try {
+                                  final container = ProviderScope.containerOf(
+                                      this.context,
+                                      listen: false);
+                                  await container
+                                      .read(themeModeProvider.notifier)
+                                      .setFollowSystem(val);
+                                } catch (_) {}
+                              },
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  Divider(height: 16.0, thickness: 0.5, color: colors.borderSubtle),
-                  Text(
-                    '意境色彩雅集 · Modern Soft UI',
-                    style: TextStyle(
-                        fontSize: 12.0,
-                        color: colors.textSecondary,
-                        fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 12.0),
-                  // 第一行：翠竹微雨 + 暖杏流光
-                  Row(
-                    children: [
-                      _buildAestheticCard(
-                        key: const ValueKey('theme_chip_mistyJade'),
-                        aliasKey: const ValueKey('theme_chip_beanGreen'),
-                        legacyKey: const ValueKey('theme_chip_paper'),
-                        title: '翠竹微雨',
-                        subtitle: '宋瓷天青 · 空蒙',
-                        palette: SoftPaletteType.mistyJade,
-                        accentColor: const Color(0xFF236B58),
-                        bgPreview: colors.isDark
-                            ? const Color(0xFF111814)
-                            : const Color(0xFFF8FAF7),
-                        isSelected: currentTheme == SoftPaletteType.mistyJade ||
-                            currentTheme == SoftPaletteType.beanGreen ||
-                            currentTheme == SoftPaletteType.paper,
-                        colors: colors,
-                      ),
-                      const SizedBox(width: 10.0),
-                      _buildAestheticCard(
-                        key: const ValueKey('theme_chip_twilightAmber'),
-                        aliasKey: const ValueKey('theme_chip_warmAmber'),
-                        legacyKey: const ValueKey('theme_chip_parchment'),
-                        title: '暖杏流光',
-                        subtitle: '暖阳蜜蜡 · 温润',
-                        palette: SoftPaletteType.warmAmber,
-                        accentColor: const Color(0xFFB86820),
-                        bgPreview: colors.isDark
-                            ? const Color(0xFF171310)
-                            : const Color(0xFFFAF7F2),
-                        isSelected: currentTheme == SoftPaletteType.warmAmber ||
-                            currentTheme == SoftPaletteType.twilightAmber ||
-                            currentTheme == SoftPaletteType.parchment,
-                        colors: colors,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10.0),
-                  // 第二行：霁月清辉 + 极夜星芒
-                  Row(
-                    children: [
-                      _buildAestheticCard(
-                        key: const ValueKey('theme_chip_moonSilver'),
-                        aliasKey: const ValueKey('theme_chip_violetOrchid'),
-                        title: '霁月清辉',
-                        subtitle: '天光月华 · 澄澈',
-                        palette: SoftPaletteType.moonSilver,
-                        accentColor: const Color(0xFF6D599A),
-                        bgPreview: colors.isDark
-                            ? const Color(0xFF15121F)
-                            : const Color(0xFFF9F8FC),
-                        isSelected: currentTheme == SoftPaletteType.moonSilver ||
-                            currentTheme == SoftPaletteType.violetOrchid,
-                        colors: colors,
-                      ),
-                      const SizedBox(width: 10.0),
-                      _buildAestheticCard(
-                        key: const ValueKey('theme_chip_auroraSpace'),
-                        aliasKey: const ValueKey('theme_chip_darkJade'),
-                        legacyKey: const ValueKey('theme_chip_night'),
-                        title: '极夜星芒',
-                        subtitle: colors.isDark
-                            ? '冰蓝深空 · 首选'
-                            : '钛金冰川 · 首选',
-                        palette: SoftPaletteType.darkJade,
-                        accentColor: colors.isDark
-                            ? const Color(0xFF4CC2FF)
-                            : const Color(0xFF2E6FA8),
-                        bgPreview: colors.isDark
-                            ? const Color(0xFF12161A)
-                            : const Color(0xFFF5F7FA),
-                        isSelected: currentTheme == SoftPaletteType.darkJade ||
-                            currentTheme == SoftPaletteType.auroraSpace ||
-                            currentTheme == SoftPaletteType.night,
-                        colors: colors,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16.0),
-
-            // 3. 阅读体验与自愈控制
-            _buildSectionHeader('阅读与偏好设置', colors),
-            SoftCard(
-              colors: colors,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-              child: Column(
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('物理音量键翻页',
-                        style: TextStyle(color: colors.textPrimary)),
-                    subtitle: Text('支持长篇阅读时免触屏快速下翻',
-                        style: TextStyle(
-                            fontSize: 12.0, color: colors.textSecondary)),
-                    trailing: SoftSwitch(
-                      key: const ValueKey('switch_volume_paging'),
-                      value: _volumeKeyPaging,
-                      colors: colors,
-                      onChanged: (val) async {
-                        setState(() => _volumeKeyPaging = val);
-                        await _storageService.setVolumeKeyPaging(val);
-                      },
-                    ),
-                  ),
-                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('阅读时保持屏幕常亮',
-                        style: TextStyle(color: colors.textPrimary)),
-                    trailing: SoftSwitch(
-                      key: const ValueKey('switch_screen_awake'),
-                      value: _screenAwake,
-                      colors: colors,
-                      onChanged: (val) async {
-                        setState(() => _screenAwake = val);
-                        await _storageService.setKeepScreenAwake(val);
-                      },
-                    ),
-                  ),
-                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
-                  GestureDetector(
-                    key: const ValueKey('settings_pinyin_rules_tile'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => PinyinRulesSheet.show(context),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Container(
-                        padding: const EdgeInsets.all(6.0),
-                        decoration: BoxDecoration(
-                          color: colors.accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: Icon(Icons.spellcheck_rounded,
-                            color: colors.accent, size: 20.0),
-                      ),
-                      title: Text('智能拼音自愈与净化',
-                          style: TextStyle(color: colors.textPrimary)),
-                      subtitle: Text(
-                        '自愈第三方书源中的拼音谐音 · 支持云端热更新与自定义',
-                        style: TextStyle(
-                            fontSize: 12.0, color: colors.textSecondary),
-                      ),
-                      trailing: Icon(Icons.arrow_forward_ios_rounded,
-                          size: 14.0, color: colors.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16.0),
-
-            // 4. 数据与云同步 (WebDAV & WiFi)
-            _buildSectionHeader('数据与多端同步', colors),
-            SoftCard(
-              colors: colors,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => WebDavConfigSheet.show(context),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading:
-                          const Text('☁️', style: TextStyle(fontSize: 20.0)),
-                      title: Text('WebDAV 增量云备份',
-                          style: TextStyle(color: colors.textPrimary)),
-                      subtitle: Text('跨 iOS/Android 设备同步阅读进度',
-                          style: TextStyle(
-                              fontSize: 12.0, color: colors.textSecondary)),
-                      trailing: ElevatedButton(
-                        key: const ValueKey('btn_webdav_sync'),
-                        onPressed: _triggerWebDavSync,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colors.accent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.0)),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0, vertical: 4.0),
-                        ),
-                        child: const Text('立即同步',
-                            style: TextStyle(fontSize: 12.0)),
-                      ),
-                    ),
-                  ),
-                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
-                  GestureDetector(
-                    key: const ValueKey('settings_wifi_transfer_tile'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => WifiTransferDialog.show(context),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading:
-                          const Text('📶', style: TextStyle(fontSize: 20.0)),
-                      title: Text('WiFi 局域网无线传书',
-                          style: TextStyle(color: colors.textPrimary)),
-                      subtitle: Text('电脑浏览器访问局域网 IP 直传 TXT/EPUB',
-                          style: TextStyle(
-                              fontSize: 12.0, color: colors.textSecondary)),
-                      trailing: Icon(Icons.arrow_forward_ios_rounded,
-                          size: 14.0, color: colors.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16.0),
-
-            // 5. 存储与版本 (原型 1:1)
-            _buildSectionHeader('存储与版本', colors),
-            SoftCard(
-              colors: colors,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-              child: Column(
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('离线章节缓存',
-                        style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13.5)),
-                    subtitle: Text('已缓存 $_cacheSize',
-                        style: TextStyle(
-                            fontSize: 11.5, color: colors.textSecondary)),
-                    trailing: GestureDetector(
-                      key: const ValueKey('btn_clear_cache'),
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _clearCache,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14.0, vertical: 6.0),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius:
-                              BorderRadius.circular(SoftDecorations.pillRadius),
-                          border: Border.all(color: colors.borderSubtle),
-                        ),
-                        child: Text(
-                          '清理',
-                          style: TextStyle(
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.bold,
-                            color: colors.accent,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Divider(height: 1, color: colors.borderSubtle),
-                  Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      key: const ValueKey('settings_check_update_tile'),
-                      contentPadding: EdgeInsets.zero,
-                      onTap: _isCheckingUpdate ? null : _checkAppUpdate,
-                      title: Text('藏书阁版本',
-                          style: TextStyle(
-                              color: colors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13.5)),
-                      subtitle: Text(
-                        '当前 v${_versionService.currentVersionName} (旗舰引擎)',
-                        style: TextStyle(
-                            fontSize: 11.5, color: colors.textSecondary),
-                      ),
-                      trailing: _isCheckingUpdate
-                          ? SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2.0, color: colors.accent),
-                            )
-                          : GestureDetector(
-                              key: const ValueKey('btn_check_version'),
-                              behavior: HitTestBehavior.opaque,
-                              onTap: _checkAppUpdate,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 13.0, vertical: 6.5),
-                                decoration: BoxDecoration(
-                                  color: colors.accent,
-                                  borderRadius: BorderRadius.circular(
-                                      SoftDecorations.pillRadius),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: colors.accentGlow,
-                                      blurRadius: 8.0,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Text(
-                                  '检查更新',
+                          if (!_followSystem) ...[
+                            Divider(
+                                height: 1.0,
+                                thickness: 0.5,
+                                color: colors.borderSubtle),
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('当前显示模式',
                                   style: TextStyle(
-                                    fontSize: 12.0,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                      color: colors.textPrimary,
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w600)),
+                              subtitle: Text(
+                                  colors.isDark ? '已切换为夜间模式' : '已切换为日间模式',
+                                  style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: colors.textSecondary)),
+                              trailing: GestureDetector(
+                                key: const ValueKey(
+                                    'btn_toggle_light_dark_manual'),
+                                onTap: () async {
+                                  try {
+                                    final container = ProviderScope.containerOf(
+                                        this.context,
+                                        listen: false);
+                                    await container
+                                        .read(themeModeProvider.notifier)
+                                        .toggleLightDark();
+                                  } catch (_) {}
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0, vertical: 6.0),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        colors.accent.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10.0),
+                                    border: Border.all(
+                                      color:
+                                          colors.accent.withValues(alpha: 0.3),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        colors.isDark
+                                            ? Icons.dark_mode_rounded
+                                            : Icons.light_mode_rounded,
+                                        size: 15.0,
+                                        color: colors.accent,
+                                      ),
+                                      const SizedBox(width: 4.0),
+                                      Text(
+                                        colors.isDark ? '暗夜深色' : '清爽浅色',
+                                        style: TextStyle(
+                                          fontSize: 12.0,
+                                          fontWeight: FontWeight.bold,
+                                          color: colors.accent,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
                             ),
+                          ],
+                          Divider(
+                              height: 16.0,
+                              thickness: 0.5,
+                              color: colors.borderSubtle),
+                          Text(
+                            '意境色彩雅集 · Modern Soft UI',
+                            style: TextStyle(
+                                fontSize: 12.0,
+                                color: colors.textSecondary,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 12.0),
+                          // 第一行：翠竹微雨 + 暖杏流光
+                          Row(
+                            children: [
+                              _buildAestheticCard(
+                                key: const ValueKey('theme_chip_mistyJade'),
+                                aliasKey:
+                                    const ValueKey('theme_chip_beanGreen'),
+                                legacyKey: const ValueKey('theme_chip_paper'),
+                                title: '翠竹微雨',
+                                subtitle: '宋瓷天青 · 空蒙',
+                                palette: SoftPaletteType.mistyJade,
+                                accentColor: const Color(0xFF236B58),
+                                bgPreview: colors.isDark
+                                    ? const Color(0xFF111814)
+                                    : const Color(0xFFF8FAF7),
+                                isSelected: currentTheme ==
+                                        SoftPaletteType.mistyJade ||
+                                    currentTheme == SoftPaletteType.beanGreen ||
+                                    currentTheme == SoftPaletteType.paper,
+                                colors: colors,
+                              ),
+                              const SizedBox(width: 10.0),
+                              _buildAestheticCard(
+                                key: const ValueKey('theme_chip_twilightAmber'),
+                                aliasKey:
+                                    const ValueKey('theme_chip_warmAmber'),
+                                legacyKey:
+                                    const ValueKey('theme_chip_parchment'),
+                                title: '暖杏流光',
+                                subtitle: '暖阳蜜蜡 · 温润',
+                                palette: SoftPaletteType.warmAmber,
+                                accentColor: const Color(0xFFB86820),
+                                bgPreview: colors.isDark
+                                    ? const Color(0xFF171310)
+                                    : const Color(0xFFFAF7F2),
+                                isSelected: currentTheme ==
+                                        SoftPaletteType.warmAmber ||
+                                    currentTheme ==
+                                        SoftPaletteType.twilightAmber ||
+                                    currentTheme == SoftPaletteType.parchment,
+                                colors: colors,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10.0),
+                          // 第二行：霁月清辉 + 极夜星芒
+                          Row(
+                            children: [
+                              _buildAestheticCard(
+                                key: const ValueKey('theme_chip_moonSilver'),
+                                aliasKey:
+                                    const ValueKey('theme_chip_violetOrchid'),
+                                title: '霁月清辉',
+                                subtitle: '天光月华 · 澄澈',
+                                palette: SoftPaletteType.moonSilver,
+                                accentColor: const Color(0xFF6D599A),
+                                bgPreview: colors.isDark
+                                    ? const Color(0xFF15121F)
+                                    : const Color(0xFFF9F8FC),
+                                isSelected: currentTheme ==
+                                        SoftPaletteType.moonSilver ||
+                                    currentTheme ==
+                                        SoftPaletteType.violetOrchid,
+                                colors: colors,
+                              ),
+                              const SizedBox(width: 10.0),
+                              _buildAestheticCard(
+                                key: const ValueKey('theme_chip_auroraSpace'),
+                                aliasKey: const ValueKey('theme_chip_darkJade'),
+                                legacyKey: const ValueKey('theme_chip_night'),
+                                title: '极夜星芒',
+                                subtitle:
+                                    colors.isDark ? '冰蓝深空 · 首选' : '钛金冰川 · 首选',
+                                palette: SoftPaletteType.darkJade,
+                                accentColor: colors.isDark
+                                    ? const Color(0xFF4CC2FF)
+                                    : const Color(0xFF2E6FA8),
+                                bgPreview: colors.isDark
+                                    ? const Color(0xFF12161A)
+                                    : const Color(0xFFF5F7FA),
+                                isSelected:
+                                    currentTheme == SoftPaletteType.darkJade ||
+                                        currentTheme ==
+                                            SoftPaletteType.auroraSpace ||
+                                        currentTheme == SoftPaletteType.night,
+                                colors: colors,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 16.0),
 
-                ]),
+                    // 3. 阅读体验与自愈控制
+                    _buildSectionHeader('阅读与偏好设置', colors),
+                    SoftCard(
+                      colors: colors,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 6.0),
+                      child: Column(
+                        children: [
+                          // 鸿蒙把音量键交给系统 sceneboard 独占处理，普通应用收不到
+                          // 按键事件（要拦截得有 INPUT_MONITORING 系统权限）。
+                          // 实测开关打开也不会翻页，所以这里直接禁用并说明原因，
+                          // 不给「已启用」的错觉。
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            enabled: !VersionCheckService.isHarmonyOS,
+                            title: Text('物理音量键翻页',
+                                style: TextStyle(
+                                  color: VersionCheckService.isHarmonyOS
+                                      ? colors.textSecondary
+                                      : colors.textPrimary,
+                                )),
+                            subtitle: Text(
+                                VersionCheckService.isHarmonyOS
+                                    ? '鸿蒙系统独占音量键，应用无法接管'
+                                    : '支持长篇阅读时免触屏快速下翻',
+                                style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: colors.textSecondary)),
+                            trailing: SoftSwitch(
+                              key: const ValueKey('switch_volume_paging'),
+                              value: _volumeKeyPaging &&
+                                  !VersionCheckService.isHarmonyOS,
+                              colors: colors,
+                              onChanged: VersionCheckService.isHarmonyOS
+                                  ? null
+                                  : (val) async {
+                                      setState(() => _volumeKeyPaging = val);
+                                      await _storageService
+                                          .setVolumeKeyPaging(val);
+                                    },
+                            ),
+                          ),
+                          Divider(
+                              height: 1.0,
+                              thickness: 0.5,
+                              color: colors.borderSubtle),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('阅读时保持屏幕常亮',
+                                style: TextStyle(color: colors.textPrimary)),
+                            trailing: SoftSwitch(
+                              key: const ValueKey('switch_screen_awake'),
+                              value: _screenAwake,
+                              colors: colors,
+                              onChanged: (val) async {
+                                setState(() => _screenAwake = val);
+                                await _storageService.setKeepScreenAwake(val);
+                              },
+                            ),
+                          ),
+                          Divider(
+                              height: 1.0,
+                              thickness: 0.5,
+                              color: colors.borderSubtle),
+                          GestureDetector(
+                            key: const ValueKey('settings_pinyin_rules_tile'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => PinyinRulesSheet.show(context),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Container(
+                                padding: const EdgeInsets.all(6.0),
+                                decoration: BoxDecoration(
+                                  color: colors.accent.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                child: Icon(Icons.spellcheck_rounded,
+                                    color: colors.accent, size: 20.0),
+                              ),
+                              title: Text('智能拼音自愈与净化',
+                                  style: TextStyle(color: colors.textPrimary)),
+                              subtitle: Text(
+                                '自愈第三方书源中的拼音谐音 · 支持云端热更新与自定义',
+                                style: TextStyle(
+                                    fontSize: 12.0,
+                                    color: colors.textSecondary),
+                              ),
+                              trailing: Icon(Icons.arrow_forward_ios_rounded,
+                                  size: 14.0, color: colors.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // 4. 数据与云同步 (WebDAV & WiFi)
+                    _buildSectionHeader('数据与多端同步', colors),
+                    SoftCard(
+                      colors: colors,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 6.0),
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => WebDavConfigSheet.show(context),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Text('☁️',
+                                  style: TextStyle(fontSize: 20.0)),
+                              title: Text('WebDAV 增量云备份',
+                                  style: TextStyle(color: colors.textPrimary)),
+                              subtitle: Text('跨 iOS/Android 设备同步阅读进度',
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: colors.textSecondary)),
+                              trailing: ElevatedButton(
+                                key: const ValueKey('btn_webdav_sync'),
+                                onPressed: _triggerWebDavSync,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colors.accent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12.0)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0, vertical: 4.0),
+                                ),
+                                child: const Text('立即同步',
+                                    style: TextStyle(fontSize: 12.0)),
+                              ),
+                            ),
+                          ),
+                          Divider(
+                              height: 1.0,
+                              thickness: 0.5,
+                              color: colors.borderSubtle),
+                          GestureDetector(
+                            key: const ValueKey('settings_wifi_transfer_tile'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => WifiTransferDialog.show(context),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Text('📶',
+                                  style: TextStyle(fontSize: 20.0)),
+                              title: Text('WiFi 局域网无线传书',
+                                  style: TextStyle(color: colors.textPrimary)),
+                              subtitle: Text('电脑浏览器访问局域网 IP 直传 TXT/EPUB',
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: colors.textSecondary)),
+                              trailing: Icon(Icons.arrow_forward_ios_rounded,
+                                  size: 14.0, color: colors.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // 5. 存储与版本 (原型 1:1)
+                    _buildSectionHeader('存储与版本', colors),
+                    SoftCard(
+                      colors: colors,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 6.0),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('离线章节缓存',
+                                style: TextStyle(
+                                    color: colors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13.5)),
+                            subtitle: Text('已缓存 $_cacheSize',
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: colors.textSecondary)),
+                            trailing: GestureDetector(
+                              key: const ValueKey('btn_clear_cache'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _clearCache,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14.0, vertical: 6.0),
+                                decoration: BoxDecoration(
+                                  color: colors.surface,
+                                  borderRadius: BorderRadius.circular(
+                                      SoftDecorations.pillRadius),
+                                  border:
+                                      Border.all(color: colors.borderSubtle),
+                                ),
+                                child: Text(
+                                  '清理',
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.accent,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Divider(height: 1, color: colors.borderSubtle),
+                          Material(
+                            color: Colors.transparent,
+                            child: ListTile(
+                              key: const ValueKey('settings_check_update_tile'),
+                              contentPadding: EdgeInsets.zero,
+                              onTap: _isCheckingUpdate ? null : _checkAppUpdate,
+                              title: Text('藏书阁版本',
+                                  style: TextStyle(
+                                      color: colors.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13.5)),
+                              subtitle: Text(
+                                '当前 v${_versionService.currentVersionName} (旗舰引擎)',
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: colors.textSecondary),
+                              ),
+                              trailing: _isCheckingUpdate
+                                  ? SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2.0,
+                                          color: colors.accent),
+                                    )
+                                  : GestureDetector(
+                                      key: const ValueKey('btn_check_version'),
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: _checkAppUpdate,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 13.0, vertical: 6.5),
+                                        decoration: BoxDecoration(
+                                          color: colors.accent,
+                                          borderRadius: BorderRadius.circular(
+                                              SoftDecorations.pillRadius),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: colors.accentGlow,
+                                              blurRadius: 8.0,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Text(
+                                          '检查更新',
+                                          style: TextStyle(
+                                            fontSize: 12.0,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -757,10 +817,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      accentColor,
-                      accentColor.withValues(alpha: 0.7)
-                    ],
+                    colors: [accentColor, accentColor.withValues(alpha: 0.7)],
                   ),
                   borderRadius: BorderRadius.circular(7.0),
                   boxShadow: [
@@ -789,7 +846,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     color: colors.accent,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, size: 12.0, color: Colors.white),
+                  child:
+                      const Icon(Icons.check, size: 12.0, color: Colors.white),
                 ),
             ],
           ),
