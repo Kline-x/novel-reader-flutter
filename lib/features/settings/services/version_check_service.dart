@@ -5,6 +5,8 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
+import '../../../core/config/app_repo.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// 跨平台版本升级包详情
@@ -181,7 +183,7 @@ class AppVersionInfo {
     return info?.downloadUrl ??
         info?.storeUrl ??
         info?.backupUrl ??
-        'https://github.com/Kline-x/novel-reader-flutter/releases';
+        appReleasesUrl;
   }
 
   /// 按设备 ABI 取到的真实发布版本号；拿不到就回退顶层
@@ -277,14 +279,12 @@ class VersionCheckService {
       MethodChannel(updateChannelName);
 
   /// 国内多级高可用探测源列表（按优先级排列）
-  static const List<String> highAvailabilityEndpoints = [
-    // 1. 国内代理镜像直链（ghproxy 高速代理加速 GitHub raw，无 CDN 滞后问题）
-    'https://ghproxy.net/https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/version_manifest.json',
-    // 2. 国内高可用高速 CDN 镜像节点 (jsDelivr 加速，自动拼接防缓存时间戳)
-    'https://cdn.jsdelivr.net/gh/Kline-x/novel-reader-flutter@main/version_manifest.json',
-    // 3. GitHub 原源直链（海外/兜底）
-    'https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/version_manifest.json',
-  ];
+  // 地址从 appRepo 拼出，fork 后由构建期的 --dart-define=UPDATE_REPO 自动切换，
+  // 否则 fork 版会来拉上游的清单、下载上游签名的 APK，装不上。
+  // 顺序：国内代理直链 → jsDelivr CDN → GitHub 原源兜底。
+  // 代理排最前是因为 jsDelivr 有缓存滞后，刚发完版可能还读到旧清单。
+  static final List<String> highAvailabilityEndpoints =
+      repoFileEndpoints('version_manifest.json');
 
   /// 国内 GitHub Release 代理镜像加速节点列表 (扩充全国多线路高可用代理矩阵)
   static const List<String> gitHubProxyMirrors = [
@@ -380,9 +380,9 @@ class VersionCheckService {
     platforms: {
       'android': PlatformUpdateInfo(
         downloadUrl:
-            'https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-v1.0.1.apk',
+            'https://github.com/$appRepo/releases/download/v1.0.1/novel-reader-v1.0.1.apk',
         backupUrl:
-            'https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-v1.0.1.apk',
+            'https://ghproxy.net/https://github.com/$appRepo/releases/download/v1.0.1/novel-reader-v1.0.1.apk',
         fileSize: 28450120,
         installMode: 'in_app_apk',
       ),
@@ -394,7 +394,7 @@ class VersionCheckService {
       'harmony': PlatformUpdateInfo(
         storeUrl: 'appmarket://details?id=com.kline.novelreader',
         downloadUrl:
-            'https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-harmony-v1.0.1.hap',
+            'https://github.com/$appRepo/releases/download/v1.0.1/novel-reader-harmony-v1.0.1.hap',
         installMode: 'app_market',
       ),
     },

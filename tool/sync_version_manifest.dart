@@ -25,7 +25,28 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 
-const _repo = 'Kline-x/novel-reader-flutter';
+/// 仓库名不再写死：fork 的人发版时，清单里回填的下载地址必须指向**他们自己的**
+/// Release，否则清单指着上游的包、签名又对不上，用户下下来装不了。
+/// 优先级：--repo 参数 → CI 的 GITHUB_REPOSITORY → git remote → 兜底默认值。
+String _resolveRepo(List<String> args) {
+  final fromArg = _optionValue(args, '--repo');
+  if (fromArg != null && fromArg.isNotEmpty) return fromArg;
+
+  final fromEnv = Platform.environment['GITHUB_REPOSITORY'];
+  if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+
+  try {
+    final r = Process.runSync('git', ['remote', 'get-url', 'origin']);
+    if (r.exitCode == 0) {
+      final m = RegExp(r'github\.com[:/]+([^/]+/[^/\s.]+)')
+          .firstMatch(r.stdout.toString());
+      if (m != null) return m.group(1)!;
+    }
+  } catch (_) {
+    // 非 git 环境，落到默认值
+  }
+  return 'Kline-x/novel-reader-flutter';
+}
 const _proxy = 'https://ghproxy.net/';
 
 /// arm64-v8a 覆盖绝大多数在用机型，作为扁平字段的默认值供老客户端回退
@@ -95,6 +116,7 @@ void main(List<String> args) {
   final write = args.contains('--write');
   final tag = _optionValue(args, '--tag');
   final apkArgs = _optionValues(args, '--apk');
+  final repo = _resolveRepo(args);
 
   final pubspec = File('pubspec.yaml');
   final manifestFile = File('version_manifest.json');
@@ -177,7 +199,7 @@ void main(List<String> args) {
       final digest = sha256.convert(bytes).toString();
       final assetName = 'novel-reader-$abi.apk';
       final url =
-          'https://github.com/$_repo/releases/download/$effectiveTag/$assetName';
+          'https://github.com/$repo/releases/download/$effectiveTag/$assetName';
       final abiVersionCode = _resolveApkVersionCode(path, abi, pubCode);
 
       variants[abi] = {
