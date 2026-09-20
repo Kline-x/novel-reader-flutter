@@ -1,40 +1,14 @@
-import UIAbility from '@ohos.app.ability.UIAbility';
-import type window from '@ohos.window';
-import hilog from '@ohos.hilog';
+import { FlutterAbility, FlutterEngine } from '@ohos/flutter_ohos';
+import { GeneratedPluginRegistrant } from '../plugins/GeneratedPluginRegistrant';
+import NovelReaderHostPlugin from '../plugins/NovelReaderHostPlugin';
 
-/**
- * 藏书阁 (Flutter for OpenHarmony) EntryAbility
- * 负责纯血鸿蒙应用生命周期调度与 Flutter 引擎挂载
- */
-export default class EntryAbility extends UIAbility {
-  onCreate(): void {
-    hilog.info(0x0000, 'NovelReader', 'EntryAbility onCreate');
-  }
-
-  onDestroy(): void {
-    hilog.info(0x0000, 'NovelReader', 'EntryAbility onDestroy');
-  }
-
-  onWindowStageCreate(windowStage: window.WindowStage): void {
-    hilog.info(0x0000, 'NovelReader', 'EntryAbility onWindowStageCreate');
-    windowStage.loadContent('pages/Index', (err) => {
-      if (err.code) {
-        hilog.error(0x0000, 'NovelReader', `Failed to load the content. Cause: ${JSON.stringify(err)}`);
-        return;
-      }
-      hilog.info(0x0000, 'NovelReader', 'Succeeded in loading the content.');
-    });
-  }
-
-  onWindowStageDestroy(): void {
-    hilog.info(0x0000, 'NovelReader', 'EntryAbility onWindowStageDestroy');
-  }
-
-  onForeground(): void {
-    hilog.info(0x0000, 'NovelReader', 'EntryAbility onForeground');
-  }
-
-  onBackground(): void {
-    hilog.info(0x0000, 'NovelReader', 'EntryAbility onBackground');
+export default class EntryAbility extends FlutterAbility {
+  configureFlutterEngine(flutterEngine: FlutterEngine) {
+    super.configureFlutterEngine(flutterEngine)
+    // pub 上的插件（path_provider / shared_preferences / flutter_tts）由工具生成注册
+    GeneratedPluginRegistrant.registerWith(flutterEngine)
+    // 本项目自写的宿主能力通道。GeneratedPluginRegistrant 每次 pub get 都会重写，
+    // 不能把它加在那里，必须在这里单独注册。
+    flutterEngine.getPlugins()?.add(new NovelReaderHostPlugin())
   }
 }

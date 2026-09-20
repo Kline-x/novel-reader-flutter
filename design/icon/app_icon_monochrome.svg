@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- 书是实心，门从书上镂空掉，剩下的轮廓就是剪影 -->
+    <mask id="cut">
+      <rect x="242" y="176" width="540" height="662" rx="60" fill="#fff"/>
+      <path d="M258 838 h 508 c 10 0 18 8 18 18 v 12 c 0 10 -8 18 -18 18 h -508 c -10 0 -18 -8 -18 -18 v -12 c 0 -10 8 -18 18 -18 z" fill="#fff"/>
+      <path d="M368 838 V 526 c 0 -80 64 -144 144 -144 s 144 64 144 144 v 312 z" fill="#000"/>
+    </mask>
+  </defs>
+  <g transform="translate(512 512) scale(0.86) translate(-512 -512)">
+    <g mask="url(#cut)">
+      <rect width="1024" height="1024" fill="#FFFFFF"/>
+    </g>
+    <!-- 星留在镂空的门里，单色下仍是识别点 -->
+    <path d="M512 484
+             c 10 50 22 62 72 72
+             c -50 10 -62 22 -72 72
+             c -10 -50 -22 -62 -72 -72
+             c 50 -10 62 -22 72 -72 z"
+          fill="#FFFFFF"/>
+  </g>
+</svg>

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+    <!-- 背景：同色系单一渐变，饱和度克制 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#5ACCFF"/>
+      <stop offset="0.52" stop-color="#2E6FA8"/>
+      <stop offset="1" stop-color="#0C2B45"/>
+    </linearGradient>
+    <!-- 书：几乎纯白，只留一点点冷调 -->
+    <linearGradient id="cover" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EDF5F2"/>
+    </linearGradient>
+    <!-- 门内：比背景更深，拉开层次 -->
+    <linearGradient id="door" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#06151F"/>
+      <stop offset="0.55" stop-color="#0A2335"/>
+      <stop offset="1" stop-color="#154866"/>
+    </linearGradient>
+    <radialGradient id="starGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="0.38" stop-color="#A8E0FF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#A8E0FF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="doorClip">
+      <path d="M368 838 V 526 c 0 -80 64 -144 144 -144 s 144 64 144 144 v 312 z"/>
+    </clipPath>
+  </defs>
+  <g transform="translate(512 512) scale(0.86) translate(-512 -512)">
+<!-- 书封 -->
+  <rect x="242" y="176" width="540" height="662" rx="60" fill="url(#cover)"/>
+  <!-- 装订线：一道极轻的分隔，只为点明这是一本书 -->
+  <rect x="318" y="206" width="7" height="602" rx="4" fill="#0C2B45" opacity="0.12"/>
+
+  <!-- 门洞 -->
+  <path d="M368 838 V 526 c 0 -80 64 -144 144 -144 s 144 64 144 144 v 312 z" fill="url(#door)"/>
+  <g clip-path="url(#doorClip)">
+    <g fill="#FFFFFF">
+      <circle cx="432" cy="512" r="5.5" opacity="0.55"/>
+      <circle cx="596" cy="486" r="4.5" opacity="0.42"/>
+      <circle cx="614" cy="592" r="4.5" opacity="0.34"/>
+      <circle cx="412" cy="622" r="3.5" opacity="0.28"/>
+      <circle cx="582" cy="692" r="3" opacity="0.22"/>
+    </g>
+    <circle cx="512" cy="566" r="110" fill="url(#starGlow)"/>
+    <path d="M512 484
+             c 10 50 22 62 72 72
+             c -50 10 -62 22 -72 72
+             c -10 -50 -22 -62 -72 -72
+             c 50 -10 62 -22 72 -72 z"
+          fill="#FFFFFF"/>
+  </g>
+
+  <!-- 书口：与封面同为白，只靠一点点灰区分 -->
+  <path d="M258 838 h 508 c 10 0 18 8 18 18 v 12 c 0 10 -8 18 -18 18 h -508 c -10 0 -18 -8 -18 -18 v -12 c 0 -10 8 -18 18 -18 z"
+        fill="#FFFFFF"/>
+  <path d="M258 838 h 508 c 10 0 18 8 18 18 v 2 h -544 v -2 c 0 -10 8 -18 18 -18 z"
+        fill="#0C2B45" opacity="0.10"/>
+  </g>
+</svg>

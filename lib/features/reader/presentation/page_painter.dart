@@ -13,9 +13,6 @@ class PagePainter extends CustomPainter {
   final ReaderThemeOption theme;
   final String bookTitle;
   final String currentTime;
-  /// 真实电量 0.0~1.0；为 null 表示当前平台拿不到电量，
-  /// 此时页脚不渲染任何电量信息，绝不展示写死的假数值。
-  final double? batteryLevel;
   final List<Annotation> annotations;
 
   PagePainter({
@@ -26,7 +23,6 @@ class PagePainter extends CustomPainter {
     required this.theme,
     required this.bookTitle,
     required this.currentTime,
-    this.batteryLevel,
     this.annotations = const [],
   });
 
@@ -158,7 +154,7 @@ class PagePainter extends CustomPainter {
       currentY += config.lineHeight;
     }
 
-    // 4. 绘制页脚 (底栏)：左侧页码比例，右侧电量百分比与胶囊图标
+    // 4. 绘制页脚 (底栏)：左侧页码比例
     final footerY = size.height - config.padBottom + 8.0;
     final footerText = '第 ${page.pageIndex + 1}/$totalPageCount 页';
     final footerLeftPainter = TextPainter(
@@ -167,10 +163,6 @@ class PagePainter extends CustomPainter {
     )..layout();
     footerLeftPainter.paint(canvas, Offset(config.hPad, footerY));
 
-    // 绘制电量百分比数字与高对比度电池图标（仅在拿到真实电量时渲染）
-    if (batteryLevel != null) {
-      _drawBatteryWithPercentage(canvas, size, footerY, batteryLevel!);
-    }
   }
 
   /// 动态计算满足 WCAG 4.5:1 高对比度色彩
@@ -187,87 +179,6 @@ class PagePainter extends CustomPainter {
     return color;
   }
 
-  /// 绘制电量百分比数字与电池图标
-  void _drawBatteryWithPercentage(
-      Canvas canvas, Size size, double footerY, double level) {
-    final int percent = (level * 100).round().clamp(0, 100);
-    final isLowBattery = percent <= 20;
-    final isCriticalBattery = percent <= 10;
-
-    // 低电量警报色彩联动与高对比度保障
-    Color batteryColor;
-    if (isCriticalBattery) {
-      batteryColor = const Color(0xFFE53935); // 鲜明警戒红 (<10%)
-    } else if (isLowBattery) {
-      batteryColor = const Color(0xFFF57C00); // 警示琥珀橙 (<=20%)
-    } else {
-      batteryColor =
-          _resolveHighContrastColor(theme.subTextColor, theme.background);
-    }
-
-    final percentStyle = TextStyle(
-      color: batteryColor,
-      fontSize: 11.0,
-      fontWeight: isLowBattery ? FontWeight.bold : FontWeight.w500,
-      fontFamily: 'system-ui',
-    );
-
-    final percentPainter = TextPainter(
-      text: TextSpan(text: '$percent%', style: percentStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    const double batteryWidth = 22.0;
-    const double batteryHeight = 10.5;
-    const double spacing = 4.0;
-    final totalWidth = percentPainter.width + spacing + batteryWidth;
-
-    final startX = size.width - config.hPad - totalWidth;
-    final textY = footerY + 1.0;
-    final iconY = footerY + 2.0;
-
-    // 1) 绘制电量百分比数字
-    percentPainter.paint(canvas, Offset(startX, textY));
-
-    // 2) 绘制电池胶囊
-    final iconX = startX + percentPainter.width + spacing;
-    _drawBatteryIcon(canvas, Offset(iconX, iconY), batteryColor, batteryWidth,
-        batteryHeight, level);
-  }
-
-  void _drawBatteryIcon(Canvas canvas, Offset offset, Color color, double width,
-      double height, double level) {
-    final borderPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1;
-
-    // 电池外壳
-    final bodyWidth = width - 2.5;
-    final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(offset.dx, offset.dy, bodyWidth, height),
-      const Radius.circular(2.5),
-    );
-    canvas.drawRRect(rect, borderPaint);
-
-    // 电池头正极
-    final capRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-          offset.dx + bodyWidth, offset.dy + (height - 4.5) / 2, 2.0, 4.5),
-      const Radius.circular(1.0),
-    );
-    canvas.drawRRect(capRect, Paint()..color = color);
-
-    // 电池电量内部填充
-    final maxInnerWidth = bodyWidth - 3.6;
-    final fillWidth = (maxInnerWidth * level).clamp(1.5, maxInnerWidth);
-    final fillRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(offset.dx + 1.8, offset.dy + 1.8, fillWidth, height - 3.6),
-      const Radius.circular(1.5),
-    );
-    canvas.drawRRect(fillRect, Paint()..color = color);
-  }
-
   @override
   bool shouldRepaint(covariant PagePainter oldDelegate) {
     return oldDelegate.page != page ||
@@ -275,7 +186,6 @@ class PagePainter extends CustomPainter {
         oldDelegate.chapterTitle != chapterTitle ||
         oldDelegate.totalPageCount != totalPageCount ||
         oldDelegate.currentTime != currentTime ||
-        oldDelegate.batteryLevel != batteryLevel ||
         oldDelegate.annotations != annotations;
   }
 }

@@ -1,10 +1,10 @@
 {
   "app": {
-    "bundleName": "com.kline.novelreader.flutter",
+    "bundleName": "com.kline.novelreader.novel_reader_flutter",
     "vendor": "kline",
     "versionCode": 1000000,
     "versionName": "1.0.0",
-    "icon": "$media:app_icon",
+    "icon": "$media:layered_image",
     "label": "$string:app_name"
   }
 }

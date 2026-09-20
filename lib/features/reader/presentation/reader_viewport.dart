@@ -108,11 +108,6 @@ class _ReaderViewportState extends State<ReaderViewport>
   final ScrollController _scrollController = ScrollController();
   DateTime _lastScrollReport = DateTime.fromMillisecondsSinceEpoch(0);
 
-  // 真实电量（null = 当前平台取不到，此时页脚不渲染电量，杜绝写死的 85% 假数据）
-  static const MethodChannel _deviceChannel =
-      MethodChannel('com.kline.novelreader/app_update');
-  double? _batteryLevel;
-  Timer? _batteryTimer;
   final StorageService _storageService = StorageService();
   bool _volumeKeyPagingEnabled = true;
 
@@ -135,28 +130,9 @@ class _ReaderViewportState extends State<ReaderViewport>
       duration: const Duration(milliseconds: 280),
     );
 
-    _refreshBatteryLevel();
-    _batteryTimer = Timer.periodic(
-        const Duration(minutes: 1), (_) => _refreshBatteryLevel());
-
     _pageController = PageController(initialPage: _currentPageIndex);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _volumeChannel.setMethodCallHandler(_handleVolumeCall);
-  }
-
-  /// 读取宿主平台真实电量；取不到就保持 null，页脚不显示电量
-  Future<void> _refreshBatteryLevel() async {
-    try {
-      final level = await _deviceChannel.invokeMethod<int>('getBatteryLevel');
-      if (!mounted) return;
-      final normalized =
-          (level == null || level < 0 || level > 100) ? null : level / 100.0;
-      if (normalized != _batteryLevel) {
-        setState(() => _batteryLevel = normalized);
-      }
-    } catch (_) {
-      // 非 Android 平台或通道未实现：静默保持 null
-    }
   }
 
   Future<void> _loadReaderPreferences() async {
@@ -175,7 +151,6 @@ class _ReaderViewportState extends State<ReaderViewport>
     _volumeChannel.setMethodCallHandler(null);
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _clockTimer?.cancel();
-    _batteryTimer?.cancel();
     _turnAnimController.dispose();
     _pageController.dispose();
     _scrollController.dispose();
@@ -784,7 +759,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                   theme: widget.theme,
                   bookTitle: widget.bookTitle,
                   currentTime: _currentTimeString,
-                  batteryLevel: _batteryLevel,
                   annotations: widget.annotations,
                 ),
               );
@@ -859,7 +833,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
-                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -886,7 +859,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                           theme: widget.theme,
                           bookTitle: widget.bookTitle,
                           currentTime: _currentTimeString,
-                          batteryLevel: _batteryLevel,
                           annotations: widget.annotations,
                         ),
                       ),
@@ -909,7 +881,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
-                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -935,7 +906,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                       theme: widget.theme,
                       bookTitle: widget.bookTitle,
                       currentTime: _currentTimeString,
-                      batteryLevel: _batteryLevel,
                       annotations: widget.annotations,
                     ),
                   ),
@@ -1002,7 +972,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
-                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -1034,7 +1003,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                           theme: widget.theme,
                           bookTitle: widget.bookTitle,
                           currentTime: _currentTimeString,
-                          batteryLevel: _batteryLevel,
                           annotations: widget.annotations,
                         ),
                       ),
@@ -1058,7 +1026,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                     theme: widget.theme,
                     bookTitle: widget.bookTitle,
                     currentTime: _currentTimeString,
-                    batteryLevel: _batteryLevel,
                     annotations: widget.annotations,
                   ),
                 ),
@@ -1091,7 +1058,6 @@ class _ReaderViewportState extends State<ReaderViewport>
                       theme: widget.theme,
                       bookTitle: widget.bookTitle,
                       currentTime: _currentTimeString,
-                      batteryLevel: _batteryLevel,
                       annotations: widget.annotations,
                     ),
                   ),

@@ -38,7 +38,7 @@ void main() {
       expect(greenContrast, greaterThan(4.5));
     });
 
-    test('1.1 / D15 PagePainter 电池图标电量与百分比绘制测试', () {
+    test('1.1 PagePainter 页脚只绘制页码、不再有电量信息', () {
       const config = PagingConfig(
         viewportWidth: 390.0,
         viewportHeight: 844.0,
@@ -71,10 +71,10 @@ void main() {
         theme: ReaderThemeOption.paper,
         bookTitle: '测试小说',
         currentTime: '20:00',
-        batteryLevel: 0.18, // 低电量 18%
       );
 
-      // 验证低电量下 Painter 能在画布上正常执行绘制且不抛异常
+      // 电量显示已移除：PagePainter 不再接受 batteryLevel（参数存在即编译失败），
+      // 这里只保证页脚绘制本身仍能正常完成
       final recorder = PictureRecorder();
       final canvas = Canvas(recorder);
       painter.paint(canvas, const Size(390.0, 844.0));

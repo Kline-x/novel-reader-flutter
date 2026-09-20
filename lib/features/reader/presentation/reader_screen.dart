@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../local_books/services/local_book_service.dart';
 import '../../shelf/models/book_item.dart';
+import '../../sources/services/book_match.dart';
 import '../../sources/services/builtin_sources.dart';
 import '../../sources/services/source_parser.dart';
 import '../../sources/services/multi_source_service.dart';
@@ -212,8 +213,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (follow && mounted) {
       if (systemDark && !_theme.isDark) {
         setState(() {
-          _theme = ReaderThemeOption.presets
-              .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+          _theme = ReaderThemeOption.presets.firstWhere((t) => t.isDark,
+              orElse: () => ReaderThemeOption.night);
         });
         _applySystemBarTheme();
         _persistSettings();
@@ -364,68 +365,51 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     try {
-      SourceRule? rule = BuiltinSources.findByName(_currentSourceName);
-      rule ??= BuiltinSources.findByName('笔趣阁CP') ?? BuiltinSources.all.first;
+      // 两级兜底后必然非空；声明成可空会让后面换源时的重新赋值破坏类型提升
+      SourceRule rule = BuiltinSources.findByName(_currentSourceName) ??
+          BuiltinSources.findByName('笔趣阁CP') ??
+          BuiltinSources.all.first;
 
       String? targetUrl =
           _resolvedBookUrl ?? widget.bookUrl ?? widget.book?.bookUrl;
 
-      // 针对 4 本经典预置书提供高可用已验证 URL（优先选用 100% 连通的笔趣阁ZWX源）
-      // 针对 4 本经典预置书提供高可用已验证 URL（优先选用 100% 连通的笔趣阁ZWX源，支持拼音与中文）
-      final lowerTitle =
-          ChapterHelper.cleanTitle(widget.bookTitle).toLowerCase();
+      // 曾经这里针对 4 本预置书写死了「已验证 URL」。那些链接和榜单里的一样会过期：
+      // 书源站的数字 ID 随新书插入而重排，实测 16 本榜单书里 12 本已指向别的书。
+      // 现在一律按书名现搜。`biquge.company` 是早期占位域名，同样视为无效。
       if (targetUrl == null ||
           targetUrl.isEmpty ||
           targetUrl.contains('biquge.company')) {
-        if (lowerTitle.contains('诡秘之主') || lowerTitle.contains('guimi')) {
-          targetUrl = 'https://www.biqugezwx.com/50/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        } else if (lowerTitle.contains('十日终焉') ||
-            lowerTitle.contains('shiri')) {
-          targetUrl = 'https://www.biqugezwx.com/745/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        } else if (lowerTitle.contains('道诡异仙') ||
-            lowerTitle.contains('daoti')) {
-          targetUrl = 'https://www.biqugezwx.com/334/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        } else if (lowerTitle.contains('剑来') ||
-            lowerTitle.contains('jianlai')) {
-          targetUrl = 'https://www.biqugezwx.com/324/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        }
-      }
-
-      // 如果仍未绑定网络 URL，通过多书源检索智能匹配书名
-      if (targetUrl == null || targetUrl.isEmpty) {
+        targetUrl = null;
         final cleanName = ChapterHelper.cleanTitle(widget.bookTitle);
+
+        // 先在当前源里找
         try {
           final searchRes = await _parser
               .searchBooks(rule, cleanName)
               .timeout(const Duration(seconds: 5));
-          if (searchRes.isNotEmpty) {
-            final match = searchRes.firstWhere(
-              (b) => b.title == cleanName || b.title.contains(cleanName),
-              orElse: () => searchRes.first,
-            );
-            targetUrl = match.bookUrl;
-          }
-        } catch (_) {
-          // 当前源无法连接时，尝试全网 12 组源并发探活匹配
-          final allRes = await _multiSourceService.searchAll(cleanName,
-              timeout: const Duration(seconds: 5));
-          if (allRes.isNotEmpty) {
-            final best = allRes.first;
-            targetUrl = best.bookUrl;
-            final matchedRule = BuiltinSources.findById(best.sourceId);
-            if (matchedRule != null) {
-              rule = matchedRule;
-              _currentSourceName = matchedRule.name;
+          final match =
+              pickBestBookMatch(searchRes, cleanName, author: widget.author);
+          if (match != null) targetUrl = match.bookUrl;
+        } catch (_) {}
+
+        // 当前源连不上、或搜到了但没有一条对得上，都要全网再找一遍。
+        // 此前这步只在 catch 里做，于是「搜到一堆不相干的书」时会直接
+        // 拿第一条顶上，点《三体》打开《没钱修什么仙？》就是这么来的。
+        if (targetUrl == null || targetUrl.isEmpty) {
+          try {
+            final allRes = await _multiSourceService.searchAll(cleanName,
+                timeout: const Duration(seconds: 6));
+            final best =
+                pickBestBookMatch(allRes, cleanName, author: widget.author);
+            if (best != null) {
+              targetUrl = best.bookUrl;
+              final matchedRule = BuiltinSources.findById(best.sourceId);
+              if (matchedRule != null) {
+                rule = matchedRule;
+                _currentSourceName = matchedRule.name;
+              }
             }
-          }
+          } catch (_) {}
         }
       }
 
@@ -554,8 +538,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           if (mounted) {
             setState(() {
               _currentChapterIndex = validIndex;
-              _currentParagraphs =
-                  ChapterHelper.stripDuplicateTitle(fetchedParas, chapter.title);
+              _currentParagraphs = ChapterHelper.stripDuplicateTitle(
+                  fetchedParas, chapter.title);
               _isLoading = false;
               _hasError = false;
             });
@@ -646,8 +630,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         // 核心修复：跟随系统必须对阅读页生效，深色模式绝不被浅色历史偏好覆盖
         if (followSystem || isDarkGlobal) {
           if (isDarkGlobal && !targetTheme.isDark) {
-            targetTheme = ReaderThemeOption.presets
-                .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+            targetTheme = ReaderThemeOption.presets.firstWhere((t) => t.isDark,
+                orElse: () => ReaderThemeOption.night);
           } else if (!isDarkGlobal && targetTheme.isDark && followSystem) {
             targetTheme = ReaderThemeOption.presets[0];
           }
@@ -703,8 +687,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _previousChapter() async {
     if (_currentChapterIndex > 0) {
-      await _loadChapterContent(_currentChapterIndex - 1,
-          landOnLastPage: true);
+      await _loadChapterContent(_currentChapterIndex - 1, landOnLastPage: true);
     }
   }
 
@@ -725,7 +708,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               currentTheme: _theme,
               turnMode: _turnMode,
               onFontSizeChanged: (newSize) {
-                setState(() => _fontSize = newSize);
+                setState(() {
+                  // 行距按原倍数跟着字号一起变，否则只调字号会让行距档位
+                  // 漂到更紧的一档，看起来像"顺手把行距也改了"
+                  _lineHeight = scaledLineHeight(
+                    oldFontSize: _fontSize,
+                    oldLineHeight: _lineHeight,
+                    newFontSize: newSize,
+                  );
+                  _fontSize = newSize;
+                });
                 _persistSettings();
                 setModalState(() {});
               },
@@ -803,7 +795,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               });
             }
 
-            final probedCount = latencyMap.values.where((v) => v != null).length;
+            final probedCount =
+                latencyMap.values.where((v) => v != null).length;
 
             return Material(
               color: cardBg,
@@ -930,7 +923,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     isGbk ? 'GBK转码' : 'UTF-8',
                                     style: TextStyle(
                                       fontSize: 9.0,
-                                      color: isGbk ? Colors.orange : Colors.blue,
+                                      color:
+                                          isGbk ? Colors.orange : Colors.blue,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -990,8 +984,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ),
       child: Text(
         ok ? '${latency}ms' : '超时',
-        style:
-            TextStyle(fontSize: 11.0, color: color, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            fontSize: 11.0, color: color, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -1083,13 +1077,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     // 6) 告知将清除离线缓存
-    final cachedCount = await _storage.getDownloadedChaptersCount(widget.bookId);
+    final cachedCount =
+        await _storage.getDownloadedChaptersCount(widget.bookId);
     if (!mounted) return;
     if (cachedCount > 0) {
       final go = await _confirmDialog(
         title: '切换书源',
-        content:
-            '切换后将清除本书已下载的 $cachedCount 章离线缓存（新书源的章节编号与旧源不一致）。\n\n确定切换吗？',
+        content: '切换后将清除本书已下载的 $cachedCount 章离线缓存（新书源的章节编号与旧源不一致）。\n\n确定切换吗？',
         confirmText: '确定切换',
       );
       if (go != true || !mounted) return;
@@ -1491,8 +1485,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ref.listen<bool>(isDarkModeProvider, (previous, isDark) {
         if (isDark && !_theme.isDark) {
           setState(() {
-            _theme = ReaderThemeOption.presets
-                .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+            _theme = ReaderThemeOption.presets.firstWhere((t) => t.isDark,
+                orElse: () => ReaderThemeOption.night);
           });
           _applySystemBarTheme();
           _persistSettings();

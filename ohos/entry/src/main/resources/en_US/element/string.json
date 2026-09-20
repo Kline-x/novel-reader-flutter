@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Novel Reader main module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "Novel Reader shelf and reader"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Novel Reader"
+    }
+  ]
+}

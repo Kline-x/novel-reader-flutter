@@ -1,7 +1,24 @@
-.hvigor/
-.idea/
-build/
-*.hap
-*.hsp
-*.app
-node_modules/
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+**/BuildProfile.ets
+**/oh-package-lock.json5
+/package.json
+/package-lock.json
+
+**/src/main/resources/rawfile/flutter_assets/
+**/libs/**/libapp.so
+**/libs/**/libflutter.so
+**/libs/**/libvmservice_snapshot.so
+
+# 含签名材料（证书绝对路径 + 加密口令），一律不入库。
+# 从 build-profile.json5.template 复制一份再用 DevEco 填签名。
+/build-profile.json5

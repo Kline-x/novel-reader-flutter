@@ -1,16 +1,15 @@
+
 {
-  "apiType": "stageMode",
+  "apiType": 'stageMode',
   "buildOption": {
-    "arkOptions": {
-      "integratedHsp": true
-    }
   },
   "targets": [
     {
       "name": "default",
-      "applyToProducts": [
-        "default"
-      ]
+      "runtimeOS": "HarmonyOS"
+    },
+    {
+      "name": "ohosTest",
     }
   ]
 }

@@ -140,7 +140,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
     if (newStart == _currentCharStart) return;
 
     final relStart = (newStart - base).clamp(0, fullText.length).toInt();
-    final relEnd = (_currentCharEnd - base).clamp(relStart + 1, fullText.length).toInt();
+    final relEnd =
+        (_currentCharEnd - base).clamp(relStart + 1, fullText.length).toInt();
     final newText = fullText.substring(relStart, relEnd).trim();
 
     setState(() {
@@ -163,7 +164,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
         (_currentCharEnd + delta).clamp(_currentCharStart + 1, maxEnd).toInt();
     if (newEnd == _currentCharEnd) return;
 
-    final relStart = (_currentCharStart - base).clamp(0, fullText.length).toInt();
+    final relStart =
+        (_currentCharStart - base).clamp(0, fullText.length).toInt();
     final relEnd = (newEnd - base).clamp(relStart + 1, fullText.length).toInt();
     final newText = fullText.substring(relStart, relEnd).trim();
 
@@ -295,7 +297,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = widget.isDark ? SoftColors.night : SoftTheme.of(context);
-    final hasContextForAdjust = widget.selectionContext?.fullContextText != null;
+    final hasContextForAdjust =
+        widget.selectionContext?.fullContextText != null;
 
     return Dialog(
       backgroundColor: colors.card,
@@ -351,42 +354,48 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
             // 两端微调步进器
             if (hasContextForAdjust) ...[
               const SizedBox(height: 8.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text('起点 ',
-                          style: TextStyle(
-                              fontSize: 10.5, color: colors.textSecondary)),
-                      _buildMiniStepBtn(
-                          '◀ 扩', () => _adjustStart(-1), colors, 'btn_start_expand'),
-                      const SizedBox(width: 4.0),
-                      _buildMiniStepBtn(
-                          '缩 ▶', () => _adjustStart(1), colors, 'btn_start_shrink'),
-                    ],
-                  ),
-                  Text(
-                    '已选 ${_currentSelectedText.length} 字',
-                    style: TextStyle(
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w600,
-                      color: colors.accent,
+              // 起点组 / 已选字数 / 终点组三者都是定宽内容，窄屏或字宽略大的
+              // 平台（实测鸿蒙）会挤爆这一行。包 Flexible 没用——溢出只会转移到
+              // 子 Row 内部；这里整体等比缩小，一个字都不丢。
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text('起点 ',
+                            style: TextStyle(
+                                fontSize: 10.5, color: colors.textSecondary)),
+                        _buildMiniStepBtn('◀ 扩', () => _adjustStart(-1), colors,
+                            'btn_start_expand'),
+                        const SizedBox(width: 4.0),
+                        _buildMiniStepBtn('缩 ▶', () => _adjustStart(1), colors,
+                            'btn_start_shrink'),
+                      ],
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Text('终点 ',
-                          style: TextStyle(
-                              fontSize: 10.5, color: colors.textSecondary)),
-                      _buildMiniStepBtn(
-                          '◀ 缩', () => _adjustEnd(-1), colors, 'btn_end_shrink'),
-                      const SizedBox(width: 4.0),
-                      _buildMiniStepBtn(
-                          '扩 ▶', () => _adjustEnd(1), colors, 'btn_end_expand'),
-                    ],
-                  ),
-                ],
+                    Text(
+                      '已选 ${_currentSelectedText.length} 字',
+                      style: TextStyle(
+                        fontSize: 11.0,
+                        fontWeight: FontWeight.w600,
+                        color: colors.accent,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text('终点 ',
+                            style: TextStyle(
+                                fontSize: 10.5, color: colors.textSecondary)),
+                        _buildMiniStepBtn('◀ 缩', () => _adjustEnd(-1), colors,
+                            'btn_end_shrink'),
+                        const SizedBox(width: 4.0),
+                        _buildMiniStepBtn('扩 ▶', () => _adjustEnd(1), colors,
+                            'btn_end_expand'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
 
@@ -447,7 +456,8 @@ class _AddAnnotationDialogState extends State<AddAnnotationDialog> {
                 fillColor: colors.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide(color: colors.borderSubtle, width: 0.5),
+                  borderSide:
+                      BorderSide(color: colors.borderSubtle, width: 0.5),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),

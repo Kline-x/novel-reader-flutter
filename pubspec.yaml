@@ -1,7 +1,7 @@
 name: novel_reader_flutter
 description: "A professional novel reader with Modern Soft UI and deterministic CJK typography engine."
 publish_to: "none"
-version: 1.0.9+4007
+version: 1.0.10+4008
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -23,6 +23,13 @@ dependencies:
   archive: ^4.3.0
   flutter_tts: ^4.2.5
   crypto: ^3.0.7
+
+  # 鸿蒙平台实现。pub 上的官方包没有 ohos 实现，缺了它们 MethodChannel
+  # 会既不返回也不抛异常地永久挂起（try/catch 接不住），表现为界面永远转圈。
+  # 这三个包只在 ohos 构建时被注册，不影响 Android / iOS / Web。
+  path_provider_ohos: ^2.2.1
+  shared_preferences_ohos: ^2.2.0
+  flutter_tts_ohos: ^4.2.5
 
 dev_dependencies:
   flutter_test:
