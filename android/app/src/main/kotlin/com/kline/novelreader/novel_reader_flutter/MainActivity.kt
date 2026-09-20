@@ -1,18 +1,37 @@
 package com.kline.novelreader.novel_reader_flutter
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.view.KeyEvent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.kline.novelreader/volume_key"
     private val UPDATE_CHANNEL = "com.kline.novelreader/app_update"
+    private val PICKER_CHANNEL = "com.kline.novelreader/file_picker"
     private var methodChannel: MethodChannel? = null
+
+    /** 文件选择是跨 Activity 的异步流程，结果要等到 onActivityResult 才有 */
+    private var pendingPickResult: MethodChannel.Result? = null
+
+    private val REQ_PICK_BOOK = 0x7A01
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PICKER_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "pickBookFile" -> openBookPicker(result)
+                    else -> result.notImplemented()
+                }
+            }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPDATE_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
@@ -80,24 +99,91 @@ class MainActivity : FlutterActivity() {
                         result.error("PACKAGE_INFO_ERROR", e.localizedMessage, null)
                     }
                 }
-                "getBatteryLevel" -> {
-                    try {
-                        val bm = getSystemService(android.content.Context.BATTERY_SERVICE)
-                                as android.os.BatteryManager
-                        val level = bm.getIntProperty(
-                            android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY
-                        )
-                        if (level in 0..100) {
-                            result.success(level)
-                        } else {
-                            result.success(null)
-                        }
-                    } catch (e: Exception) {
-                        result.success(null)
-                    }
-                }
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    /**
+     * 拉起系统文件选择器挑一本书。
+     *
+     * 用 ACTION_OPEN_DOCUMENT 而不是 GET_CONTENT：前者返回的是可持久授权的
+     * 文档 uri，来源也更规范（含云盘等 DocumentsProvider）。
+     * 返回的 uri 不是文件系统路径，下游解析引擎直接 open 不了，
+     * 所以复制进应用缓存目录再把落地路径回给 Dart。
+     */
+    private fun openBookPicker(result: MethodChannel.Result) {
+        if (pendingPickResult != null) {
+            result.error("BUSY", "another pick is in progress", null)
+            return
+        }
+        try {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"
+                // epub 在部分设备上被识别成 octet-stream，一并放行，
+                // 否则用户在选择器里看不到自己的书
+                putExtra(
+                    Intent.EXTRA_MIME_TYPES,
+                    arrayOf(
+                        "text/plain",
+                        "application/epub+zip",
+                        "application/octet-stream"
+                    )
+                )
+            }
+            pendingPickResult = result
+            startActivityForResult(intent, REQ_PICK_BOOK)
+        } catch (e: Exception) {
+            pendingPickResult = null
+            result.error("PICK_FAILED", e.localizedMessage, null)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQ_PICK_BOOK) {
+            val pending = pendingPickResult
+            pendingPickResult = null
+            val uri = data?.data
+            if (resultCode != Activity.RESULT_OK || uri == null) {
+                // 用户取消，返回 null 让 Dart 侧安静地什么都不做
+                pending?.success(null)
+                return
+            }
+            try {
+                pending?.success(copyIntoCache(uri))
+            } catch (e: Exception) {
+                pending?.error("COPY_FAILED", e.localizedMessage, null)
+            }
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    /** 把选中的文档复制进 cacheDir/imported/，返回落地路径 */
+    private fun copyIntoCache(uri: Uri): String {
+        val dir = File(cacheDir, "imported")
+        if (!dir.exists()) dir.mkdirs()
+
+        val name = queryDisplayName(uri) ?: "book_${System.currentTimeMillis()}.txt"
+        val dest = File(dir, name)
+        if (dest.exists()) dest.delete()
+
+        contentResolver.openInputStream(uri).use { input ->
+            requireNotNull(input) { "cannot open picked uri" }
+            dest.outputStream().use { output -> input.copyTo(output) }
+        }
+        return dest.absolutePath
+    }
+
+    private fun queryDisplayName(uri: Uri): String? {
+        return try {
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 

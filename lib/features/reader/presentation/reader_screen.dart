@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../local_books/services/local_book_service.dart';
 import '../../shelf/models/book_item.dart';
+import '../../sources/services/book_match.dart';
 import '../../sources/services/builtin_sources.dart';
 import '../../sources/services/source_parser.dart';
 import '../../sources/services/multi_source_service.dart';
@@ -364,68 +365,51 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     try {
-      SourceRule? rule = BuiltinSources.findByName(_currentSourceName);
-      rule ??= BuiltinSources.findByName('笔趣阁CP') ?? BuiltinSources.all.first;
+      // 两级兜底后必然非空；声明成可空会让后面换源时的重新赋值破坏类型提升
+      SourceRule rule = BuiltinSources.findByName(_currentSourceName) ??
+          BuiltinSources.findByName('笔趣阁CP') ??
+          BuiltinSources.all.first;
 
       String? targetUrl =
           _resolvedBookUrl ?? widget.bookUrl ?? widget.book?.bookUrl;
 
-      // 针对 4 本经典预置书提供高可用已验证 URL（优先选用 100% 连通的笔趣阁ZWX源）
-      // 针对 4 本经典预置书提供高可用已验证 URL（优先选用 100% 连通的笔趣阁ZWX源，支持拼音与中文）
-      final lowerTitle =
-          ChapterHelper.cleanTitle(widget.bookTitle).toLowerCase();
+      // 曾经这里针对 4 本预置书写死了「已验证 URL」。那些链接和榜单里的一样会过期：
+      // 书源站的数字 ID 随新书插入而重排，实测 16 本榜单书里 12 本已指向别的书。
+      // 现在一律按书名现搜。`biquge.company` 是早期占位域名，同样视为无效。
       if (targetUrl == null ||
           targetUrl.isEmpty ||
           targetUrl.contains('biquge.company')) {
-        if (lowerTitle.contains('诡秘之主') || lowerTitle.contains('guimi')) {
-          targetUrl = 'https://www.biqugezwx.com/50/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        } else if (lowerTitle.contains('十日终焉') ||
-            lowerTitle.contains('shiri')) {
-          targetUrl = 'https://www.biqugezwx.com/745/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        } else if (lowerTitle.contains('道诡异仙') ||
-            lowerTitle.contains('daoti')) {
-          targetUrl = 'https://www.biqugezwx.com/334/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        } else if (lowerTitle.contains('剑来') ||
-            lowerTitle.contains('jianlai')) {
-          targetUrl = 'https://www.biqugezwx.com/324/';
-          rule = BuiltinSources.findByName('笔趣阁ZWX') ?? rule;
-          _currentSourceName = '笔趣阁ZWX';
-        }
-      }
-
-      // 如果仍未绑定网络 URL，通过多书源检索智能匹配书名
-      if (targetUrl == null || targetUrl.isEmpty) {
+        targetUrl = null;
         final cleanName = ChapterHelper.cleanTitle(widget.bookTitle);
+
+        // 先在当前源里找
         try {
           final searchRes = await _parser
               .searchBooks(rule, cleanName)
               .timeout(const Duration(seconds: 5));
-          if (searchRes.isNotEmpty) {
-            final match = searchRes.firstWhere(
-              (b) => b.title == cleanName || b.title.contains(cleanName),
-              orElse: () => searchRes.first,
-            );
-            targetUrl = match.bookUrl;
-          }
-        } catch (_) {
-          // 当前源无法连接时，尝试全网 12 组源并发探活匹配
-          final allRes = await _multiSourceService.searchAll(cleanName,
-              timeout: const Duration(seconds: 5));
-          if (allRes.isNotEmpty) {
-            final best = allRes.first;
-            targetUrl = best.bookUrl;
-            final matchedRule = BuiltinSources.findById(best.sourceId);
-            if (matchedRule != null) {
-              rule = matchedRule;
-              _currentSourceName = matchedRule.name;
+          final match =
+              pickBestBookMatch(searchRes, cleanName, author: widget.author);
+          if (match != null) targetUrl = match.bookUrl;
+        } catch (_) {}
+
+        // 当前源连不上、或搜到了但没有一条对得上，都要全网再找一遍。
+        // 此前这步只在 catch 里做，于是「搜到一堆不相干的书」时会直接
+        // 拿第一条顶上，点《三体》打开《没钱修什么仙？》就是这么来的。
+        if (targetUrl == null || targetUrl.isEmpty) {
+          try {
+            final allRes = await _multiSourceService.searchAll(cleanName,
+                timeout: const Duration(seconds: 6));
+            final best =
+                pickBestBookMatch(allRes, cleanName, author: widget.author);
+            if (best != null) {
+              targetUrl = best.bookUrl;
+              final matchedRule = BuiltinSources.findById(best.sourceId);
+              if (matchedRule != null) {
+                rule = matchedRule;
+                _currentSourceName = matchedRule.name;
+              }
             }
-          }
+          } catch (_) {}
         }
       }
 

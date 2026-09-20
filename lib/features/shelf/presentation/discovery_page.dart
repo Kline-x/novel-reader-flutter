@@ -48,6 +48,11 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     '悬疑惊悚'
   ];
 
+  /// 榜单书目。**刻意不写死 bookUrl**：书源站的数字 ID 会随新书插入而重排，
+  /// 写死的链接过一段时间就会指向别的书。实测 16 本里有 12 本已经串了——
+  /// 「三体」跳到《没钱修什么仙？》、「亏成首富」跳到《大奉打更人》、
+  /// 「恶魔法则」直接 404。
+  /// 书名是稳定标识，点进详情页时按书名现搜即可拿到当前正确的链接。
   final List<Map<String, String>> _allHotBooks = [
     // 玄幻奇幻
     {
@@ -56,7 +61,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '跳舞',
       'category': '玄幻奇幻',
       'tag': '经典西幻 · 罗林家族',
-      'bookUrl': 'https://www.biquge7.xyz/1283/',
       'sourceName': '笔趣阁7',
       'sourceId': 'biquge7:笔趣阁7',
       'desc': '一个一无是处的纨绔子弟，一个被家族放弃的废物，在得到了一份恶魔的契约后，他的人生彻底改变。罗林家族的传奇就此拉开序幕！',
@@ -67,7 +71,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '爱潜水的乌贼',
       'category': '玄幻奇幻',
       'tag': '西方玄幻 · 蒸汽朋克',
-      'bookUrl': 'https://www.biqugezwx.com/50/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc':
@@ -79,7 +82,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '爱潜水的乌贼',
       'category': '玄幻奇幻',
       'tag': '异世大陆 · 密教仪式',
-      'bookUrl': 'https://www.biqugezwx.com/1243/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '诡秘世界第二部。科尔杜村的迷雾与祭典，宿命之环下的红月与命运羁绊，猎人与宿命的交锋。',
@@ -90,7 +92,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '天蚕土豆',
       'category': '玄幻奇幻',
       'tag': '东方玄幻 · 异火争霸',
-      'bookUrl': 'https://www.biqugezwx.com/98/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '这里是属于斗气的世界，没有花俏艳丽的魔法，有的，仅仅是繁衍到巅峰的斗气！三十年河东，三十年河西，莫欺少年穷！',
@@ -101,7 +102,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '辰东',
       'category': '玄幻奇幻',
       'tag': '远古洪荒 · 独断万古',
-      'bookUrl': 'https://www.biqugezwx.com/102/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '一粒尘可填海，一根草斩尽日月星辰，弹指间天翻地覆。群雄并起，万族林立，诸圣争霸，问苍茫大地，谁主沉浮？！',
@@ -113,7 +113,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '狐尾的笔',
       'category': '仙侠修真',
       'tag': '克苏鲁修仙 · 真假难辨',
-      'bookUrl': 'https://www.biqugezwx.com/334/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '诡异的天道，异常的仙佛，这里到底是真实还是我的精神病幻觉？李火旺在现代病房与大齐世界之间痛苦挣扎求生。',
@@ -124,7 +123,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '烽火戏诸侯',
       'category': '仙侠修真',
       'tag': '古典仙侠 · 剑道浩然',
-      'bookUrl': 'https://www.biqugezwx.com/324/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '大千世界，无奇不有。我陈平安，唯有一剑，可搬山，倒海，降妖，镇魔，敕神，摘星，断江，摧城，开天！',
@@ -135,7 +133,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '忘语',
       'category': '仙侠修真',
       'tag': '凡人流 · 仙道艰难',
-      'bookUrl': 'https://www.biqugezwx.com/45/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '一个普通山村少年，偶然下进入到当地江湖小门派，资质平庸的他，如何一步步在弱肉强食的修仙界长生登仙。',
@@ -146,7 +143,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '耳根',
       'category': '仙侠修真',
       'tag': '诙谐幽默 · 仙侠奇缘',
-      'bookUrl': 'https://www.biqugezwx.com/156/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '一念成沧海，一念化桑田。一念斩千魔，一念诛万仙。唯我念……永恒！生性怕死的白小纯在灵溪宗的修仙传奇。',
@@ -158,7 +154,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '辰东',
       'category': '科幻未来',
       'tag': '星际深空 · 旧土新生',
-      'bookUrl': 'https://www.biqugezwx.com/620/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '浩瀚的宇宙中，一片岁月的星海，神话在旧土重新复苏。王煊行走在新术与旧术的交汇尽头，探索深空彼岸的终极奥秘。',
@@ -169,7 +164,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '刘慈欣',
       'category': '科幻未来',
       'tag': '硬科幻 · 黑暗森林',
-      'bookUrl': 'https://www.biqugezwx.com/89/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '文化大革命如火如荼进行之际，军方探寻外星文明的绝秘计划发射了第一道电波。四光年外的三体舰队，正在驶向太阳系。',
@@ -180,7 +174,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '我吃西红柿',
       'category': '科幻未来',
       'tag': '未来末世 · 宇宙进化',
-      'bookUrl': 'https://www.biqugezwx.com/201/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '星空深处，无数强者傲立。地球少年罗峰走出江南基地市，闯入广袤无垠的浩瀚宇宙，成就浑源领主。',
@@ -192,7 +185,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '卖报小郎君',
       'category': '都市异能',
       'tag': '侦探悬疑 · 儒武争锋',
-      'bookUrl': 'https://www.biqugezwx.com/412/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '这个世界，有儒；有道；有佛；有妖；有术士。警校毕业的许七安幽幽醒来，发现自己身处牢狱之中，三日后流放边陲……',
@@ -203,7 +195,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '青衫取醉',
       'category': '都市异能',
       'tag': '系统返现 · 商业爆笑',
-      'bookUrl': 'https://www.biqugezwx.com/530/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '裴谦获得了财富转换系统，只要亏钱就能按比例转化成个人财产。为了亏钱，他绞尽脑汁做冷门游戏，结果全成爆款！',
@@ -215,7 +206,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '杀虫队队员',
       'category': '悬疑惊悚',
       'tag': '高智商博弈 · 生肖死局',
-      'bookUrl': 'https://www.biqugezwx.com/745/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '我叫齐夏，当你看到这行字的时候，我已经死了十次。高智商生肖致命死亡游戏，谎言与推演的终极博弈。',
@@ -226,7 +216,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
       'author': '我会修空调',
       'category': '悬疑惊悚',
       'tag': '惊悚探秘 · 鬼屋经营',
-      'bookUrl': 'https://www.biqugezwx.com/318/',
       'sourceName': '笔趣阁ZWX',
       'sourceId': 'biqugezwx:笔趣阁ZWX',
       'desc': '陈歌继承了父母留下的冒险屋，在整理库房时意外发现了一部可以发布恐怖任务的黑色手机。推开一扇扇恐怖禁忌之门……',
@@ -508,8 +497,7 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
             Icon(Icons.close, size: 14.0, color: colors.textSecondary),
             const SizedBox(width: 4.0),
             Text('清除搜索',
-                style:
-                    TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+                style: TextStyle(fontSize: 12.0, color: colors.textSecondary)),
           ],
         ),
       ),
@@ -534,7 +522,8 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
               title: '探索好书',
               expandedTitleSize: 26.0,
               pinned: false,
-              trailing: _activeQuery.isEmpty ? null : _buildClearSearchChip(colors),
+              trailing:
+                  _activeQuery.isEmpty ? null : _buildClearSearchChip(colors),
             ),
 
             // 吸顶搜索输入框与横向分类标签栏 (长书单随时切分类、随时发起并发打捞)
@@ -958,8 +947,8 @@ class _DiscoverySearchHeaderDelegate extends SliverPersistentHeaderDelegate {
         child: Container(
           height: 104.0,
           decoration: BoxDecoration(
-            color: (isDark ? colors.background : colors.surface)
-                .withValues(alpha: (overlapsContent || shrinkOffset > 0)
+            color: (isDark ? colors.background : colors.surface).withValues(
+                alpha: (overlapsContent || shrinkOffset > 0)
                     ? (isDark ? 0.88 : 0.92)
                     : 0.0),
             boxShadow: (overlapsContent || shrinkOffset > 0)

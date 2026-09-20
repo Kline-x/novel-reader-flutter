@@ -417,7 +417,8 @@ class _ShelfPageState extends State<ShelfPage> {
                             // 没有用 file_picker：它的 ohos 实现是个不依赖主包的
                             // 完整 fork，且只声明支持 Dart 2，装上会让整套测试
                             // 都加载不起来。这里走自己的宿主通道，
-                            // 平台没实现时（当前 Android/iOS）静默回退到扫描。
+                            // Android / iOS / 鸿蒙三侧都已实现；
+                            // 万一通道缺失或用户取消，下面回退到沙箱扫描。
                             String? chosen;
                             try {
                               chosen = await _hostFilePickerChannel
