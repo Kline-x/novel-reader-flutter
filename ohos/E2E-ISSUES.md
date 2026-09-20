@@ -100,6 +100,31 @@ on channel com.kline.novelreader/app_update)
 
 菜单唤出时，顶栏浮层压住正文第一行的章节大标题，只露出下半截。
 
+### 13. 划线批注弹窗溢出，露出黄黑警告条
+
+长按拖选正文 →「添加划线批注」弹窗 → 两端微调那一行
+`RIGHT OVERFLOWED BY 26 PIXELS`。
+
+`lib/features/notes/presentation/add_annotation_dialog.dart:354` 的 Row：
+
+```dart
+Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Row(children: [Text('起点 '), 扩, 缩]),
+    Text('已选 ${_currentSelectedText.length} 字'),  // 字数增大时更宽
+    Row(children: [Text('终点 '), 缩, 扩]),
+  ],
+)
+```
+
+三个子项都按自然宽度排布，没有 Flexible / Expanded，加起来超出可用宽度就溢出。
+与问题「发现页长标题溢出」同类——**都是 Row 里没有可收缩项**，
+鸿蒙字宽略大于 Android 所以在这里先撞线。debug 包画黄黑条，
+release 不画但内容照样被裁。
+
+建议统一排查全项目的 `Row` + 定宽文本组合，不只修这两处。
+
 ---
 
 ## 三、已确认可用（鸿蒙真机实测通过）
@@ -131,7 +156,7 @@ on channel com.kline.novelreader/app_update)
 
 | 项 | 未测原因 |
 |---|---|
-| 全网书源搜索（输入书名并发搜索） | 需要中文文本输入，`hdc uinput` 难以模拟 |
+| 全网书源搜索（输入书名并发搜索） | `uinput -K -t` 只收 ASCII，中文报 `The character of index 0 is invalid`。搜索**后端**链路在打开在线书时已间接验证（`multiSourceService.searchAll` 能匹配到书源并取回目录），只差 UI 输入这一段没走 |
 | TTS 实际朗读效果 | 按要求全程保持静音，只验证到引擎初始化 |
 | WebDAV 实际同步 | 需要真实账号与授权码 |
 | EPUB 导入 | 只测了 TXT |
