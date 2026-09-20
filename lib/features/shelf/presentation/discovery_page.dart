@@ -41,7 +41,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
 
   final List<String> _categories = [
     '全部',
-    '女频言情',
     '玄幻奇幻',
     '仙侠修真',
     '科幻未来',
@@ -50,67 +49,6 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
   ];
 
   final List<Map<String, String>> _allHotBooks = [
-    // 女频言情精选爆款
-    {
-      'id': 'zhifou_01',
-      'title': '知否？知否？应是绿肥红瘦',
-      'author': '关心则乱',
-      'category': '女频言情',
-      'tag': '古代言情 · 宅斗权谋',
-      'bookUrl': 'https://www.biqugezwx.com/568/',
-      'sourceName': '笔趣阁ZWX',
-      'sourceId': 'biqugezwx:笔趣阁ZWX',
-      'desc':
-          '一个消极怠工的古代庶女奋斗史。盛明兰在深宅大院中掩藏锋芒，韬光养晦，历经波折成长为独立自强的侯门主母。',
-    },
-    {
-      'id': 'toutou_02',
-      'title': '偷偷藏不住',
-      'author': '竹已',
-      'category': '女频言情',
-      'tag': '青春甜宠 · 现代言情',
-      'bookUrl': 'https://www.biqugezwx.com/892/',
-      'sourceName': '笔趣阁ZWX',
-      'sourceId': 'biqugezwx:笔趣阁ZWX',
-      'desc':
-          '桑稚高中时期暗恋哥哥的挚友段嘉许。从懵懂心动到大学重逢，双向奔赴的治愈系甜宠温暖爱恋。',
-    },
-    {
-      'id': 'nanwong_03',
-      'title': '难哄',
-      'author': '竹已',
-      'category': '女频言情',
-      'tag': '破镜重圆 · 都市言情',
-      'bookUrl': 'https://www.biqugezwx.com/955/',
-      'sourceName': '笔趣阁ZWX',
-      'sourceId': 'biqugezwx:笔趣阁ZWX',
-      'desc':
-          '机缘巧合下，温以凡跟曾被她拒绝的高中同学桑延过上了合租的生活。骄傲毒舌与温柔敏感的心灵治愈之旅。',
-    },
-    {
-      'id': 'changxiangsi_04',
-      'title': '长相思',
-      'author': '桐华',
-      'category': '女频言情',
-      'tag': '上古神话 · 虐恋仙侠',
-      'bookUrl': 'https://www.biqugezwx.com/673/',
-      'sourceName': '笔趣阁ZWX',
-      'sourceId': 'biqugezwx:笔趣阁ZWX',
-      'desc':
-          '生命是一场又一场的相遇与别离，是一次又一次的遗忘与开始。清水镇的玟小六，与轩辕王姬、涂山璟、相柳之间的宿命纠葛。',
-    },
-    {
-      'id': 'kunning_05',
-      'title': '坤宁',
-      'author': '时镜',
-      'category': '女频言情',
-      'tag': '重生逆袭 · 宫闱权谋',
-      'bookUrl': 'https://www.biqugezwx.com/712/',
-      'sourceName': '笔趣阁ZWX',
-      'sourceId': 'biqugezwx:笔趣阁ZWX',
-      'desc':
-          '前世姜雪宁费尽心机当上皇后，却终被逼自刎。重活一世，她只想远离权力旋涡，却阴差阳错成为帝师谢危的学生……',
-    },
     // 玄幻奇幻
     {
       'id': 'emofaze_00',

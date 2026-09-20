@@ -1,3 +1,4 @@
+﻿
 {
   "module": {
     "name": "entry",
@@ -5,9 +6,7 @@
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [
-      "phone",
-      "tablet",
-      "2in1"
+      "default"
     ],
     "deliveryWithInstall": true,
     "installationFree": false,
@@ -17,9 +16,9 @@
         "name": "EntryAbility",
         "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:EntryAbility_desc",
-        "icon": "$media:app_icon",
+        "icon": "$media:icon",
         "label": "$string:EntryAbility_label",
-        "startWindowIcon": "$media:app_icon",
+        "startWindowIcon": "$media:icon",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
         "skills": [
@@ -34,37 +33,18 @@
         ]
       }
     ],
+    // flutter create 只生成 INTERNET，其余按本项目实际功能补齐。
+    // 三个都是 system_grant，安装即授予，不需要运行时弹窗。
+    // 本地 TXT/EPUB 导入若要读沙箱外的文件，还需 user_grant 的
+    // ohos.permission.READ_MEDIA（要额外配 reason 与 usedScene），
+    // 等实测确认走的是文件选择器还是直读路径再决定是否加。
     "requestPermissions": [
-      {
-        "name": "ohos.permission.INTERNET",
-        "reason": "$string:internet_permission_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "always"
-        }
-      },
-      {
-        "name": "ohos.permission.READ_MEDIA",
-        "reason": "$string:storage_permission_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "inuse"
-        }
-      },
-      {
-        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING",
-        "reason": "$string:background_audio_permission_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "inuse"
-        }
-      }
+      // 书源聚合、章节抓取、在线更新检查
+      {"name": "ohos.permission.INTERNET"},
+      // 判断网络可用性与计费类型，避免在移动网络下静默大量下载
+      {"name": "ohos.permission.GET_NETWORK_INFO"},
+      // 整本离线缓存的后台下载、TTS 听书熄屏续读
+      {"name": "ohos.permission.KEEP_BACKGROUND_RUNNING"},
     ]
   }
 }

@@ -452,7 +452,7 @@ void main() {
           reason: '胶囊搜索栏必须保持固定置顶，不能随书籍列表滚出视口');
     });
 
-    testWidgets('2. 发现页女频分类测试：新增「女频言情」分类胶囊并可精准筛选女频爆款小说', (tester) async {
+    testWidgets('2. 发现页分类筛选：女频言情已整体移除，其余分类仍可精准筛选', (tester) async {
       await tester.pumpWidget(createTestWidget(tester));
       await tester.pumpAndSettle();
 
@@ -460,25 +460,29 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tab_discovery')));
       await tester.pumpAndSettle();
 
-      // 精确通过 Key 定位「女频言情」分类胶囊 (index = 1)
-      final femaleCategoryFinder = find.byKey(const ValueKey('category_pill_1'));
-      expect(femaleCategoryFinder, findsOneWidget);
-      expect(find.descendant(of: femaleCategoryFinder, matching: find.text('女频言情')),
+      // 「女频言情」分类胶囊与其下全部书目都已移除
+      expect(find.text('女频言情'), findsNothing,
+          reason: '女频言情分类胶囊应已移除');
+      expect(find.text('知否？知否？应是绿肥红瘦'), findsNothing);
+      expect(find.text('偷偷藏不住'), findsNothing);
+      expect(find.text('难哄'), findsNothing);
+      expect(find.text('长相思'), findsNothing);
+      expect(find.text('坤宁'), findsNothing);
+
+      // index = 1 现在是「玄幻奇幻」，筛选机制本身不受影响
+      final firstCategoryFinder = find.byKey(const ValueKey('category_pill_1'));
+      expect(firstCategoryFinder, findsOneWidget);
+      expect(
+          find.descendant(
+              of: firstCategoryFinder, matching: find.text('玄幻奇幻')),
           findsOneWidget);
 
-      // 点击「女频言情」分类胶囊
-      await tester.tap(femaleCategoryFinder);
+      await tester.tap(firstCategoryFinder);
       await tester.pumpAndSettle();
 
-      // 验证女频经典小说展示在列表中
-      expect(find.text('知否？知否？应是绿肥红瘦'), findsOneWidget);
-      expect(find.text('偷偷藏不住'), findsOneWidget);
-      expect(find.text('难哄'), findsOneWidget);
-      expect(find.text('长相思'), findsOneWidget);
-      expect(find.text('坤宁'), findsOneWidget);
-
-      // 验证原玄幻类书籍如《恶魔法则》已被过滤隐去
-      expect(find.text('恶魔法则'), findsNothing);
+      expect(find.text('恶魔法则'), findsOneWidget);
+      // 非本分类的书籍被过滤隐去
+      expect(find.text('三体'), findsNothing);
     });
 
     test('3. 更新下载速度优化测试：镜像代理池扩充包含高速 CDN 且支持并发测速与重排', () async {

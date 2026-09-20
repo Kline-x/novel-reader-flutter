@@ -161,29 +161,52 @@ void main() {
       // 1. AppScope
       final appJson5 = File('ohos/AppScope/app.json5');
       expect(appJson5.existsSync(), isTrue);
+      // 与 Android 的 applicationId 保持一致
       expect(appJson5.readAsStringSync(),
-          contains('com.kline.novelreader.flutter'));
+          contains('com.kline.novelreader.novel_reader_flutter'));
       expect(appJson5.readAsStringSync(), contains('\$media:app_icon'));
 
-      // 2. build-profile.json5
-      final buildProfile = File('ohos/build-profile.json5');
-      expect(buildProfile.existsSync(), isTrue);
-      expect(buildProfile.readAsStringSync(), contains('OpenHarmony'));
+      // 2. build-profile.json5 本身含签名材料不入库，入库的是模板
+      final buildProfileTemplate = File('ohos/build-profile.json5.template');
+      expect(buildProfileTemplate.existsSync(), isTrue,
+          reason: '签名配置模板必须入库，否则别人 clone 后无从下手');
+      final templateContent = buildProfileTemplate.readAsStringSync();
+      expect(templateContent, contains('HarmonyOS'));
+      expect(templateContent, contains('"signingConfigs": []'),
+          reason: '模板里的签名段必须为空，严禁把证书路径与口令带进公开仓库');
+
+      // 模块级构建配置不含敏感信息，正常入库
+      final entryBuildProfile = File('ohos/entry/build-profile.json5');
+      expect(entryBuildProfile.existsSync(), isTrue);
+      expect(entryBuildProfile.readAsStringSync(), contains('HarmonyOS'));
 
       // 3. entry module.json5 与 权限配置
       final moduleJson5 = File('ohos/entry/src/main/module.json5');
       expect(moduleJson5.existsSync(), isTrue);
       final moduleContent = moduleJson5.readAsStringSync();
       expect(moduleContent, contains('ohos.permission.INTERNET'));
-      expect(moduleContent, contains('ohos.permission.READ_MEDIA'));
+      expect(moduleContent, contains('ohos.permission.GET_NETWORK_INFO'));
       expect(
           moduleContent, contains('ohos.permission.KEEP_BACKGROUND_RUNNING'));
+
+      // 5. 三个鸿蒙插件实现必须在依赖里，缺了 MethodChannel 会永久挂起
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      expect(pubspec, contains('path_provider_ohos'));
+      expect(pubspec, contains('shared_preferences_ohos'));
+      expect(pubspec, contains('flutter_tts_ohos'));
 
       // 4. ArkTS 入口与主视图
       final entryAbility =
           File('ohos/entry/src/main/ets/entryability/EntryAbility.ets');
       expect(entryAbility.existsSync(), isTrue);
-      expect(entryAbility.readAsStringSync(), contains('UIAbility'));
+      final entryContent = entryAbility.readAsStringSync();
+      // 空壳工程继承的是裸 UIAbility，只渲染一行文字；
+      // 真正挂载了 Flutter 的工程必须继承 FlutterAbility 并注册插件，
+      // 缺了 registerWith 会让所有 MethodChannel 永久挂起。
+      expect(entryContent, contains('FlutterAbility'),
+          reason: 'EntryAbility 必须继承 FlutterAbility，否则 Flutter 根本没挂上去');
+      expect(entryContent, contains('GeneratedPluginRegistrant.registerWith'),
+          reason: '不注册插件会让 path_provider 等调用永久挂起，界面永远转圈');
 
       final appIcon = File('ohos/AppScope/resources/base/media/app_icon.png');
       expect(appIcon.existsSync(), isTrue);

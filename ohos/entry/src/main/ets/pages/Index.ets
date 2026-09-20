@@ -1,21 +1,24 @@
-/**
- * 藏书阁 鸿蒙入口页面
- * 挂载 Flutter Native 渲染视图
- */
-@Entry
+
+import common from '@ohos.app.ability.common';
+import { FlutterPage } from '@ohos/flutter_ohos'
+
+let storage = LocalStorage.getShared()
+const EVENT_BACK_PRESS = 'EVENT_BACK_PRESS'
+
+@Entry(storage)
 @Component
 struct Index {
+  private context = getContext(this) as common.UIAbilityContext
+  @LocalStorageLink('viewId') viewId: string = "";
+
   build() {
     Column() {
-      // 在 OpenHarmony-TPC Flutter SDK 下映射为 FlutterView
-      Text('藏书阁 · 鸿蒙原生运行环境')
-        .fontSize(20)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#2C2825')
-        .margin({ top: 40 })
+      FlutterPage({ viewId: this.viewId })
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor('#FBF9F5')
+  }
+
+  onBackPress(): boolean {
+    this.context.eventHub.emit(EVENT_BACK_PRESS)
+    return true
   }
 }
