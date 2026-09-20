@@ -118,10 +118,14 @@ void main() {
       expect(container.read(themeProvider), SoftPaletteType.violetOrchid);
       expect(container.read(softColorsProvider).accent, const Color(0xFF6D599A));
 
-      // 切换到极夜星芒
+      // 切换到极夜星芒。
+      // 这里原本断言 isDark 为 true，等于把「选了极夜星芒就强制暗色」
+      // 这个缺陷写成了规格——同一个测试里前两条断言的却都是日间强调色，
+      // 自相矛盾。明暗只由 ThemeMode 与系统亮度决定，与选哪个配色无关；
+      // 默认是 ThemeMode.system，测试环境系统亮度为浅色，故应为日间。
       notifier.setPalette(SoftPaletteType.auroraSpace);
       expect(container.read(themeProvider), SoftPaletteType.auroraSpace);
-      expect(container.read(softColorsProvider).isDark, isTrue);
+      expect(container.read(softColorsProvider).isDark, isFalse);
 
       await tester.pumpAndSettle();
     });

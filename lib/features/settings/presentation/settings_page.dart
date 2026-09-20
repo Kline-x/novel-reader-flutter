@@ -32,6 +32,8 @@ class _SettingsPageState extends State<SettingsPage> {
   String _cacheSize = '0 B';
   bool _followSystem = false;
   bool _isCheckingUpdate = false;
+  int _totalReadingMinutes = 0;
+  int _shelfBookCount = 0;
 
   @override
   void initState() {
@@ -40,11 +42,28 @@ class _SettingsPageState extends State<SettingsPage> {
     PinyinRuleService().init();
   }
 
+  /// 阅读概览文案。没读过书时不编数字，直接给引导。
+  String _buildReadingSummary() {
+    final parts = <String>[];
+    if (_totalReadingMinutes >= 60) {
+      final hours = (_totalReadingMinutes / 60).toStringAsFixed(1);
+      parts.add('已累计心流阅读 $hours 小时');
+    } else if (_totalReadingMinutes > 0) {
+      parts.add('已累计心流阅读 $_totalReadingMinutes 分钟');
+    }
+    if (_shelfBookCount > 0) {
+      parts.add('典藏 $_shelfBookCount 部珍本');
+    }
+    return parts.isEmpty ? '还没有开始阅读，去挑一本好书吧' : parts.join(' · ');
+  }
+
   Future<void> _loadSettings() async {
     final vPaging = await _storageService.getVolumeKeyPaging();
     final sAwake = await _storageService.getKeepScreenAwake();
     final cacheBytes = await _storageService.getTotalCacheSize();
     final themeStr = await _storageService.getGlobalTheme();
+    final totalMinutes = await _storageService.getTotalReadingMinutes();
+    final shelfCount = (await _storageService.getBookshelf()).length;
 
     if (mounted) {
       final isSys = themeStr == 'system';
@@ -53,6 +72,8 @@ class _SettingsPageState extends State<SettingsPage> {
         _screenAwake = sAwake;
         _cacheSize = StorageService.formatBytes(cacheBytes);
         _followSystem = isSys;
+        _totalReadingMinutes = totalMinutes;
+        _shelfBookCount = shelfCount;
       });
       try {
         ProviderScope.containerOf(context, listen: false)
@@ -234,8 +255,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ),
                         const SizedBox(height: 4.0),
+                        // 这里原先写死「已累计心流阅读 38.5 小时 · 典藏 4 部珍本」，
+                        // 全新安装、书架为空时也照样显示，是纯假数据。
+                        // 现在读真实的累计阅读时长与书架数量。
                         Text(
-                          '已累计心流阅读 38.5 小时 · 典藏 4 部珍本',
+                          _buildReadingSummary(),
                           style: TextStyle(
                               fontSize: 12.0, color: colors.textSecondary),
                         ),

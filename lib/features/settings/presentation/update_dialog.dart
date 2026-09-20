@@ -38,10 +38,33 @@ class _UpdateDialogState extends State<UpdateDialog> {
   String _statusText = '准备中...';
   bool _hasError = false;
 
+  /// 用户点了「后台下载」：弹窗关掉，但下载要继续跑完。
+  bool _movedToBackground = false;
+
   @override
   void dispose() {
-    _cancelToken?.cancel('弹窗销毁');
+    // 只有「用户主动取消」或「弹窗被意外销毁」才取消下载。
+    // 以前这里无条件 cancel，而「后台下载」按钮就是 pop() 一下，
+    // 于是点「后台下载」等于直接把下载掐了——按钮名字和行为完全相反。
+    if (!_movedToBackground) {
+      _cancelToken?.cancel('弹窗销毁');
+    }
     super.dispose();
+  }
+
+  /// 转入后台：保留 cancelToken 让下载跑完。
+  /// 下载完成后由 VersionCheckService 自己调 installApk 唤起系统安装器，
+  /// 不依赖这个弹窗还活着；onProgress 里也都有 mounted 判断，销毁后不会误更新 UI。
+  void _moveToBackground() {
+    _movedToBackground = true;
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('正在后台下载，完成后会自动唤起安装'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _cancelDownload() {
@@ -575,7 +598,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                                 isPill: true,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 10.0),
-                                onPressed: () => Navigator.of(context).pop(),
+                                onPressed: _moveToBackground,
                                 child: const Center(
                                   child: Text(
                                     '后台下载',

@@ -1,4 +1,3 @@
-import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -116,32 +115,16 @@ class ThemeNotifier extends StateNotifier<SoftPaletteType> {
 
   /// 当前系统亮度
   static Brightness get systemBrightness =>
-      PlatformDispatcher.instance.platformBrightness;
+      currentPlatformBrightness;
 }
 
 /// 明暗模式状态管理 (system / light / dark)
-class ThemeModeNotifier extends StateNotifier<ThemeMode>
-    with WidgetsBindingObserver {
+class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   ThemeModeNotifier() : super(ThemeMode.system) {
-    WidgetsBinding.instance.addObserver(this);
     _loadInitialMode();
   }
 
   static const String _keyThemeMode = 'novel_reader_theme_mode';
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangePlatformBrightness() {
-    if (state == ThemeMode.system) {
-      // 触发依赖它的 Provider 刷新
-      state = ThemeMode.system;
-    }
-  }
 
   Future<void> _loadInitialMode() async {
     try {
@@ -189,7 +172,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode>
     } else {
       // 关闭跟随系统时，默认保持当前系统实际呈现的明暗模式
       final isDark =
-          PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+          currentPlatformBrightness == Brightness.dark;
       await setThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
     }
   }
@@ -214,6 +197,43 @@ final themeModeProvider =
   return ThemeModeNotifier();
 });
 
+/// 系统深浅色的响应式来源。
+///
+/// 原先由 ThemeModeNotifier 兼任观察者，在 didChangePlatformBrightness 里
+/// 写 `state = ThemeMode.system` 想「触发刷新」——但 StateNotifier 赋同一个值
+/// 根本不会通知监听者（枚举是 const 单例，identical 为真直接 return），
+/// 于是系统切深色时 UI 完全不重建。必须让亮度**本身**成为会变的状态。
+class PlatformBrightnessNotifier extends StateNotifier<Brightness>
+    with WidgetsBindingObserver {
+  PlatformBrightnessNotifier() : super(currentPlatformBrightness) {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    state = currentPlatformBrightness;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+}
+
+final platformBrightnessProvider =
+    StateNotifierProvider<PlatformBrightnessNotifier, Brightness>(
+        (ref) => PlatformBrightnessNotifier());
+
+/// 系统当前的深浅色。
+///
+/// 走 `WidgetsBinding.instance.platformDispatcher` 而不是
+/// `PlatformDispatcher.instance`：后者是真实单例，测试里覆盖不了，
+/// 导致「跟随系统」这条分支长期没有任何测试能覆盖——
+/// 极夜星芒在跟随系统下恒为夜间的缺陷就是这么漏出去的。
+Brightness get currentPlatformBrightness =>
+    WidgetsBinding.instance.platformDispatcher.platformBrightness;
+
 /// 是否跟随系统深浅色
 final isFollowingSystemProvider = Provider<bool>((ref) {
   final mode = ref.watch(themeModeProvider);
@@ -224,7 +244,7 @@ final isFollowingSystemProvider = Provider<bool>((ref) {
 final isDarkModeProvider = Provider<bool>((ref) {
   final mode = ref.watch(themeModeProvider);
   if (mode == ThemeMode.system) {
-    return PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+    return ref.watch(platformBrightnessProvider) == Brightness.dark;
   }
   return mode == ThemeMode.dark;
 });
@@ -232,17 +252,13 @@ final isDarkModeProvider = Provider<bool>((ref) {
 /// 合成最终当前生效的 SoftColors（意境 × 明暗完全联动）
 final softColorsProvider = Provider<SoftColors>((ref) {
   final paletteType = ref.watch(themeProvider);
-  final mode = ref.watch(themeModeProvider);
 
-  final bool isDark;
-  if (mode == ThemeMode.system) {
-    isDark = PlatformDispatcher.instance.platformBrightness == Brightness.dark ||
-        paletteType == SoftPaletteType.auroraSpace ||
-        paletteType == SoftPaletteType.darkJade ||
-        paletteType == SoftPaletteType.night;
-  } else {
-    isDark = mode == ThemeMode.dark;
-  }
+  // 明暗一律复用 isDarkModeProvider，不再各算一遍。
+  // 此前这里额外把 auroraSpace / darkJade / night 三个配色强制判暗，
+  // 于是选了「极夜星芒」再选「跟随系统」，系统明明是日间也一直显示夜间
+  // ——而这三个配色本来就有日间变体（auroraSpaceLight）。
+  // 而且 isDarkModeProvider 没有这段强制逻辑，两个 provider 会给出相反答案。
+  final isDark = ref.watch(isDarkModeProvider);
 
   return SoftColors.fromType(paletteType, isDark: isDark);
 });

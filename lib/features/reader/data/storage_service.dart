@@ -162,6 +162,22 @@ class StorageService {
     return (sec / 60).floor();
   }
 
+  /// 累计阅读分钟数（跨所有自然日求和）。
+  ///
+  /// 阅读秒数是按天分键存的，此前没有累计接口，
+  /// 设置页就直接写死了「已累计心流阅读 38.5 小时」——
+  /// 全新安装、书架空的时候也照样显示，是纯假数据。
+  Future<int> getTotalReadingMinutes() async {
+    final prefs = await _getPrefs();
+    var sec = 0;
+    for (final key in prefs.getKeys()) {
+      if (key.startsWith(_prefixReadingSeconds)) {
+        sec += prefs.getInt(key) ?? 0;
+      }
+    }
+    return (sec / 60).floor();
+  }
+
   /// 累加今日阅读秒数
   Future<void> addReadingSeconds(int seconds) async {
     if (seconds <= 0) return;
