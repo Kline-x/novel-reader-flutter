@@ -554,7 +554,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           const Text('☁️', style: TextStyle(fontSize: 20.0)),
                       title: Text('WebDAV 增量云备份',
                           style: TextStyle(color: colors.textPrimary)),
-                      subtitle: Text('跨 iOS/Android/纯血鸿蒙同步阅读进度',
+                      subtitle: Text('跨 iOS/Android 设备同步阅读进度',
                           style: TextStyle(
                               fontSize: 12.0, color: colors.textSecondary)),
                       trailing: ElevatedButton(

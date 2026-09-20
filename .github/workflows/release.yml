@@ -46,14 +46,19 @@ jobs:
       - name: Full Automated Test Suite
         run: flutter test
 
-      - name: OpenHarmony NEXT Dependency Audit
+      # 原名「OpenHarmony NEXT Dependency Audit」，实际只 grep 三个库名，
+      # 与鸿蒙兼容性无关。按实际行为更名。
+      - name: Check Heavy Native Plugins
         run: |
-          echo "=== 正在执行 OpenHarmony NEXT / Pure Dart 生态准入终审 ==="
+          echo "=== 检查是否引入重型原生插件 ==="
+          # 这三个库各自拖进一整套原生实现（WebView 内核、广告 SDK），
+          # 会把包体撑大、拉高平台耦合，也会堵死将来移植到其它平台的路。
+          # 注意：这里查的只是这份黑名单，**不能**据此声称支持任何平台。
           if grep -E "(flutter_inappwebview|webview_flutter|google_mobile_ads)" pubspec.yaml; then
-            echo "❌ 阻断：发现未经 OpenHarmony-TPC 认证的非兼容原生插件！"
+            echo "::error::引入了重型原生插件，请确认必要性后再放行。"
             exit 1
           fi
-          echo "✅ 准入门禁通过：所有依赖 100% 具备纯血鸿蒙支持能力！"
+          echo "✓ 未引入黑名单中的重型原生插件"
 
   # 2. 生产构建与极客瘦身分包
   build-release:

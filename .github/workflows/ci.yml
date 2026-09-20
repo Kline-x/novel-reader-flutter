@@ -97,20 +97,26 @@ jobs:
         if: matrix.target == 'web'
         run: flutter build web --release
 
-  # 4. 纯血鸿蒙 (OpenHarmony NEXT) 依赖准入审查
-  ohos-guard:
-    name: OpenHarmony NEXT Dependency Guard
+  # 4. 重型原生插件黑名单检查
+  #
+  # 这一步原先叫「纯血鸿蒙 (OpenHarmony NEXT) 依赖准入审查」，
+  # 但它做的事只是 grep 三个库名，与鸿蒙兼容性没有任何关系——
+  # 本项目也从未产出过可运行的鸿蒙包。按实际行为更名，不再冒充平台认证。
+  native-plugin-guard:
+    name: Heavy Native Plugin Guard
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Verify OpenHarmony Compatibility
+      - name: Check Heavy Native Plugins
         run: |
-          echo "=== 正在检查 pubspec.yaml 依赖是否符合纯血鸿蒙准入规范 ==="
-          # 检查是否存在已知的鸿蒙黑名单/不兼容库
+          echo "=== 检查是否引入重型原生插件 ==="
+          # 这三个库各自拖进一整套原生实现（WebView 内核、广告 SDK），
+          # 会把包体撑大、拉高平台耦合，也会堵死将来移植到其它平台的路。
+          # 注意：这里查的只是这份黑名单，**不能**据此声称支持任何平台。
           if grep -E "(flutter_inappwebview|webview_flutter|google_mobile_ads)" pubspec.yaml; then
-            echo "❌ 发现未经 OpenHarmony-TPC 认证的原生依赖，已阻断！"
+            echo "::error::引入了重型原生插件，请确认必要性后再放行。"
             exit 1
           fi
-          echo "✅ 所有依赖均符合 Pure Dart / OpenHarmony TPC 准入标准！"
+          echo "✓ 未引入黑名单中的重型原生插件"

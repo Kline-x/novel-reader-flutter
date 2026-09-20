@@ -40,11 +40,6 @@
       "storeUrl": "itms-apps://itunes.apple.com/app/id6478901234",
       "backupUrl": "https://testflight.apple.com/join/novelreader",
       "installMode": "app_store"
-    },
-    "harmony": {
-      "storeUrl": "appmarket://details?id=com.kline.novelreader",
-      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.1/novel-reader-harmony-v1.0.1.hap",
-      "installMode": "app_market"
     }
   }
 }
