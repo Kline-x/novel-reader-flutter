@@ -52,9 +52,42 @@ Flutter 的鸿蒙移植**换过两次托管平台，且分支命名规则变过*
 3. **平台通道**：`com.kline.novelreader/volume_key`（音量键翻页）要用 ArkTS 重写；
    `com.kline.novelreader/app_update` 里的 `installApk` 在鸿蒙上**没有对等能力**，
    只能改成跳应用市场，对应 `version_manifest.json` 里的 `installMode: app_market`。
-4. **验证手段**：目前没有鸿蒙真机。模拟器需 DevEco Studio，且要确认
-   鸿蒙 engine 是否提供 x86_64 模拟器产物——只发 arm64 的话模拟器跑不起来。
-   **没有验证手段就不要动手**，否则只会重新制造「声称支持但从没跑起来过」的局面。
+4. **宿主机与验证手段**：**当前这台 Windows 机器连编译都做不了**。
+
+### 产物实测（读 `oh-3.47.4-dev` 的 `bin/internal/dart-sdk-url.ohos`）
+
+`3.47.4-ohos-1.0.4` 这个 Release 的全部 9 个附件：
+
+| 类别 | 产物 |
+|---|---|
+| 引擎 har ×3 | `ohos-arm64` / `ohos-arm64-profile` / `ohos-arm64-release` |
+| AOT gen_snapshot ×2 | `ohos-arm64-profile/**darwin-x64**.zip`、`ohos-arm64-release/**darwin-x64**.zip` |
+| 定制 Dart SDK ×2 | `dart-sdk-**darwin-arm64**.zip`、`dart-sdk-ohos.zip` |
+| patched_sdk ×2 | `flutter_patched_sdk.zip`、`flutter_patched_sdk_product.zip` |
+
+两条硬约束：
+
+- **没有 `ohos-x64` 目标产物** → x86_64 模拟器跑不了，与宿主机无关。
+  社区那个 `gitee.com/openharmony-emu/vendor_emulator_emulator_x86_64` 即便能起，也没有配套引擎。
+- **宿主端只出 macOS 产物**（定制 Dart SDK 仅 `darwin-arm64`，gen_snapshot 仅 `darwin-x64`），
+  **没有任何 Windows 宿主产物**。
+
+| 组合 | 可行性 |
+|---|---|
+| Windows + 模拟器 / 真机 | ❌ 宿主端就编不了 |
+| **Apple Silicon Mac + 鸿蒙 arm64 真机** | ✅ 当前唯一可行组合 |
+| Apple Silicon Mac + ARM 模拟器 | 理论可行，需模拟器为 arm64 镜像 |
+
+**所以门槛不在上游成熟度（上游已到 3.47.4），而在需要一台 M 系列 Mac。**
+
+### 成熟度提示
+
+该定制版由个人维护者（`dart-sdk-url.ohos` 注释署名 hxa）构建并以 Release 附件发布。
+注释记录的近期修复包括：1.0.1「引擎 har 恢复字体端口（此前所有文字与图标不可见）」、
+「profile 模式一启动即 FATAL」，1.0.4「debug/profile 两档首次带上黑屏修复」。
+适配很新，但仍在修这种级别的问题，投产前需自行评估风险。
+
+**没有验证手段就不要动手**，否则只会重新制造「声称支持但从没跑起来过」的局面。
 
 ## 现在鸿蒙用户怎么办
 
