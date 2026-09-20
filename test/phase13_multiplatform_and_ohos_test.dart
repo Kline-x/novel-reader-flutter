@@ -164,7 +164,22 @@ void main() {
       // 与 Android 的 applicationId 保持一致
       expect(appJson5.readAsStringSync(),
           contains('com.kline.novelreader.novel_reader_flutter'));
-      expect(appJson5.readAsStringSync(), contains('\$media:app_icon'));
+      // 应用图标走鸿蒙的分层图标（前景 + 背景），桌面才能做视差与动效；
+      // 退回单图 \$media:app_icon 会丢掉这个能力，所以在门禁里钉住。
+      expect(appJson5.readAsStringSync(), contains('\$media:layered_image'),
+          reason: '应用图标必须是分层图标');
+
+      final layeredJson =
+          File('ohos/AppScope/resources/base/media/layered_image.json');
+      expect(layeredJson.existsSync(), isTrue);
+      final layered = layeredJson.readAsStringSync();
+      expect(layered, contains('\$media:foreground'));
+      expect(layered, contains('\$media:background'));
+      for (final f in const ['foreground.png', 'background.png']) {
+        expect(File('ohos/AppScope/resources/base/media/$f').existsSync(),
+            isTrue,
+            reason: '分层图标缺 $f');
+      }
 
       // 2. build-profile.json5 本身含签名材料不入库，入库的是模板
       final buildProfileTemplate = File('ohos/build-profile.json5.template');
