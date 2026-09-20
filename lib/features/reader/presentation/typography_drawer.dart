@@ -1,6 +1,40 @@
 import 'package:flutter/material.dart';
 import 'reader_page_theme.dart';
 
+/// 行距三档相对字号的倍数：紧凑 / 舒适 / 宽松。
+/// 行距以绝对像素存储，但语义上是「字号的多少倍」，两者必须一起变。
+const List<double> kLineHeightRatios = <double>[1.4, 1.7, 2.0];
+
+/// 字号变化时按原倍数重算行距。
+///
+/// 行距存的是绝对值，而档位是按 `字号 * 倍数` 推算的。若只改字号不动行距，
+/// 同一个绝对值就会落到更紧的档位——表现为「只调了字号，行距档位自己跳了」，
+/// 且实际排版的疏密也跟着变。这里保持倍数不变，让视觉比例稳定。
+double scaledLineHeight({
+  required double oldFontSize,
+  required double oldLineHeight,
+  required double newFontSize,
+}) {
+  final ratio = (oldFontSize > 0 && oldLineHeight > 0)
+      ? oldLineHeight / oldFontSize
+      : kLineHeightRatios[1];
+  return newFontSize * ratio;
+}
+
+/// 当前行距落在哪一档（取最接近的一档，保证三档总有且只有一个高亮）
+int nearestLineHeightIndex(double fontSize, double lineHeight) {
+  var nearest = 0;
+  var minDelta = double.infinity;
+  for (var i = 0; i < kLineHeightRatios.length; i++) {
+    final delta = (fontSize * kLineHeightRatios[i] - lineHeight).abs();
+    if (delta < minDelta) {
+      minDelta = delta;
+      nearest = i;
+    }
+  }
+  return nearest;
+}
+
 /// 排版设置抽屉 (typography_drawer.dart)
 /// 覆盖字号、行距、背景色板、翻页模式等核心阅读参数
 class TypographyDrawer extends StatelessWidget {
@@ -30,23 +64,13 @@ class TypographyDrawer extends StatelessWidget {
     final isDark = currentTheme.isDark;
     final accent = currentTheme.accent;
 
-    // 行距三档基于当前字号推算；改字号后 lineHeight 不会自动跟着变，
-    // 此前用"数值差 < 1.0"判定选中，导致三档经常一个都不高亮。
-    // 改为永远高亮"最接近的一档"，让用户始终看得出当前处于哪一档。
-    final spacingOptions = <double>[
-      fontSize * 1.4,
-      fontSize * 1.7,
-      fontSize * 2.0,
-    ];
-    var nearestSpacingIndex = 0;
-    var nearestSpacingDelta = double.infinity;
-    for (var i = 0; i < spacingOptions.length; i++) {
-      final delta = (spacingOptions[i] - lineHeight).abs();
-      if (delta < nearestSpacingDelta) {
-        nearestSpacingDelta = delta;
-        nearestSpacingIndex = i;
-      }
-    }
+    // 行距三档基于当前字号推算。此前用"数值差 < 1.0"判定选中，
+    // 导致三档经常一个都不高亮；改为永远高亮"最接近的一档"。
+    // 字号变化时行距会按原倍数同步重算（见 scaledLineHeight），
+    // 所以这里的档位不会因为调字号而漂移。
+    final spacingOptions =
+        kLineHeightRatios.map((r) => fontSize * r).toList(growable: false);
+    final nearestSpacingIndex = nearestLineHeightIndex(fontSize, lineHeight);
     final cardBg = isDark ? const Color(0xFF282A2D) : const Color(0xFFF1F2F4);
     final textColor = isDark ? Colors.white : const Color(0xFF1F2329);
     final subTextColor = isDark ? Colors.white70 : const Color(0xFF646A73);
@@ -301,9 +325,8 @@ class TypographyDrawer extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
         decoration: BoxDecoration(
-          color: isSelected
-              ? accent.withValues(alpha: 0.2)
-              : Colors.transparent,
+          color:
+              isSelected ? accent.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(16.0),
           border: Border.all(
             color: isSelected

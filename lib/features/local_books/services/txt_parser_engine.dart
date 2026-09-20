@@ -17,7 +17,8 @@ class TxtParserEngine {
   /// 3. 补齐 `话/幕/折/部/集/篇/回/节/卷` 等量词与 `Chapter/CHAPTER/Chap` 等英文写法。
   static final RegExp _chapterPattern = RegExp(
     r'^\s*'
-    r'(?:[☆★◇◆●○•\*\-—=＝~～【\[\(（]+\s*)?' // 可选装饰符号前缀
+    // 可选装饰符号前缀。含 `、·` 是因为书源导出的目录常写成「☆、第五章 夜谈」
+    r'(?:[☆★◇◆●○•、·\*\-—=＝~～【\[\(（]+\s*)?'
     r'(?:正文\s*)?' // 可选"正文"前缀
     r'(?:'
     r'第\s*[0-9０-９零一二两三四五六七八九十百千万]+\s*[章回节卷集幕篇部话折]'
@@ -31,6 +32,30 @@ class TxtParserEngine {
 
   /// 单行超过该字节数则不再当作章节标题候选（正文段落通常很长）
   static const int _maxTitleLineBytes = 300;
+
+  /// 标题的字符数上限。300 字节约合 100 个汉字，对标题来说过于宽松，
+  /// 真实章节标题极少超过 50 字。
+  static const int _maxTitleChars = 50;
+
+  /// 正文句子的特征：出现句号/分号，或以逗号、顿号收尾。
+  ///
+  /// 只靠 [_chapterPattern] 会把「第三章正文，用于验证章节切换。」这种
+  /// 以章节号开头的**正文段落**误判成标题——实测一本 3 章的 TXT 被切成 5 章，
+  /// 且真章节的内容被后面那条假标题抢走，显示「本章暂无正文内容」。
+  /// 章节标题不会是一个写完的句子，以此区分。
+  /// 保留 `！？` 结尾的情况，「第一章 开始了！」这类标题是合法的。
+  static final RegExp _proseSentencePattern = RegExp(r'[。；]|[，、]\s*$');
+
+  /// 这一行是否是章节标题。
+  ///
+  /// 公开给测试用：分章质量直接决定阅读体验，值得单独守住。
+  static bool isChapterTitleLine(String line) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.length > _maxTitleChars) return false;
+    if (_proseSentencePattern.hasMatch(trimmed)) return false;
+    return _chapterPattern.hasMatch(trimmed);
+  }
 
   /// 整份文件都没有换行符时的保护阈值：超过该长度直接放弃逐行扫描
   static const int _maxLineBytesBeforeGiveUp = 4 * 1024 * 1024;
@@ -139,7 +164,7 @@ class TxtParserEngine {
       }
 
       final trimmed = lineStr.trim();
-      if (trimmed.isEmpty || !_chapterPattern.hasMatch(trimmed)) return;
+      if (!isChapterTitleLine(trimmed)) return;
 
       if (firstChapterOffset == null) {
         firstChapterOffset = startOffset;

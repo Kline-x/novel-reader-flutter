@@ -212,8 +212,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     if (follow && mounted) {
       if (systemDark && !_theme.isDark) {
         setState(() {
-          _theme = ReaderThemeOption.presets
-              .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+          _theme = ReaderThemeOption.presets.firstWhere((t) => t.isDark,
+              orElse: () => ReaderThemeOption.night);
         });
         _applySystemBarTheme();
         _persistSettings();
@@ -554,8 +554,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
           if (mounted) {
             setState(() {
               _currentChapterIndex = validIndex;
-              _currentParagraphs =
-                  ChapterHelper.stripDuplicateTitle(fetchedParas, chapter.title);
+              _currentParagraphs = ChapterHelper.stripDuplicateTitle(
+                  fetchedParas, chapter.title);
               _isLoading = false;
               _hasError = false;
             });
@@ -646,8 +646,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
         // 核心修复：跟随系统必须对阅读页生效，深色模式绝不被浅色历史偏好覆盖
         if (followSystem || isDarkGlobal) {
           if (isDarkGlobal && !targetTheme.isDark) {
-            targetTheme = ReaderThemeOption.presets
-                .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+            targetTheme = ReaderThemeOption.presets.firstWhere((t) => t.isDark,
+                orElse: () => ReaderThemeOption.night);
           } else if (!isDarkGlobal && targetTheme.isDark && followSystem) {
             targetTheme = ReaderThemeOption.presets[0];
           }
@@ -703,8 +703,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _previousChapter() async {
     if (_currentChapterIndex > 0) {
-      await _loadChapterContent(_currentChapterIndex - 1,
-          landOnLastPage: true);
+      await _loadChapterContent(_currentChapterIndex - 1, landOnLastPage: true);
     }
   }
 
@@ -725,7 +724,16 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               currentTheme: _theme,
               turnMode: _turnMode,
               onFontSizeChanged: (newSize) {
-                setState(() => _fontSize = newSize);
+                setState(() {
+                  // 行距按原倍数跟着字号一起变，否则只调字号会让行距档位
+                  // 漂到更紧的一档，看起来像"顺手把行距也改了"
+                  _lineHeight = scaledLineHeight(
+                    oldFontSize: _fontSize,
+                    oldLineHeight: _lineHeight,
+                    newFontSize: newSize,
+                  );
+                  _fontSize = newSize;
+                });
                 _persistSettings();
                 setModalState(() {});
               },
@@ -803,7 +811,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
               });
             }
 
-            final probedCount = latencyMap.values.where((v) => v != null).length;
+            final probedCount =
+                latencyMap.values.where((v) => v != null).length;
 
             return Material(
               color: cardBg,
@@ -930,7 +939,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
                                     isGbk ? 'GBK转码' : 'UTF-8',
                                     style: TextStyle(
                                       fontSize: 9.0,
-                                      color: isGbk ? Colors.orange : Colors.blue,
+                                      color:
+                                          isGbk ? Colors.orange : Colors.blue,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -990,8 +1000,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ),
       child: Text(
         ok ? '${latency}ms' : '超时',
-        style:
-            TextStyle(fontSize: 11.0, color: color, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            fontSize: 11.0, color: color, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -1083,13 +1093,13 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     // 6) 告知将清除离线缓存
-    final cachedCount = await _storage.getDownloadedChaptersCount(widget.bookId);
+    final cachedCount =
+        await _storage.getDownloadedChaptersCount(widget.bookId);
     if (!mounted) return;
     if (cachedCount > 0) {
       final go = await _confirmDialog(
         title: '切换书源',
-        content:
-            '切换后将清除本书已下载的 $cachedCount 章离线缓存（新书源的章节编号与旧源不一致）。\n\n确定切换吗？',
+        content: '切换后将清除本书已下载的 $cachedCount 章离线缓存（新书源的章节编号与旧源不一致）。\n\n确定切换吗？',
         confirmText: '确定切换',
       );
       if (go != true || !mounted) return;
@@ -1491,8 +1501,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
       ref.listen<bool>(isDarkModeProvider, (previous, isDark) {
         if (isDark && !_theme.isDark) {
           setState(() {
-            _theme = ReaderThemeOption.presets
-                .firstWhere((t) => t.isDark, orElse: () => ReaderThemeOption.night);
+            _theme = ReaderThemeOption.presets.firstWhere((t) => t.isDark,
+                orElse: () => ReaderThemeOption.night);
           });
           _applySystemBarTheme();
           _persistSettings();
