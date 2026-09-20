@@ -905,12 +905,17 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          book['title']!,
-                                          style: TextStyle(
-                                            fontSize: 15.0,
-                                            fontWeight: FontWeight.bold,
-                                            color: colors.textPrimary,
+                                        // 长书名在鸿蒙上字宽略大于 Android，不收缩会把右侧标签挤出行外
+                                        Flexible(
+                                          child: Text(
+                                            book['title']!,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 15.0,
+                                              fontWeight: FontWeight.bold,
+                                              color: colors.textPrimary,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 8.0),
