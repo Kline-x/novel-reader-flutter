@@ -90,3 +90,8 @@ downloaded_apks/
 
 # Release pipeline build artifacts (APK/AAB/Web bundle)
 /release-artifacts/
+
+# Android 正式签名密钥（绝不入库——仓库是公开的）
+android/key.properties
+*.jks
+*.keystore

@@ -1,8 +1,8 @@
 {
-  "versionCode": 4005,
-  "versionName": "1.0.7",
-  "publishDate": "2026-09-19",
-  "releaseNotes": "1、阅读器底部控制栏直出「划线与笔记」一级入口，高频笔记一步直达；\n2、全局底部大呼吸留白优化（+32dp），消除页面滚动最末项贴底压迫感；\n3、Modern Soft UI 旗舰版设计系统与原型架构就绪。",
+  "versionCode": 6006,
+  "versionName": "1.0.8",
+  "publishDate": "2026-09-20",
+  "releaseNotes": "⚠ 本次需先卸载旧版再安装。此前各版本的安装包签名不一致，系统不允许覆盖安装；\n  自本版起签名固定，之后的更新都可直接覆盖安装、数据不丢。\n1、修复安装包签名不固定导致「开发者签名异常」、在线更新装不上；\n2、书架首页独立滑动置顶看板，新增女频分类与全网竞速更新加速；\n3、阅读器与设置页按 Modern Soft UI v3 重做。",
   "isForceUpdate": false,
   "platforms": {
     "android": {
