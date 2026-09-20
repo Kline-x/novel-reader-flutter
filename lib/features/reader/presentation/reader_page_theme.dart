@@ -31,54 +31,57 @@ class ReaderThemeOption {
     required this.textColor,
     required this.subTextColor,
     required this.isDark,
-    this.accent = const Color(0xFF07C160),
+    this.accent = const Color(0xFF236B58),
   });
 
   static const ReaderThemeOption paper = ReaderThemeOption(
     id: 'paper',
     name: '纸白',
-    background: Color(0xFFFFFDF7),
-    textColor: Color(0xFF23262B),
-    subTextColor: Color(0xFF555B66), // WCAG 4.5:1 高对比度灰阶
+    background: Color(0xFFFAFAFC),
+    textColor: Color(0xFF1D1D1F),
+    subTextColor: Color(0xFF6E6E73), // Apple 标杆二级灰
     isDark: false,
+    accent: Color(0xFF236B58),
   );
 
   static const ReaderThemeOption cream = ReaderThemeOption(
     id: 'cream',
     name: '羊皮纸',
-    background: Color(0xFFF6EFDF),
-    textColor: Color(0xFF3B3225),
-    subTextColor: Color(0xFF5A5043), // 调校为深暖褐灰，对比度 > 5.0:1
+    background: Color(0xFFF8F4EC),
+    textColor: Color(0xFF2C2219),
+    subTextColor: Color(0xFF5A5043),
     isDark: false,
+    accent: Color(0xFFB86820),
   );
 
   static const ReaderThemeOption green = ReaderThemeOption(
     id: 'green',
     name: '青润',
-    background: Color(0xFFEBF2EB),
-    textColor: Color(0xFF1B2E1E),
-    subTextColor: Color(0xFF3D5341), // 调校为墨绿深色次级文本，清晰可辨
+    background: Color(0xFFEEF5F1),
+    textColor: Color(0xFF13261C),
+    subTextColor: Color(0xFF4C6656),
     isDark: false,
+    accent: Color(0xFF236B58),
   );
 
   static const ReaderThemeOption ink = ReaderThemeOption(
     id: 'ink',
     name: '深墨',
-    background: Color(0xFF1C1E26),
-    textColor: Color(0xFFC9CCD8),
+    background: Color(0xFF14171F),
+    textColor: Color(0xFFECEEF5),
     subTextColor: Color(0xFF9096A8),
     isDark: true,
-    accent: Color(0xFF2BD97C),
+    accent: Color(0xFF38D9A9),
   );
 
   static const ReaderThemeOption night = ReaderThemeOption(
     id: 'night',
     name: '极夜',
-    background: Color(0xFF0B0C10),
-    textColor: Color(0xFFB8BCC9),
+    background: Color(0xFF000000), // Apple OLED 极致纯黑
+    textColor: Color(0xFFE5E7EB),
     subTextColor: Color(0xFF888D9C),
     isDark: true,
-    accent: Color(0xFF2BD97C),
+    accent: Color(0xFF38D9A9),
   );
 
   static const ReaderThemeOption defaultTheme = paper;

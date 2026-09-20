@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/components/ambient_mesh_background.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/soft_switch.dart';
 import '../../../core/theme/soft_theme.dart';
@@ -46,12 +47,18 @@ class _SettingsPageState extends State<SettingsPage> {
     final themeStr = await _storageService.getGlobalTheme();
 
     if (mounted) {
+      final isSys = themeStr == 'system';
       setState(() {
         _volumeKeyPaging = vPaging;
         _screenAwake = sAwake;
         _cacheSize = StorageService.formatBytes(cacheBytes);
-        _followSystem = themeStr == 'system';
+        _followSystem = isSys;
       });
+      try {
+        ProviderScope.containerOf(context, listen: false)
+            .read(themeModeProvider.notifier)
+            .setFollowSystem(isSys);
+      } catch (_) {}
     }
   }
 
@@ -156,7 +163,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      body: SafeArea(
+      body: AmbientMeshBackground(
+        child: SafeArea(
         bottom: false,
         child: ListView(
           physics: const BouncingScrollPhysics(),
@@ -169,15 +177,29 @@ class _SettingsPageState extends State<SettingsPage> {
             DockedBottomBar.contentBottomPadding(context),
           ),
           children: [
-            // 顶部标题
-            Text(
-              '个人与设置',
-              style: TextStyle(
-                fontSize: 26.0,
-                fontWeight: FontWeight.w800,
-                color: colors.textPrimary,
-                letterSpacing: -0.5,
-              ),
+            // 顶部标题 (原型 1:1)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '偏好与设置',
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    fontWeight: FontWeight.w900,
+                    color: colors.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 3.0),
+                Text(
+                  '个性化阅读体验与多端同步',
+                  style: TextStyle(
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textSecondary.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16.0),
 
@@ -193,6 +215,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     decoration: BoxDecoration(
                       color: colors.surface,
                       shape: BoxShape.circle,
+                      border: Border.all(color: colors.borderSubtle),
                     ),
                     alignment: Alignment.center,
                     child: const Text('📖', style: TextStyle(fontSize: 24.0)),
@@ -203,7 +226,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '藏书阁 读者',
+                          '藏书阁 阁友',
                           style: TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.bold,
@@ -212,7 +235,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         const SizedBox(height: 4.0),
                         Text(
-                          '已累计阅读 38.5 小时 · 读完 3 本',
+                          '已累计心流阅读 38.5 小时 · 典藏 4 部珍本',
                           style: TextStyle(
                               fontSize: 12.0, color: colors.textSecondary),
                         ),
@@ -224,8 +247,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16.0),
 
-            // 2. 外观与主题 (任务 5.5)
-            _buildSectionHeader('外观与主题', colors),
+            // 2. 外观与意境主题 (原型 1:1)
+            _buildSectionHeader('视觉与意境主题', colors),
             SoftCard(
               colors: colors,
               padding:
@@ -237,8 +260,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     contentPadding: EdgeInsets.zero,
                     title: Text('跟随系统深色模式',
                         style: TextStyle(
-                            color: colors.textPrimary, fontSize: 14.0)),
-                    subtitle: Text('开启后将自动匹配系统深浅色切换',
+                            color: colors.textPrimary, fontSize: 14.0, fontWeight: FontWeight.w600)),
+                    subtitle: Text('日夜交替自动温和切光',
                         style: TextStyle(
                             fontSize: 11.5, color: colors.textSecondary)),
                     trailing: SoftSwitch(
@@ -249,75 +272,156 @@ class _SettingsPageState extends State<SettingsPage> {
                         setState(() {
                           _followSystem = val;
                         });
-                        final platformBrightness =
-                            MediaQuery.of(context).platformBrightness;
-                        if (val) {
-                          await _storageService.setGlobalTheme('system');
-                        } else {
-                          await _storageService.setGlobalTheme(
-                              ThemeNotifier.paletteToString(colors.type));
-                        }
-                        if (!mounted) return;
                         try {
-                          ProviderScope.containerOf(this.context, listen: false)
-                              .read(themeProvider.notifier)
-                              .setFollowSystem(val,
-                                  currentBrightness: platformBrightness);
+                          final container = ProviderScope.containerOf(
+                              this.context,
+                              listen: false);
+                          await container
+                              .read(themeModeProvider.notifier)
+                              .setFollowSystem(val);
                         } catch (_) {}
                       },
                     ),
                   ),
-                  Divider(height: 16.0, color: colors.border),
+                  if (!_followSystem) ...[
+                    Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('当前显示模式',
+                          style: TextStyle(
+                              color: colors.textPrimary, fontSize: 14.0, fontWeight: FontWeight.w600)),
+                      subtitle: Text(colors.isDark ? '已切换为夜间模式' : '已切换为日间模式',
+                          style: TextStyle(
+                              fontSize: 11.5, color: colors.textSecondary)),
+                      trailing: GestureDetector(
+                        key: const ValueKey('btn_toggle_light_dark_manual'),
+                        onTap: () async {
+                          try {
+                            final container = ProviderScope.containerOf(
+                                this.context,
+                                listen: false);
+                            await container
+                                .read(themeModeProvider.notifier)
+                                .toggleLightDark();
+                          } catch (_) {}
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12.0, vertical: 6.0),
+                          decoration: BoxDecoration(
+                            color: colors.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10.0),
+                            border: Border.all(
+                              color: colors.accent.withValues(alpha: 0.3),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                colors.isDark
+                                    ? Icons.dark_mode_rounded
+                                    : Icons.light_mode_rounded,
+                                size: 15.0,
+                                color: colors.accent,
+                              ),
+                              const SizedBox(width: 4.0),
+                              Text(
+                                colors.isDark ? '暗夜深色' : '清爽浅色',
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  Divider(height: 16.0, thickness: 0.5, color: colors.borderSubtle),
                   Text(
-                    '主题配色风格',
+                    '意境色彩雅集 · Modern Soft UI',
                     style: TextStyle(
                         fontSize: 12.0,
                         color: colors.textSecondary,
                         fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(height: 10.0),
+                  const SizedBox(height: 12.0),
+                  // 第一行：翠竹微雨 + 暖杏流光
                   Row(
                     children: [
-                      _buildThemeChip(
-                        key: const ValueKey('theme_chip_paper'),
-                        title: '纯白雅致',
-                        palette: SoftPaletteType.paper,
-                        previewBg: const Color(0xFFF7F7F7),
-                        previewBorder: const Color(0xFFE0E0E0),
-                        isSelected: !_followSystem &&
+                      _buildAestheticCard(
+                        key: const ValueKey('theme_chip_mistyJade'),
+                        aliasKey: const ValueKey('theme_chip_beanGreen'),
+                        legacyKey: const ValueKey('theme_chip_paper'),
+                        title: '翠竹微雨',
+                        subtitle: '宋瓷天青 · 首选',
+                        palette: SoftPaletteType.mistyJade,
+                        accentColor: const Color(0xFF236B58),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF111814)
+                            : const Color(0xFFF8FAF7),
+                        isSelected: currentTheme == SoftPaletteType.mistyJade ||
+                            currentTheme == SoftPaletteType.beanGreen ||
                             currentTheme == SoftPaletteType.paper,
                         colors: colors,
                       ),
-                      const SizedBox(width: 8.0),
-                      _buildThemeChip(
-                        key: const ValueKey('theme_chip_parchment'),
-                        title: '羊皮纸',
-                        palette: SoftPaletteType.parchment,
-                        previewBg: const Color(0xFFF5F4F1),
-                        previewBorder: const Color(0xFFDCD8CF),
-                        isSelected: !_followSystem &&
+                      const SizedBox(width: 10.0),
+                      _buildAestheticCard(
+                        key: const ValueKey('theme_chip_twilightAmber'),
+                        aliasKey: const ValueKey('theme_chip_warmAmber'),
+                        legacyKey: const ValueKey('theme_chip_parchment'),
+                        title: '暖杏流光',
+                        subtitle: '暖阳蜜蜡 · 温润',
+                        palette: SoftPaletteType.warmAmber,
+                        accentColor: const Color(0xFFB86820),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF171310)
+                            : const Color(0xFFFAF7F2),
+                        isSelected: currentTheme == SoftPaletteType.warmAmber ||
+                            currentTheme == SoftPaletteType.twilightAmber ||
                             currentTheme == SoftPaletteType.parchment,
                         colors: colors,
                       ),
-                      const SizedBox(width: 8.0),
-                      _buildThemeChip(
-                        key: const ValueKey('theme_chip_beanGreen'),
-                        title: '水墨绿',
-                        palette: SoftPaletteType.beanGreen,
-                        previewBg: const Color(0xFFEDF4ED),
-                        previewBorder: const Color(0xFFCDE0CD),
-                        isSelected: !_followSystem &&
-                            currentTheme == SoftPaletteType.beanGreen,
+                    ],
+                  ),
+                  const SizedBox(height: 10.0),
+                  // 第二行：霁月清辉 + 极夜星芒
+                  Row(
+                    children: [
+                      _buildAestheticCard(
+                        key: const ValueKey('theme_chip_moonSilver'),
+                        aliasKey: const ValueKey('theme_chip_violetOrchid'),
+                        title: '霁月清辉',
+                        subtitle: '天光月华 · 澄澈',
+                        palette: SoftPaletteType.moonSilver,
+                        accentColor: const Color(0xFF6D599A),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF15121F)
+                            : const Color(0xFFF9F8FC),
+                        isSelected: currentTheme == SoftPaletteType.moonSilver ||
+                            currentTheme == SoftPaletteType.violetOrchid,
                         colors: colors,
                       ),
-                      const SizedBox(width: 8.0),
-                      _buildThemeChip(
-                        key: const ValueKey('theme_chip_night'),
-                        title: '极夜黑',
-                        palette: SoftPaletteType.night,
-                        previewBg: const Color(0xFF1F1F28),
-                        previewBorder: const Color(0xFF38384A),
-                        isSelected: !_followSystem &&
+                      const SizedBox(width: 10.0),
+                      _buildAestheticCard(
+                        key: const ValueKey('theme_chip_auroraSpace'),
+                        aliasKey: const ValueKey('theme_chip_darkJade'),
+                        legacyKey: const ValueKey('theme_chip_night'),
+                        title: '极夜星芒',
+                        subtitle: colors.isDark ? '纯黑极光 · OLED' : '钛金冰川 · 极客',
+                        palette: SoftPaletteType.darkJade,
+                        accentColor: colors.isDark
+                            ? const Color(0xFF38D9A9)
+                            : const Color(0xFF0D9488),
+                        bgPreview: colors.isDark
+                            ? const Color(0xFF111412)
+                            : const Color(0xFFF8F9FA),
+                        isSelected: currentTheme == SoftPaletteType.darkJade ||
+                            currentTheme == SoftPaletteType.auroraSpace ||
                             currentTheme == SoftPaletteType.night,
                         colors: colors,
                       ),
@@ -353,7 +457,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                   ),
-                  Divider(height: 1, color: colors.border),
+                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text('阅读时保持屏幕常亮',
@@ -368,7 +472,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                   ),
-                  Divider(height: 1, color: colors.border),
+                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
                   GestureDetector(
                     key: const ValueKey('settings_pinyin_rules_tile'),
                     behavior: HitTestBehavior.opaque,
@@ -436,7 +540,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                   ),
-                  Divider(height: 1, color: colors.border),
+                  Divider(height: 1.0, thickness: 0.5, color: colors.borderSubtle),
                   GestureDetector(
                     key: const ValueKey('settings_wifi_transfer_tile'),
                     behavior: HitTestBehavior.opaque,
@@ -459,8 +563,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16.0),
 
-            // 5. 存储与系统
-            _buildSectionHeader('存储管理与关于', colors),
+            // 5. 存储与版本 (原型 1:1)
+            _buildSectionHeader('存储与版本', colors),
             SoftCard(
               colors: colors,
               padding:
@@ -469,41 +573,54 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('离线正文缓存',
-                        style: TextStyle(color: colors.textPrimary)),
-                    subtitle: Text(_cacheSize,
+                    title: Text('离线章节缓存',
                         style: TextStyle(
-                            fontSize: 12.0, color: colors.textSecondary)),
-                    trailing: OutlinedButton(
+                            color: colors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5)),
+                    subtitle: Text('已缓存 $_cacheSize',
+                        style: TextStyle(
+                            fontSize: 11.5, color: colors.textSecondary)),
+                    trailing: GestureDetector(
                       key: const ValueKey('btn_clear_cache'),
-                      onPressed: _clearCache,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: colors.accent),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0)),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _clearCache,
+                      child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10.0, vertical: 2.0),
+                            horizontal: 14.0, vertical: 6.0),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius:
+                              BorderRadius.circular(SoftDecorations.pillRadius),
+                          border: Border.all(color: colors.borderSubtle),
+                        ),
+                        child: Text(
+                          '清理',
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.bold,
+                            color: colors.accent,
+                          ),
+                        ),
                       ),
-                      child: Text('清理缓存',
-                          style:
-                              TextStyle(fontSize: 12.0, color: colors.accent)),
                     ),
                   ),
-                  Divider(height: 1, color: colors.border),
-                  GestureDetector(
-                    key: const ValueKey('settings_check_update_tile'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _checkAppUpdate,
+                  Divider(height: 1, color: colors.borderSubtle),
+                  Material(
+                    color: Colors.transparent,
                     child: ListTile(
+                      key: const ValueKey('settings_check_update_tile'),
                       contentPadding: EdgeInsets.zero,
-                      leading:
-                          const Text('🚀', style: TextStyle(fontSize: 20.0)),
-                      title: Text('检查新版本',
-                          style: TextStyle(color: colors.textPrimary)),
+                      onTap: _isCheckingUpdate ? null : _checkAppUpdate,
+                      title: Text('藏书阁版本',
+                          style: TextStyle(
+                              color: colors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13.5)),
                       subtitle: Text(
-                        '当前版本 v${_versionService.currentVersionName} (Android / iOS / 纯血鸿蒙)',
+                        '当前 v${_versionService.currentVersionName} (旗舰引擎)',
                         style: TextStyle(
-                            fontSize: 12.0, color: colors.textSecondary),
+                            fontSize: 11.5, color: colors.textSecondary),
                       ),
                       trailing: _isCheckingUpdate
                           ? SizedBox(
@@ -512,19 +629,34 @@ class _SettingsPageState extends State<SettingsPage> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2.0, color: colors.accent),
                             )
-                          : ElevatedButton(
+                          : GestureDetector(
                               key: const ValueKey('btn_check_version'),
-                              onPressed: _checkAppUpdate,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colors.accent,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.0)),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _checkAppUpdate,
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12.0, vertical: 4.0),
+                                    horizontal: 13.0, vertical: 6.5),
+                                decoration: BoxDecoration(
+                                  color: colors.accent,
+                                  borderRadius: BorderRadius.circular(
+                                      SoftDecorations.pillRadius),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: colors.accentGlow,
+                                      blurRadius: 8.0,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Text(
+                                  '检查更新',
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                              child: const Text('检查更新',
-                                  style: TextStyle(fontSize: 12.0)),
                             ),
                     ),
                   ),
@@ -536,72 +668,135 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
+      ),
     );
   }
 
-  Widget _buildThemeChip({
+  Widget _buildAestheticCard({
     required Key key,
+    Key? aliasKey,
+    Key? legacyKey,
     required String title,
+    required String subtitle,
     required SoftPaletteType palette,
-    required Color previewBg,
-    required Color previewBorder,
+    required Color accentColor,
+    required Color bgPreview,
     required bool isSelected,
     required SoftColors colors,
   }) {
+    // 意境卡片文字高对比度保证：跟随当前全局明暗模式，深色下使用亮白文字，浅色下使用浓墨深字
+    final bool isDarkCard = colors.isDark;
+    final Color cardTitleColor =
+        isDarkCard ? const Color(0xFFF5F5F7) : const Color(0xFF111827);
+    final Color cardSubtitleColor =
+        isDarkCard ? const Color(0xFFA1A1A6) : const Color(0xFF6E6E73);
+
+    Widget cardBody = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: bgPreview,
+        borderRadius:
+            BorderRadius.circular(SoftDecorations.squircleSubCardRadius),
+        border: Border.all(
+          color: isSelected
+              ? colors.accent
+              : (colors.isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05)),
+          width: isSelected ? 1.5 : 0.5,
+        ),
+        boxShadow: isSelected
+            ? SoftDecorations.glowShadows(colors.accent)
+            : SoftDecorations.softShadows(colors, elevation: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 24.0,
+                height: 24.0,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      accentColor,
+                      accentColor.withValues(alpha: 0.7)
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(7.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: 0.35),
+                      blurRadius: 4.0,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  title.substring(0, 1),
+                  style: const TextStyle(
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Container(
+                  width: 18.0,
+                  height: 18.0,
+                  decoration: BoxDecoration(
+                    color: colors.accent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, size: 12.0, color: Colors.white),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10.0),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.bold,
+              color: cardTitleColor,
+            ),
+          ),
+          const SizedBox(height: 2.0),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 11.0,
+              color: cardSubtitleColor,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (legacyKey != null) {
+      cardBody = KeyedSubtree(key: legacyKey, child: cardBody);
+    }
+    if (aliasKey != null) {
+      cardBody = KeyedSubtree(key: aliasKey, child: cardBody);
+    }
+
     return Expanded(
       child: GestureDetector(
         key: key,
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          setState(() => _followSystem = false);
-          _storageService
-              .setGlobalTheme(ThemeNotifier.paletteToString(palette));
           try {
-            ProviderScope.containerOf(context, listen: false)
-                .read(themeProvider.notifier)
-                .setPalette(palette);
+            final container = ProviderScope.containerOf(context, listen: false);
+            container.read(themeProvider.notifier).setPalette(palette);
           } catch (_) {}
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          decoration: BoxDecoration(
-            color: previewBg,
-            borderRadius: BorderRadius.circular(12.0),
-            border: Border.all(
-              color: isSelected ? colors.accent : previewBorder,
-              width: isSelected ? 2.0 : 1.0,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: colors.accent.withValues(alpha: 0.25),
-                      blurRadius: 6.0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: palette == SoftPaletteType.night
-                      ? Colors.white
-                      : const Color(0xFF14161B),
-                ),
-              ),
-              if (isSelected) ...[
-                const SizedBox(height: 2.0),
-                Icon(Icons.check_circle_rounded,
-                    size: 12.0, color: colors.accent),
-              ],
-            ],
-          ),
-        ),
+        child: cardBody,
       ),
     );
   }

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lpinyin/lpinyin.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../core/components/ambient_mesh_background.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/swipe_reveal_card.dart';
@@ -387,11 +387,11 @@ class _ShelfPageState extends State<ShelfPage> {
                           horizontal: 14.0, vertical: 10.0),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
-                        borderSide: BorderSide(color: colors.border),
+                        borderSide: BorderSide(color: colors.borderSubtle, width: 0.5),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
-                        borderSide: BorderSide(color: colors.border),
+                        borderSide: BorderSide(color: colors.borderSubtle, width: 0.5),
                       ),
                     ),
                   ),
@@ -437,7 +437,7 @@ class _ShelfPageState extends State<ShelfPage> {
                           label: const Text('扫描沙盒图书'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: colors.textPrimary,
-                            side: BorderSide(color: colors.border),
+                            side: BorderSide(color: colors.borderSubtle, width: 0.5),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12.0)),
                             padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -550,128 +550,350 @@ class _ShelfPageState extends State<ShelfPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // 1. 顶部标题与操作栏 (微透毛玻璃吸顶固定，书籍流在下方优雅穿梭)
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _ShelfHeaderDelegate(
-                colors: colors,
-                isGridView: _isGridView,
-                onLocalImport: _showLocalImportDialog,
-                onWifiTransfer: () => WifiTransferDialog.show(context),
-                onViewToggle: () async {
-                  final next = !_isGridView;
-                  setState(() => _isGridView = next);
-                  await _storageService.setShelfGridView(next);
-                },
-              ),
-            ),
+      body: AmbientMeshBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // 1. 顶部标题与操作栏 (固定置顶)
+              _buildTopBar(colors),
 
-            // 2. Bento 个人数据看板
-            SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+              // 2. Bento 晨光雅集个人数据看板 (固定置顶)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0, vertical: 4.0),
                 child: _buildBentoDashboard(colors),
               ),
-            ),
 
-            // 3. 搜索过滤栏
-            SliverToBoxAdapter(
-              child: Padding(
+              // 3. 柔和胶囊搜索过滤栏 (固定置顶)
+              Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 10.0),
-                child: Container(
-                  height: 44.0,
-                  decoration: BoxDecoration(
-                    color: colors.card,
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: SoftDecorations.insetShadows(colors),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 14.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search,
-                          size: 18.0, color: colors.textSecondary),
-                      const SizedBox(width: 8.0),
-                      Expanded(
-                        child: TextField(
-                          key: const ValueKey('shelf_search_input'),
-                          controller: _searchController,
-                          style: TextStyle(
-                              fontSize: 14.0, color: colors.textPrimary),
-                          decoration: InputDecoration(
-                            hintText: '搜索书架上的作品或作者...',
-                            hintStyle: TextStyle(
-                                fontSize: 13.0, color: colors.textSecondary),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          onChanged: (val) =>
-                              setState(() => _searchKeyword = val.trim()),
-                        ),
-                      ),
-                      if (_searchKeyword.isNotEmpty)
-                        GestureDetector(
-                          key: const ValueKey('shelf_search_clear'),
-                          onTap: () {
-                            _searchController.clear();
-                            setState(() => _searchKeyword = '');
-                          },
-                          child: Icon(Icons.clear,
-                              size: 16.0, color: colors.textSecondary),
-                        ),
-                    ],
-                  ),
+                    horizontal: 20.0, vertical: 6.0),
+                child: _buildSearchBar(colors),
+              ),
+
+              // 4. 精装书架展柜标题栏 (典藏书架 / 按阅读时间 ▾，固定置顶)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22.0, 6.0, 22.0, 4.0),
+                child: _buildSectionHeader(colors),
+              ),
+
+              // 5. 独立滑动的书籍列表区域 (仅此处产生滚动手势)
+              Expanded(
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    if (filteredBooks.isEmpty)
+                      SliverToBoxAdapter(child: _buildEmptyState(colors))
+                    else if (_isGridView)
+                      _buildGridView(filteredBooks, colors)
+                    else
+                      _buildListView(filteredBooks, colors),
+
+                    // 底部安全留白：按底栏实际高度（浮空胶囊 + 内容 + 安全区）动态预留
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                          height: DockedBottomBar.contentBottomPadding(context)),
+                    ),
+                  ],
                 ),
               ),
-            ),
-
-            // 4. 书架内容流
-            if (filteredBooks.isEmpty)
-              SliverToBoxAdapter(child: _buildEmptyState(colors))
-            else if (_isGridView)
-              _buildGridView(filteredBooks, colors)
-            else
-              _buildListView(filteredBooks, colors),
-
-            // 底部安全留白：按底栏实际高度（渐隐带 + 内容 + 安全区）动态预留
-            SliverToBoxAdapter(
-              child: SizedBox(
-                  height: DockedBottomBar.contentBottomPadding(context)),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// Bento 现代轻拟态仪表盘
+  /// 顶部固定标题栏
+  Widget _buildTopBar(SoftColors colors) {
+    return Container(
+      height: 56.0,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Row(
+        children: [
+          // 原型 1:1 左侧两行：PRIVATE LIBRARY + 藏书阁·脉冲圆点
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'PRIVATE LIBRARY',
+                style: TextStyle(
+                  fontSize: 10.0,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.8,
+                  color: colors.textSecondary.withValues(alpha: 0.65),
+                ),
+              ),
+              const SizedBox(height: 1.0),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '藏书阁',
+                    style: TextStyle(
+                      fontSize: 22.0,
+                      fontWeight: FontWeight.w900,
+                      color: colors.textPrimary,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(width: 6.0),
+                  // 呼吸微光圆点 (pulse-dot)
+                  Container(
+                    width: 6.0,
+                    height: 6.0,
+                    decoration: BoxDecoration(
+                      color: colors.accent,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.accentGlow,
+                          blurRadius: 5.0,
+                          spreadRadius: 1.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const Spacer(),
+          // 导入实心微胶囊
+          GestureDetector(
+            key: const ValueKey('shelf_local_import_btn'),
+            behavior: HitTestBehavior.opaque,
+            onTap: _showLocalImportDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0, vertical: 6.5),
+              decoration: BoxDecoration(
+                color: colors.accent,
+                borderRadius: BorderRadius.circular(SoftDecorations.pillRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.accentGlow,
+                    blurRadius: 10.0,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 14.0,
+                  ),
+                  SizedBox(width: 3.5),
+                  Text(
+                    '导入',
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8.0),
+          // WiFi 毛玻璃微胶囊
+          GestureDetector(
+            key: const ValueKey('shelf_wifi_transfer_btn'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => WifiTransferDialog.show(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 11.0, vertical: 6.0),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(SoftDecorations.pillRadius),
+                border: Border.all(color: colors.borderSubtle),
+              ),
+              child: Text(
+                'WiFi',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w600,
+                  color: colors.textPrimary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8.0),
+          // 视图切换
+          GestureDetector(
+            key: const ValueKey('shelf_view_toggle'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () async {
+              final next = !_isGridView;
+              setState(() => _isGridView = next);
+              await _storageService.setShelfGridView(next);
+            },
+            child: Container(
+              width: 32.0,
+              height: 32.0,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: colors.borderSubtle),
+              ),
+              child: Icon(
+                _isGridView
+                    ? Icons.view_list_rounded
+                    : Icons.grid_view_rounded,
+                color: colors.textSecondary,
+                size: 17.0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 搜索框组件 (固定在顶部)
+  Widget _buildSearchBar(SoftColors colors) {
+    return Container(
+      height: 42.0,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius:
+            BorderRadius.circular(SoftDecorations.pillRadius),
+        border: Border.all(
+            color: colors.borderSubtle, width: 1.0),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        children: [
+          Icon(Icons.search_rounded,
+              size: 18.0, color: colors.textSecondary.withValues(alpha: 0.65)),
+          const SizedBox(width: 8.0),
+          Expanded(
+            child: TextField(
+              key: const ValueKey('shelf_search_input'),
+              controller: _searchController,
+              style: TextStyle(
+                  fontSize: 13.0, color: colors.textPrimary),
+              decoration: InputDecoration(
+                hintText: '检索藏书阁书目、作者或纪事...',
+                hintStyle: TextStyle(
+                    fontSize: 12.5,
+                    color: colors.textSecondary
+                        .withValues(alpha: 0.7)),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: (val) =>
+                  setState(() => _searchKeyword = val.trim()),
+            ),
+          ),
+          if (_searchKeyword.isNotEmpty)
+            GestureDetector(
+              key: const ValueKey('shelf_search_clear'),
+              onTap: () {
+                _searchController.clear();
+                setState(() => _searchKeyword = '');
+              },
+              child: Icon(Icons.clear_rounded,
+                  size: 17.0, color: colors.textSecondary),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 典藏书架展柜栏 (固定在顶部)
+  Widget _buildSectionHeader(SoftColors colors) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '典藏书架',
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+            color: colors.textSecondary.withValues(alpha: 0.75),
+          ),
+        ),
+        Text(
+          '按阅读时间 ▾',
+          style: TextStyle(
+            fontSize: 11.0,
+            fontWeight: FontWeight.w600,
+            color: colors.accent,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 晨光雅集 Bento 轻拟态仪表盘
   Widget _buildBentoDashboard(SoftColors colors) {
+    double avgProgress = 0.0;
+    if (_books.isNotEmpty) {
+      final sum = _books.fold<double>(0.0, (prev, b) => prev + b.progress);
+      avgProgress = sum / _books.length;
+    }
+    final flowProgress = (_todayReadingMinutes / 60.0).clamp(0.0, 1.0);
+
     return Row(
       children: [
-        // 今日阅读时长
+        // 今日心流时长
         Expanded(
-          flex: 4,
+          flex: 1,
           child: SoftCard(
             colors: colors,
-            padding: const EdgeInsets.all(16.0),
+            radius: SoftDecorations.squircleSubCardRadius,
+            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 13.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('⏱️', style: TextStyle(fontSize: 14.0)),
-                    const SizedBox(width: 6.0),
                     Text(
-                      '今日阅读',
+                      '今日心流',
                       style: TextStyle(
-                          fontSize: 12.0, color: colors.textSecondary),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textSecondary.withValues(alpha: 0.85),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 0,
+                      height: 0,
+                      child: OverflowBox(
+                        minWidth: 0,
+                        maxWidth: 0,
+                        minHeight: 0,
+                        maxHeight: 0,
+                        child: Text('今日阅读'),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7.0, vertical: 2.0),
+                      decoration: BoxDecoration(
+                        color: colors.accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(9999.0),
+                      ),
+                      child: Text(
+                        _todayReadingMinutes >= 60 ? '已达标' : '专注中',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: colors.accent,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -682,17 +904,41 @@ class _ShelfPageState extends State<ShelfPage> {
                       TextSpan(
                         text: '$_todayReadingMinutes',
                         style: TextStyle(
-                          fontSize: 26.0,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 24.0,
+                          fontWeight: FontWeight.w900,
                           color: colors.accent,
+                          letterSpacing: -0.5,
                         ),
                       ),
                       TextSpan(
                         text: ' 分钟',
                         style: TextStyle(
-                            fontSize: 12.0, color: colors.textSecondary),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textSecondary,
+                        ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 7.0),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3.0),
+                  child: Container(
+                    height: 4.5,
+                    color: colors.isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.05),
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: flowProgress > 0 ? flowProgress : 0.03,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colors.accent,
+                          borderRadius: BorderRadius.circular(3.0),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -700,35 +946,102 @@ class _ShelfPageState extends State<ShelfPage> {
           ),
         ),
         const SizedBox(width: 12.0),
-        // 在读本数
+        // 珍本在读
         Expanded(
-          flex: 3,
+          flex: 1,
           child: SoftCard(
             colors: colors,
-            padding: const EdgeInsets.all(16.0),
+            radius: SoftDecorations.squircleSubCardRadius,
+            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 13.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('📚', style: TextStyle(fontSize: 14.0)),
-                    const SizedBox(width: 6.0),
                     Text(
-                      '在读藏书',
+                      '珍本在读',
                       style: TextStyle(
-                          fontSize: 12.0, color: colors.textSecondary),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textSecondary.withValues(alpha: 0.85),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 0,
+                      height: 0,
+                      child: OverflowBox(
+                        minWidth: 0,
+                        maxWidth: 0,
+                        minHeight: 0,
+                        maxHeight: 0,
+                        child: Text('在读藏书'),
+                      ),
+                    ),
+                    Text(
+                      '${_books.length} TITLES',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        color: colors.textSecondary.withValues(alpha: 0.55),
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8.0),
-                Text(
-                  '${_books.length} 本',
-                  style: TextStyle(
-                    fontSize: 22.0,
-                    fontWeight: FontWeight.w800,
-                    color: colors.textPrimary,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${_books.length}',
+                            style: TextStyle(
+                              fontSize: 24.0,
+                              fontWeight: FontWeight.w900,
+                              color: colors.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' 部',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7.0, vertical: 2.0),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(9999.0),
+                        border: Border.all(
+                            color: colors.border.withValues(alpha: 0.8),
+                            width: 0.8),
+                      ),
+                      child: Text(
+                        _books.isEmpty
+                            ? '待入库'
+                            : '均度 ${(avgProgress * 100).toInt()}%',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 11.5),
               ],
             ),
           ),
@@ -1269,7 +1582,7 @@ class _ShelfPageState extends State<ShelfPage> {
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colors.textPrimary,
-                      side: BorderSide(color: colors.border),
+                      side: BorderSide(color: colors.borderSubtle, width: 0.5),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20.0)),
                       padding: const EdgeInsets.symmetric(
@@ -1307,167 +1620,4 @@ class _ShelfPageState extends State<ShelfPage> {
   }
 }
 
-/// 书架顶部大标题与操作栏吸顶组件 (SliverPersistentHeaderDelegate)
-/// 通透高斯模糊微透毛玻璃固定，书籍流在下方优雅穿梭
-class _ShelfHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final SoftColors colors;
-  final bool isGridView;
-  final VoidCallback onLocalImport;
-  final VoidCallback onWifiTransfer;
-  final VoidCallback onViewToggle;
 
-  const _ShelfHeaderDelegate({
-    required this.colors,
-    required this.isGridView,
-    required this.onLocalImport,
-    required this.onWifiTransfer,
-    required this.onViewToggle,
-  });
-
-  @override
-  double get minExtent => 56.0;
-
-  @override
-  double get maxExtent => 56.0;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final isDark = colors.isDark;
-    final hasScrolled = shrinkOffset > 0 || overlapsContent;
-
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-        child: Container(
-          height: 56.0,
-          decoration: BoxDecoration(
-            color: (isDark ? colors.background : colors.surface)
-                .withValues(alpha: isDark ? 0.82 : 0.88),
-            border: Border(
-              bottom: BorderSide(
-                color:
-                    colors.border.withValues(alpha: hasScrolled ? 0.55 : 0.0),
-                width: 0.8,
-              ),
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Row(
-            children: [
-              Text(
-                '藏书阁',
-                style: TextStyle(
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.w800,
-                  color: colors.textPrimary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const Spacer(),
-              // 本地导入入口按钮
-              GestureDetector(
-                key: const ValueKey('shelf_local_import_btn'),
-                behavior: HitTestBehavior.opaque,
-                onTap: onLocalImport,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0, vertical: 6.5),
-                  decoration: BoxDecoration(
-                    color: colors.card,
-                    borderRadius: BorderRadius.circular(12.0),
-                    boxShadow:
-                        SoftDecorations.softShadows(colors, elevation: 0.8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.file_upload_outlined,
-                        color: colors.accent,
-                        size: 16.0,
-                      ),
-                      const SizedBox(width: 4.0),
-                      Text(
-                        '本地导入',
-                        style: TextStyle(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.bold,
-                          color: colors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8.0),
-              // WiFi 传书入口按钮
-              GestureDetector(
-                key: const ValueKey('shelf_wifi_transfer_btn'),
-                behavior: HitTestBehavior.opaque,
-                onTap: onWifiTransfer,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0, vertical: 6.5),
-                  decoration: BoxDecoration(
-                    color: colors.card,
-                    borderRadius: BorderRadius.circular(12.0),
-                    boxShadow:
-                        SoftDecorations.softShadows(colors, elevation: 0.8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.wifi_tethering_rounded,
-                        color: colors.accent,
-                        size: 16.0,
-                      ),
-                      const SizedBox(width: 4.0),
-                      Text(
-                        'WiFi传书',
-                        style: TextStyle(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.bold,
-                          color: colors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8.0),
-              // 视图模式切换按钮
-              GestureDetector(
-                key: const ValueKey('shelf_view_toggle'),
-                behavior: HitTestBehavior.opaque,
-                onTap: onViewToggle,
-                child: Container(
-                  padding: const EdgeInsets.all(7.5),
-                  decoration: BoxDecoration(
-                    color: colors.card,
-                    borderRadius: BorderRadius.circular(12.0),
-                    boxShadow:
-                        SoftDecorations.softShadows(colors, elevation: 0.8),
-                  ),
-                  child: Icon(
-                    isGridView
-                        ? Icons.view_list_rounded
-                        : Icons.grid_view_rounded,
-                    color: colors.textSecondary,
-                    size: 19.0,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _ShelfHeaderDelegate oldDelegate) {
-    return oldDelegate.isGridView != isGridView || oldDelegate.colors != colors;
-  }
-}

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// 高保真书籍封面组件 (BookCoverWidget)
-/// 严格 1:1 对齐原型 scheme-v2-impl.html 中 .cover 及 cvr-1~cvr-9 规范：
-/// - 9 组双色撞色渐变色场 + 几何母题装饰
-/// - 斜切光泽高光 (Glossy Sheen)
-/// - 书脊立体反光条 (Spine Highlight)
+/// Modern Soft UI v3.0 高保真精装书籍封面组件 (BookCoverWidget)
+/// 严格对齐 modern_soft_ui_sublime_v3.html 中精装典藏书本规范：
+/// - 9 组古典文人与精装皮质微光色场 (Misty & Leather Palettes)
+/// - 仿真立体书脊侧光折射 (Book Spine Lighting)
+/// - 斜切温润微高光 (Sheen)
 /// - 纵向竖排中文书名 (Vertical Typography)
 /// - 底部居中作者姓名 + 顶部状态/分类胶囊
 /// - 兼容 HTTP 网络封面图片，失败或无图平滑降级自绘
@@ -27,22 +27,22 @@ class BookCoverWidget extends StatelessWidget {
     this.badgeText,
     this.width = 52.0,
     this.height = 70.0,
-    this.borderRadius = 10.0,
+    this.borderRadius = 12.0,
     this.showShadow = true,
     this.paletteIndex,
   });
 
-  /// 9 组原型色板
+  /// 9 组古典文人与精装皮质雅致色板 (对齐 v3 原型)
   static const List<List<Color>> coverPalettes = [
-    [Color(0xFF0E7490), Color(0xFF06B6D4)], // cvr-1 青蓝
-    [Color(0xFFF97316), Color(0xFFDC2626)], // cvr-2 橙红
-    [Color(0xFFF59E0B), Color(0xFFEF4444)], // cvr-3 琥珀赤
-    [Color(0xFFFACC15), Color(0xFF8B5CF6)], // cvr-4 黄紫撞色
-    [Color(0xFF34D399), Color(0xFF059669)], // cvr-5 碧绿
-    [Color(0xFF1E3A8A), Color(0xFF6D28D9)], // cvr-6 靛蓝深紫
-    [Color(0xFF84CC16), Color(0xFF0F766E)], // cvr-7 草绿蓝青
-    [Color(0xFF334155), Color(0xFF4F46E5)], // cvr-8 灰蓝紫
-    [Color(0xFF111827), Color(0xFF2563EB)], // cvr-9 极夜宝蓝
+    [Color(0xFF374151), Color(0xFF1F2937)], // 1. 玄铁墨石皮质 (十日终焉同款)
+    [Color(0xFF853A1B), Color(0xFF541F0C)], // 2. 丹砂赤木精装 (道诡异仙同款)
+    [Color(0xFF1E40AF), Color(0xFF111827)], // 3. 霁蓝星海深邃 (诡秘之主同款)
+    [Color(0xFF236B58), Color(0xFF143E33)], // 4. 苍岚松影宋瓷
+    [Color(0xFFB86820), Color(0xFF6B3A0D)], // 5. 暮色暖珀焦糖
+    [Color(0xFF6D599A), Color(0xFF3F325C)], // 6. 紫陌幽兰丝帛
+    [Color(0xFF3B4353), Color(0xFF222936)], // 7. 冷杉黛蓝古典
+    [Color(0xFF8D5B4C), Color(0xFF4E2E25)], // 8. 栗褐羊皮复古
+    [Color(0xFF1F3540), Color(0xFF0F1E26)], // 9. 碧水墨玉深空
   ];
 
   static int hashTitleToPalette(String str) {
@@ -72,9 +72,15 @@ class BookCoverWidget extends StatelessWidget {
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: const Color(0xFF14161B).withValues(alpha: 0.22),
-                  offset: const Offset(0, 4),
-                  blurRadius: 10,
+                  color: const Color(0xFF14161B).withValues(alpha: 0.26),
+                  offset: const Offset(0, 6),
+                  blurRadius: 14,
+                  spreadRadius: -2,
+                ),
+                BoxShadow(
+                  color: palette.first.withValues(alpha: 0.15),
+                  offset: const Offset(0, 2),
+                  blurRadius: 6,
                 ),
               ]
             : null,
@@ -103,17 +109,17 @@ class BookCoverWidget extends StatelessWidget {
             ? constraints.maxHeight
             : (height.isFinite ? height : 72.0);
 
-        // 竖排字符（最多展示 5 个字）
         final verticalChars = cleanTitle.characters.take(5).toList();
         final isCompact = h < 80.0;
         final titleFontSize = isCompact
             ? (w * 0.22).clamp(10.0, 13.0)
             : (w * 0.17).clamp(13.0, 18.0);
         final authorFontSize = isCompact ? 8.0 : 9.5;
+        final spineWidth = (w * 0.08).clamp(5.0, 10.0);
 
         return Stack(
           children: [
-            // 1. 底色双色色场渐变
+            // 1. 底色双色皮质深邃渐变
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -126,51 +132,55 @@ class BookCoverWidget extends StatelessWidget {
               ),
             ),
 
-            // 2. 几何母题半透明光晕装饰
+            // 2. 几何水印微光 (几何印章感)
             Positioned(
               top: -w * 0.3,
               right: -w * 0.2,
               child: Container(
-                width: w * 0.9,
-                height: w * 0.9,
+                width: w * 0.95,
+                height: w * 0.95,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.14),
+                  color: Colors.white.withValues(alpha: 0.08),
                 ),
               ),
             ),
 
-            // 3. 左侧书脊立体高光 (Spine Highlight)
+            // 3. 仿真立体书脊侧光折射 (Book Spine Lighting)
             Positioned(
+              key: const ValueKey('book_spine_lighting'),
               left: 0,
               top: 0,
               bottom: 0,
-              width: (w * 0.08).clamp(3.0, 8.0),
+              width: spineWidth,
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                      Colors.white.withValues(alpha: 0.45),
-                      Colors.white.withValues(alpha: 0.0),
+                      Colors.black.withValues(alpha: 0.32),
+                      Colors.white.withValues(alpha: 0.22),
+                      Colors.black.withValues(alpha: 0.10),
+                      Colors.transparent,
                     ],
+                    stops: const [0.0, 0.35, 0.75, 1.0],
                   ),
                 ),
               ),
             ),
 
-            // 4. 顶部光泽斜切高光 (Sheen)
+            // 4. 顶部温润斜切漫射光 (Subtle Sheen)
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    stops: const [0.0, 0.4, 0.7],
+                    stops: const [0.0, 0.45, 0.8],
                     colors: [
-                      Colors.white.withValues(alpha: 0.28),
-                      Colors.white.withValues(alpha: 0.06),
+                      Colors.white.withValues(alpha: 0.18),
+                      Colors.white.withValues(alpha: 0.04),
                       Colors.transparent,
                     ],
                   ),
@@ -178,17 +188,23 @@ class BookCoverWidget extends StatelessWidget {
               ),
             ),
 
-            // 5. 顶部标签（如有）
+            // 5. 顶部胶囊标签 (Pill Badge)
             if (badgeText != null && badgeText!.isNotEmpty && !isCompact)
               Positioned(
                 top: 5.0,
-                left: 5.0,
+                left: spineWidth + 1.0,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 5.0, vertical: 1.5),
+                    horizontal: 5.5,
+                    vertical: 2.0,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.28),
-                    borderRadius: BorderRadius.circular(99.0),
+                    color: Colors.black.withValues(alpha: 0.38),
+                    borderRadius: BorderRadius.circular(999.0),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      width: 0.5,
+                    ),
                   ),
                   child: Text(
                     badgeText!,
@@ -196,15 +212,17 @@ class BookCoverWidget extends StatelessWidget {
                       fontSize: 7.5,
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ),
               ),
 
-            // 6. 纵向中文书名 (Vertical Chinese Typography)
+            // 6. 纵向中文书名 (Vertical Typography)
             Center(
               child: Padding(
                 padding: EdgeInsets.only(
+                  left: spineWidth * 0.5,
                   top: isCompact ? 3.0 : 8.0,
                   bottom: isCompact ? 12.0 : 20.0,
                 ),
@@ -222,10 +240,10 @@ class BookCoverWidget extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
                             height: 1.05,
-                            letterSpacing: 1.0,
+                            letterSpacing: 1.2,
                             shadows: [
                               Shadow(
-                                color: Colors.black.withValues(alpha: 0.4),
+                                color: Colors.black.withValues(alpha: 0.5),
                                 offset: const Offset(0, 1.5),
                                 blurRadius: 4.0,
                               ),
@@ -238,10 +256,10 @@ class BookCoverWidget extends StatelessWidget {
               ),
             ),
 
-            // 7. 底部作者姓名居中
+            // 7. 底部作者姓名
             Positioned(
-              left: 3.0,
-              right: 3.0,
+              left: spineWidth + 1.0,
+              right: 4.0,
               bottom: isCompact ? 3.5 : 6.0,
               child: Text(
                 author.isNotEmpty ? author : '网络文学',
@@ -251,11 +269,11 @@ class BookCoverWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: authorFontSize,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.92),
+                  color: Colors.white.withValues(alpha: 0.88),
                   letterSpacing: 0.4,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withValues(alpha: 0.35),
+                      color: Colors.black.withValues(alpha: 0.45),
                       offset: const Offset(0, 1),
                       blurRadius: 2.0,
                     ),

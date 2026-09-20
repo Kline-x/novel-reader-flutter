@@ -79,6 +79,31 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      # Android 不允许换签名覆盖安装。release 此前直接复用 debug 签名，
+      # 而 runner 是一次性的、debug keystore 每次重新生成，
+      # 导致 v1.0.5 / v1.0.6 / v1.0.7 三个包三把不同的钥匙，
+      # 用户点「更新」装到一半被系统拦下：「开发者签名异常」。
+      # 这里用固定密钥签名，缺密钥直接让发版失败——绝不静默退回 debug 签名。
+      - name: Prepare Release Signing Key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::缺少 ANDROID_KEYSTORE_BASE64 等签名 Secrets。没有固定签名密钥，发出去的包用户装不上。"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+          echo "已写入签名配置（密钥指纹随后由校验步骤打印）"
+
       - name: Build Android Release APKs (Split per ABI & R8 Shrink)
         run: |
           flutter build apk --release --split-per-abi
@@ -105,6 +130,22 @@ jobs:
           cd build/web
           zip -r ../../release-artifacts/novel-reader-web.zip .
           cd ../..
+
+      # 发版最后一道闸：debug 签名的包一律不许发出去。
+      # 这一步若早就存在，v1.0.5 当天就会被拦下，不会拖到用户点更新才发现。
+      - name: Verify Release Signature
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          echo "使用 $APKSIGNER"
+          for f in release-artifacts/apk/*.apk; do
+            CERTS=$("$APKSIGNER" verify --print-certs "$f")
+            echo "--- $f"
+            echo "$CERTS" | grep -E 'certificate DN|SHA-256 digest'
+            if echo "$CERTS" | grep -q 'CN=Android Debug'; then
+              echo "::error::$f 是 debug 签名，禁止发布——用户覆盖安装会提示开发者签名异常。"
+              exit 1
+            fi
+          done
 
       - name: Generate SHA256 Checksums
         run: |

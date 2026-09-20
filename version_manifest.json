@@ -1,40 +1,40 @@
 {
-  "versionCode": 6005,
-  "versionName": "1.0.7",
-  "publishDate": "2026-09-19",
-  "releaseNotes": "1、阅读器底部控制栏直出「划线与笔记」一级入口，高频笔记一步直达；\n2、全局底部大呼吸留白优化（+32dp），消除页面滚动最末项贴底压迫感；\n3、Modern Soft UI 旗舰版设计系统与原型架构就绪。",
+  "versionCode": 6006,
+  "versionName": "1.0.8",
+  "publishDate": "2026-09-20",
+  "releaseNotes": "⚠ 本次需先卸载旧版再安装。此前各版本的安装包签名不一致，系统不允许覆盖安装；\n  自本版起签名固定，之后的更新都可直接覆盖安装、数据不丢。\n1、修复安装包签名不固定导致「开发者签名异常」、在线更新装不上；\n2、书架首页独立滑动置顶看板，新增女频分类与全网竞速更新加速；\n3、阅读器与设置页按 Modern Soft UI v3 重做。",
   "isForceUpdate": false,
   "platforms": {
     "android": {
-      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-arm64-v8a.apk",
-      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-arm64-v8a.apk",
-      "fileSize": 22555908,
+      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-arm64-v8a.apk",
+      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-arm64-v8a.apk",
+      "fileSize": 22555904,
       "installMode": "in_app_apk",
       "variants": {
         "arm64-v8a": {
-          "versionCode": 6005,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-arm64-v8a.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-arm64-v8a.apk",
-          "fileSize": 22555908,
-          "sha256": "9cd91e24c9ab760793496556a37b81ef1b410719764de7bf70bf35741cd61e26"
+          "versionCode": 6006,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-arm64-v8a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-arm64-v8a.apk",
+          "fileSize": 22555904,
+          "sha256": "5ff6fa2019872a0bd3d7895853e431035c01ea03e5d62e9bf834771823998210"
         },
         "armeabi-v7a": {
-          "versionCode": 5005,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-armeabi-v7a.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-armeabi-v7a.apk",
+          "versionCode": 5006,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-armeabi-v7a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-armeabi-v7a.apk",
           "fileSize": 21193424,
-          "sha256": "759b4cd80cd08794493d67d1631b023cefd77a96d80bd383bbd761066a215329"
+          "sha256": "81dac37ac222882a9f5cdb22f071897066ac652ff9b870a095d397c30042a6bf"
         },
         "x86_64": {
-          "versionCode": 8005,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-x86_64.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.7/novel-reader-x86_64.apk",
-          "fileSize": 23777536,
-          "sha256": "90052a8ffdc27422a373018b99c4d07b1be0af5bd3dc39442d77d54649879945"
+          "versionCode": 8006,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-x86_64.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.8/novel-reader-x86_64.apk",
+          "fileSize": 23777532,
+          "sha256": "e3ab64e25df9beef2ae6c124a2fb8dc86418b541c20f656c961a1a5973cb5f27"
         }
       },
-      "sha256": "9cd91e24c9ab760793496556a37b81ef1b410719764de7bf70bf35741cd61e26",
-      "versionCode": 6005
+      "sha256": "5ff6fa2019872a0bd3d7895853e431035c01ea03e5d62e9bf834771823998210",
+      "versionCode": 6006
     },
     "ios": {
       "storeUrl": "itms-apps://itunes.apple.com/app/id6478901234",

@@ -49,7 +49,7 @@ class _SoftCardState extends State<SoftCard> {
         color: widget.colors.card,
         borderRadius: BorderRadius.circular(widget.radius),
         border: widget.border ??
-            Border.all(color: widget.colors.border, width: 1.0),
+            Border.all(color: widget.colors.borderSubtle, width: 1.0),
         boxShadow: SoftDecorations.softShadows(widget.colors,
             elevation: effectiveElevation),
       ),

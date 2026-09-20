@@ -341,7 +341,7 @@ void main() {
       final textWidget = tester.widget<Text>(find.text('再按一次退出藏书阁'));
       // 显式指定了颜色，非空且不为默认白底白字
       expect(textWidget.style?.color, isNotNull);
-      expect(textWidget.style?.color, equals(SoftColors.parchment.textPrimary));
+      expect(textWidget.style?.color, equals(SoftColors.mistyJade.textPrimary));
     });
   });
 }

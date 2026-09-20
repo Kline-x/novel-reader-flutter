@@ -95,7 +95,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       await _versionService.executePlatformUpdate(
         widget.info,
         cancelToken: _cancelToken,
-        onProgress: (progress) {
+        onProgress: (progress, [speedText]) {
           if (mounted) {
             setState(() {
               _progress = progress;
@@ -104,8 +104,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
                   _statusText = '下载完成，已唤起系统安装器';
                   _isInstalledInvoked = true;
                 } else {
-                  _statusText =
-                      '正在下载升级包... ${(progress * 100).toStringAsFixed(1)}%';
+                  final pct = (progress * 100).toStringAsFixed(1);
+                  final speedPart = (speedText != null && speedText.isNotEmpty)
+                      ? ' · $speedText'
+                      : '';
+                  _statusText = '正在高速下载升级包... $pct%$speedPart';
                 }
               } else {
                 _statusText = '正在跳转分发中心...';
