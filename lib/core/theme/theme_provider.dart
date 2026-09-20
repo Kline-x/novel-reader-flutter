@@ -11,7 +11,8 @@ import 'soft_theme.dart';
 /// - 关闭跟随系统时：手动指定日间或夜间，可任意搭配四大意境色彩。
 
 class ThemeNotifier extends StateNotifier<SoftPaletteType> {
-  ThemeNotifier() : super(SoftPaletteType.mistyJade) {
+  // 默认意境：极夜星芒。没选过配色的新用户直接进这一套。
+  ThemeNotifier() : super(SoftPaletteType.darkJade) {
     _loadInitialTheme();
   }
 
