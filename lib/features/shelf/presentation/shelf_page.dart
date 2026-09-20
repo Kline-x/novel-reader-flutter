@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lpinyin/lpinyin.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/components/ambient_mesh_background.dart';
@@ -30,6 +31,11 @@ class ShelfPage extends StatefulWidget {
 }
 
 class _ShelfPageState extends State<ShelfPage> {
+  /// 宿主文件选择器通道。目前只有鸿蒙侧实现（NovelReaderHostPlugin），
+  /// 其余平台调用会抛 MissingPluginException，调用处已回退到沙箱扫描。
+  static const MethodChannel _hostFilePickerChannel =
+      MethodChannel('com.kline.novelreader/file_picker');
+
   final TextEditingController _searchController = TextEditingController();
   bool _isGridView = false;
   String _searchKeyword = '';
@@ -387,11 +393,13 @@ class _ShelfPageState extends State<ShelfPage> {
                           horizontal: 14.0, vertical: 10.0),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
-                        borderSide: BorderSide(color: colors.borderSubtle, width: 0.5),
+                        borderSide:
+                            BorderSide(color: colors.borderSubtle, width: 0.5),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
-                        borderSide: BorderSide(color: colors.borderSubtle, width: 0.5),
+                        borderSide:
+                            BorderSide(color: colors.borderSubtle, width: 0.5),
                       ),
                     ),
                   ),
@@ -402,6 +410,31 @@ class _ShelfPageState extends State<ShelfPage> {
                         child: OutlinedButton.icon(
                           key: const ValueKey('btn_scan_local_books'),
                           onPressed: () async {
+                            // 先走系统文件选择器。此前只能手填绝对路径，
+                            // 而普通用户根本拿不到沙箱路径；「扫描沙盒」也只是
+                            // 取扫到的第一个文件，选不了。
+                            //
+                            // 没有用 file_picker：它的 ohos 实现是个不依赖主包的
+                            // 完整 fork，且只声明支持 Dart 2，装上会让整套测试
+                            // 都加载不起来。这里走自己的宿主通道，
+                            // 平台没实现时（当前 Android/iOS）静默回退到扫描。
+                            String? chosen;
+                            try {
+                              chosen = await _hostFilePickerChannel
+                                  .invokeMethod<String>('pickBookFile', {
+                                'extensions': ['txt', 'epub'],
+                              });
+                            } catch (_) {
+                              // 通道未实现或用户取消，下面回退到扫描
+                            }
+
+                            if (chosen != null && chosen.isNotEmpty) {
+                              pathController.text = chosen;
+                              setSheetState(() {});
+                              return;
+                            }
+
+                            // 兜底：扫应用沙箱里已有的书（WiFi 传书收下的就在这里）
                             final docDir =
                                 await getApplicationDocumentsDirectory();
                             final files = <File>[];
@@ -420,8 +453,7 @@ class _ShelfPageState extends State<ShelfPage> {
                               if (ctx.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content:
-                                        Text('沙盒文档目录中暂无图书，请填入路径或使用 WiFi 传书'),
+                                    content: Text('未选择文件，沙盒中也没有图书，可用 WiFi 传书'),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
@@ -434,10 +466,11 @@ class _ShelfPageState extends State<ShelfPage> {
                           },
                           icon:
                               const Icon(Icons.folder_open_rounded, size: 16.0),
-                          label: const Text('扫描沙盒图书'),
+                          label: const Text('选择文件'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: colors.textPrimary,
-                            side: BorderSide(color: colors.borderSubtle, width: 0.5),
+                            side: BorderSide(
+                                color: colors.borderSubtle, width: 0.5),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12.0)),
                             padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -560,15 +593,15 @@ class _ShelfPageState extends State<ShelfPage> {
 
               // 2. Bento 晨光雅集个人数据看板 (固定置顶)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 4.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
                 child: _buildBentoDashboard(colors),
               ),
 
               // 3. 柔和胶囊搜索过滤栏 (固定置顶)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 6.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
                 child: _buildSearchBar(colors),
               ),
 
@@ -593,7 +626,8 @@ class _ShelfPageState extends State<ShelfPage> {
                     // 底部安全留白：按底栏实际高度（浮空胶囊 + 内容 + 安全区）动态预留
                     SliverToBoxAdapter(
                       child: SizedBox(
-                          height: DockedBottomBar.contentBottomPadding(context)),
+                          height:
+                              DockedBottomBar.contentBottomPadding(context)),
                     ),
                   ],
                 ),
@@ -667,8 +701,8 @@ class _ShelfPageState extends State<ShelfPage> {
             behavior: HitTestBehavior.opaque,
             onTap: _showLocalImportDialog,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12.0, vertical: 6.5),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.5),
               decoration: BoxDecoration(
                 color: colors.accent,
                 borderRadius: BorderRadius.circular(SoftDecorations.pillRadius),
@@ -708,8 +742,8 @@ class _ShelfPageState extends State<ShelfPage> {
             behavior: HitTestBehavior.opaque,
             onTap: () => WifiTransferDialog.show(context),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 11.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 11.0, vertical: 6.0),
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(SoftDecorations.pillRadius),
@@ -745,9 +779,7 @@ class _ShelfPageState extends State<ShelfPage> {
                 border: Border.all(color: colors.borderSubtle),
               ),
               child: Icon(
-                _isGridView
-                    ? Icons.view_list_rounded
-                    : Icons.grid_view_rounded,
+                _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
                 color: colors.textSecondary,
                 size: 17.0,
               ),
@@ -764,10 +796,8 @@ class _ShelfPageState extends State<ShelfPage> {
       height: 42.0,
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius:
-            BorderRadius.circular(SoftDecorations.pillRadius),
-        border: Border.all(
-            color: colors.borderSubtle, width: 1.0),
+        borderRadius: BorderRadius.circular(SoftDecorations.pillRadius),
+        border: Border.all(color: colors.borderSubtle, width: 1.0),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -779,20 +809,17 @@ class _ShelfPageState extends State<ShelfPage> {
             child: TextField(
               key: const ValueKey('shelf_search_input'),
               controller: _searchController,
-              style: TextStyle(
-                  fontSize: 13.0, color: colors.textPrimary),
+              style: TextStyle(fontSize: 13.0, color: colors.textPrimary),
               decoration: InputDecoration(
                 hintText: '检索藏书阁书目、作者或纪事...',
                 hintStyle: TextStyle(
                     fontSize: 12.5,
-                    color: colors.textSecondary
-                        .withValues(alpha: 0.7)),
+                    color: colors.textSecondary.withValues(alpha: 0.7)),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
               ),
-              onChanged: (val) =>
-                  setState(() => _searchKeyword = val.trim()),
+              onChanged: (val) => setState(() => _searchKeyword = val.trim()),
             ),
           ),
           if (_searchKeyword.isNotEmpty)
@@ -853,7 +880,8 @@ class _ShelfPageState extends State<ShelfPage> {
           child: SoftCard(
             colors: colors,
             radius: SoftDecorations.squircleSubCardRadius,
-            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 13.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 15.0, vertical: 13.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -952,7 +980,8 @@ class _ShelfPageState extends State<ShelfPage> {
           child: SoftCard(
             colors: colors,
             radius: SoftDecorations.squircleSubCardRadius,
-            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 13.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 15.0, vertical: 13.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1619,5 +1648,3 @@ class _ShelfPageState extends State<ShelfPage> {
     );
   }
 }
-
-
