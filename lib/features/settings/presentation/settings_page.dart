@@ -409,25 +409,28 @@ class _SettingsPageState extends State<SettingsPage> {
                                 fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 12.0),
-                          // 第一行：翠竹微雨 + 暖杏流光
+                          // 第一行：极夜星芒（默认）+ 暖杏流光
                           Row(
                             children: [
                               _buildAestheticCard(
-                                key: const ValueKey('theme_chip_mistyJade'),
-                                aliasKey:
-                                    const ValueKey('theme_chip_beanGreen'),
-                                legacyKey: const ValueKey('theme_chip_paper'),
-                                title: '翠竹微雨',
-                                subtitle: '宋瓷天青 · 空蒙',
-                                palette: SoftPaletteType.mistyJade,
-                                accentColor: const Color(0xFF236B58),
+                                key: const ValueKey('theme_chip_auroraSpace'),
+                                aliasKey: const ValueKey('theme_chip_darkJade'),
+                                legacyKey: const ValueKey('theme_chip_night'),
+                                title: '极夜星芒',
+                                subtitle:
+                                    colors.isDark ? '冰蓝深空 · 首选' : '钛金冰川 · 首选',
+                                palette: SoftPaletteType.darkJade,
+                                accentColor: colors.isDark
+                                    ? const Color(0xFF4CC2FF)
+                                    : const Color(0xFF2E6FA8),
                                 bgPreview: colors.isDark
-                                    ? const Color(0xFF111814)
-                                    : const Color(0xFFF8FAF7),
-                                isSelected: currentTheme ==
-                                        SoftPaletteType.mistyJade ||
-                                    currentTheme == SoftPaletteType.beanGreen ||
-                                    currentTheme == SoftPaletteType.paper,
+                                    ? const Color(0xFF12161A)
+                                    : const Color(0xFFF5F7FA),
+                                isSelected:
+                                    currentTheme == SoftPaletteType.darkJade ||
+                                        currentTheme ==
+                                            SoftPaletteType.auroraSpace ||
+                                        currentTheme == SoftPaletteType.night,
                                 colors: colors,
                               ),
                               const SizedBox(width: 10.0),
@@ -454,7 +457,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ],
                           ),
                           const SizedBox(height: 10.0),
-                          // 第二行：霁月清辉 + 极夜星芒
+                          // 第二行：霁月清辉 + 翠竹微雨
                           Row(
                             children: [
                               _buildAestheticCard(
@@ -476,24 +479,21 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                               const SizedBox(width: 10.0),
                               _buildAestheticCard(
-                                key: const ValueKey('theme_chip_auroraSpace'),
-                                aliasKey: const ValueKey('theme_chip_darkJade'),
-                                legacyKey: const ValueKey('theme_chip_night'),
-                                title: '极夜星芒',
-                                subtitle:
-                                    colors.isDark ? '冰蓝深空 · 首选' : '钛金冰川 · 首选',
-                                palette: SoftPaletteType.darkJade,
-                                accentColor: colors.isDark
-                                    ? const Color(0xFF4CC2FF)
-                                    : const Color(0xFF2E6FA8),
+                                key: const ValueKey('theme_chip_mistyJade'),
+                                aliasKey:
+                                    const ValueKey('theme_chip_beanGreen'),
+                                legacyKey: const ValueKey('theme_chip_paper'),
+                                title: '翠竹微雨',
+                                subtitle: '宋瓷天青 · 空蒙',
+                                palette: SoftPaletteType.mistyJade,
+                                accentColor: const Color(0xFF236B58),
                                 bgPreview: colors.isDark
-                                    ? const Color(0xFF12161A)
-                                    : const Color(0xFFF5F7FA),
-                                isSelected:
-                                    currentTheme == SoftPaletteType.darkJade ||
-                                        currentTheme ==
-                                            SoftPaletteType.auroraSpace ||
-                                        currentTheme == SoftPaletteType.night,
+                                    ? const Color(0xFF111814)
+                                    : const Color(0xFFF8FAF7),
+                                isSelected: currentTheme ==
+                                        SoftPaletteType.mistyJade ||
+                                    currentTheme == SoftPaletteType.beanGreen ||
+                                    currentTheme == SoftPaletteType.paper,
                                 colors: colors,
                               ),
                             ],
