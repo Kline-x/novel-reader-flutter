@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'network_client.dart';
 import 'pinyin_harmonizer.dart';
 
+import '../../../core/config/app_repo.dart';
+
 /// 拼音自愈规则实体数据模型
 class PinyinRule {
   final String id;
@@ -124,13 +126,11 @@ class PinyinRuleService extends ChangeNotifier {
   static const String _keyVersion = 'pinyin_rules_version';
 
   /// 云端高可用镜像分发节点 (涵盖国内高速代理、jsDelivr CDN 与 GitHub raw)
-  static const List<String> remoteEndpoints = [
-    'https://ghfast.top/https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/pinyin_rules.json',
-    'https://cdn.jsdelivr.net/gh/Kline-x/novel-reader-flutter@main/pinyin_rules.json',
-    'https://raw.githubusercontent.com/Kline-x/novel-reader-flutter/main/pinyin_rules.json',
-    'https://cdn.jsdelivr.net/gh/gaorenhua/novel-reader-flutter@main/pinyin_rules.json',
-    'https://raw.githubusercontent.com/gaorenhua/novel-reader-flutter/main/pinyin_rules.json',
-  ];
+  // 地址从 appRepo 拼出，fork 后由构建期的 --dart-define=UPDATE_REPO 自动切换。
+  // 原先这里除了写死上游仓库，还残留着另一个账号 gaorenhua 的两条地址——
+  // 那个仓库拉到的规则未必与本包同步，已一并去掉。
+  static final List<String> remoteEndpoints =
+      repoFileEndpoints('pinyin_rules.json', proxy: 'https://ghfast.top/');
 
   /// 基础内置云端规则（对齐 pinyin_rules.json，提供离线保底能力）
   static const List<Map<String, String>> _defaultBuiltinRules = [
