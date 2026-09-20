@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/components/collapsing_header.dart';
 import '../../../core/components/ambient_mesh_background.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/soft_switch.dart';
@@ -32,6 +33,9 @@ class _SettingsPageState extends State<SettingsPage> {
   String _cacheSize = '0 B';
   bool _followSystem = false;
   bool _isCheckingUpdate = false;
+  final ScrollController _scrollController = ScrollController();
+  int _totalReadingMinutes = 0;
+  int _shelfBookCount = 0;
 
   @override
   void initState() {
@@ -40,11 +44,44 @@ class _SettingsPageState extends State<SettingsPage> {
     PinyinRuleService().init();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// 设置项很长，滚到底再想回顶要连划好几下。收拢后的标题条兼作回顶按钮。
+  void _scrollToTop() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  /// 阅读概览文案。没读过书时不编数字，直接给引导。
+  String _buildReadingSummary() {
+    final parts = <String>[];
+    if (_totalReadingMinutes >= 60) {
+      final hours = (_totalReadingMinutes / 60).toStringAsFixed(1);
+      parts.add('已累计心流阅读 $hours 小时');
+    } else if (_totalReadingMinutes > 0) {
+      parts.add('已累计心流阅读 $_totalReadingMinutes 分钟');
+    }
+    if (_shelfBookCount > 0) {
+      parts.add('典藏 $_shelfBookCount 部珍本');
+    }
+    return parts.isEmpty ? '还没有开始阅读，去挑一本好书吧' : parts.join(' · ');
+  }
+
   Future<void> _loadSettings() async {
     final vPaging = await _storageService.getVolumeKeyPaging();
     final sAwake = await _storageService.getKeepScreenAwake();
     final cacheBytes = await _storageService.getTotalCacheSize();
     final themeStr = await _storageService.getGlobalTheme();
+    final totalMinutes = await _storageService.getTotalReadingMinutes();
+    final shelfCount = (await _storageService.getBookshelf()).length;
 
     if (mounted) {
       final isSys = themeStr == 'system';
@@ -53,6 +90,8 @@ class _SettingsPageState extends State<SettingsPage> {
         _screenAwake = sAwake;
         _cacheSize = StorageService.formatBytes(cacheBytes);
         _followSystem = isSys;
+        _totalReadingMinutes = totalMinutes;
+        _shelfBookCount = shelfCount;
       });
       try {
         ProviderScope.containerOf(context, listen: false)
@@ -166,42 +205,31 @@ class _SettingsPageState extends State<SettingsPage> {
       body: AmbientMeshBackground(
         child: SafeArea(
         bottom: false,
-        child: ListView(
+        child: CustomScrollView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
-          // 底栏是 Stack 上的浮层，这里必须按其实际高度预留内边距，
-          // 否则最后一项会被压在底栏下方、文字与底栏图标重叠。
-          padding: EdgeInsets.fromLTRB(
-            20.0,
-            16.0,
-            20.0,
-            DockedBottomBar.contentBottomPadding(context),
-          ),
-          children: [
-            // 顶部标题 (原型 1:1)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '偏好与设置',
-                  style: TextStyle(
-                    fontSize: 24.0,
-                    fontWeight: FontWeight.w900,
-                    color: colors.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 3.0),
-                Text(
-                  '个性化阅读体验与多端同步',
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w500,
-                    color: colors.textSecondary.withValues(alpha: 0.75),
-                  ),
-                ),
-              ],
+          slivers: [
+            // 折叠标题：静止时是大标题，一滚就收成贴顶的小标题条。
+            // 设置是线性清单，没有搜索/排序这类要随时够得着的控件，
+            // 所以不像书架页那样钉住一整块；但标题整个滑走会让人
+            // 失去「我在哪一页」的锚点，两大平台的惯例都是收拢而非消失。
+            CollapsingHeader.sliver(
+              colors: colors,
+              title: '偏好与设置',
+              subtitle: '个性化阅读体验与多端同步',
+              onTapCollapsed: _scrollToTop,
             ),
-            const SizedBox(height: 16.0),
+            SliverPadding(
+              // 底栏是 Stack 上的浮层，这里必须按其实际高度预留内边距，
+              // 否则最后一项会被压在底栏下方、文字与底栏图标重叠。
+              padding: EdgeInsets.fromLTRB(
+                20.0,
+                8.0,
+                20.0,
+                DockedBottomBar.contentBottomPadding(context),
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
 
             // 1. 用户/设备 Bento 看板
             SoftCard(
@@ -234,8 +262,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ),
                         const SizedBox(height: 4.0),
+                        // 这里原先写死「已累计心流阅读 38.5 小时 · 典藏 4 部珍本」，
+                        // 全新安装、书架为空时也照样显示，是纯假数据。
+                        // 现在读真实的累计阅读时长与书架数量。
                         Text(
-                          '已累计心流阅读 38.5 小时 · 典藏 4 部珍本',
+                          _buildReadingSummary(),
                           style: TextStyle(
                               fontSize: 12.0, color: colors.textSecondary),
                         ),
@@ -358,7 +389,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         aliasKey: const ValueKey('theme_chip_beanGreen'),
                         legacyKey: const ValueKey('theme_chip_paper'),
                         title: '翠竹微雨',
-                        subtitle: '宋瓷天青 · 首选',
+                        subtitle: '宋瓷天青 · 空蒙',
                         palette: SoftPaletteType.mistyJade,
                         accentColor: const Color(0xFF236B58),
                         bgPreview: colors.isDark
@@ -412,14 +443,16 @@ class _SettingsPageState extends State<SettingsPage> {
                         aliasKey: const ValueKey('theme_chip_darkJade'),
                         legacyKey: const ValueKey('theme_chip_night'),
                         title: '极夜星芒',
-                        subtitle: colors.isDark ? '纯黑极光 · OLED' : '钛金冰川 · 极客',
+                        subtitle: colors.isDark
+                            ? '冰蓝深空 · 首选'
+                            : '钛金冰川 · 首选',
                         palette: SoftPaletteType.darkJade,
                         accentColor: colors.isDark
-                            ? const Color(0xFF38D9A9)
-                            : const Color(0xFF0D9488),
+                            ? const Color(0xFF4CC2FF)
+                            : const Color(0xFF2E6FA8),
                         bgPreview: colors.isDark
-                            ? const Color(0xFF111412)
-                            : const Color(0xFFF8F9FA),
+                            ? const Color(0xFF12161A)
+                            : const Color(0xFFF5F7FA),
                         isSelected: currentTheme == SoftPaletteType.darkJade ||
                             currentTheme == SoftPaletteType.auroraSpace ||
                             currentTheme == SoftPaletteType.night,
@@ -664,7 +697,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
 
-            const SizedBox(height: 100.0),
+                ]),
+              ),
+            ),
           ],
         ),
       ),

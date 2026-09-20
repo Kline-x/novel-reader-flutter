@@ -22,7 +22,7 @@ void main() {
   });
 
   group('Modern Soft UI v3.0 顶级优雅旗舰版 · 设计系统与四大意境 Seam 测试', () {
-    test('四大意境 Token 具备完整定义且苍岚烟雨作为默认旗舰主色', () {
+    test('四大意境 Token 具备完整定义（默认意境为极夜星芒）', () {
       // 1. 验证默认官方推荐主色：苍岚烟雨 (宋瓷天青)
       const jade = SoftColors.mistyJade;
       expect(jade.title, '苍岚烟雨');
@@ -46,8 +46,10 @@ void main() {
       // 4. 验证极夜星芒 (OLED 深空)
       const aurora = SoftColors.auroraSpace;
       expect(aurora.title, '极夜星芒');
-      expect(aurora.accent, const Color(0xFF38D9A9));
-      expect(aurora.background, const Color(0xFF0C110E));
+      // 极夜星芒改走冰蓝：原先的薄荷绿与「翠竹微雨·夜」几乎同色
+      // （卡片 RGB 差 6、强调色差 26、正文色完全相同），两个意境分不出。
+      expect(aurora.accent, const Color(0xFF4CC2FF));
+      expect(aurora.background, const Color(0xFF000000));
       expect(aurora.isDark, isTrue);
 
       // 5. 验证向前兼容别名映射无损
@@ -106,7 +108,8 @@ void main() {
       addTearDown(container.dispose);
 
       final notifier = container.read(themeProvider.notifier);
-      expect(container.read(themeProvider), SoftPaletteType.mistyJade);
+      // 默认意境已改为极夜星芒
+      expect(container.read(themeProvider), SoftPaletteType.darkJade);
 
       // 切换到暮色暖珀
       notifier.setPalette(SoftPaletteType.twilightAmber);
@@ -118,10 +121,14 @@ void main() {
       expect(container.read(themeProvider), SoftPaletteType.violetOrchid);
       expect(container.read(softColorsProvider).accent, const Color(0xFF6D599A));
 
-      // 切换到极夜星芒
+      // 切换到极夜星芒。
+      // 这里原本断言 isDark 为 true，等于把「选了极夜星芒就强制暗色」
+      // 这个缺陷写成了规格——同一个测试里前两条断言的却都是日间强调色，
+      // 自相矛盾。明暗只由 ThemeMode 与系统亮度决定，与选哪个配色无关；
+      // 默认是 ThemeMode.system，测试环境系统亮度为浅色，故应为日间。
       notifier.setPalette(SoftPaletteType.auroraSpace);
       expect(container.read(themeProvider), SoftPaletteType.auroraSpace);
-      expect(container.read(softColorsProvider).isDark, isTrue);
+      expect(container.read(softColorsProvider).isDark, isFalse);
 
       await tester.pumpAndSettle();
     });

@@ -63,10 +63,10 @@ class _ShelfPageState extends State<ShelfPage> {
   }
 
   Future<void> _loadBooksFromStorage() async {
-    var saved = await _storageService.getBookshelf();
-    if (saved.isEmpty && !await _storageService.hasSeededDefaultBooks()) {
-      saved = await _storageService.seedDefaultBooks();
-    }
+    // 首次启动不再往书架塞 4 本写死的示例书。那些书连章节数和「最新章节」
+    // 都是编的，用户刚装完就看到一架子自己没加过的书，还以为是数据串了。
+    // 空书架有专门的引导空态（_buildEmptyState），比假数据诚实。
+    final saved = await _storageService.getBookshelf();
     final List<BookItem> loaded = [];
     for (final s in saved) {
       final prog = await _storageService.getReadingProgress(s.bookId);

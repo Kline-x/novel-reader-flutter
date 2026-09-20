@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/components/book_cover_widget.dart';
 import '../../../core/components/soft_button.dart';
 import '../../../core/components/soft_card.dart';
+import '../../../core/components/collapsing_header.dart';
 import '../../../core/components/docked_bottom_bar.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../../reader/data/storage_service.dart';
@@ -552,6 +553,31 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
     );
   }
 
+  /// 「清除搜索」胶囊，作为折叠标题的右侧附属控件
+  Widget _buildClearSearchChip(SoftColors colors) {
+    return GestureDetector(
+      onTap: _clearSearch,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: BorderRadius.circular(12.0),
+          boxShadow: SoftDecorations.softShadows(colors, elevation: 1.0),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.close, size: 14.0, color: colors.textSecondary),
+            const SizedBox(width: 4.0),
+            Text('清除搜索',
+                style:
+                    TextStyle(fontSize: 12.0, color: colors.textSecondary)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = SoftTheme.of(context);
@@ -563,51 +589,14 @@ class _DiscoveryPageState extends ConsumerState<DiscoveryPage> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // 标题栏
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '探索好书',
-                      style: TextStyle(
-                        fontSize: 26.0,
-                        fontWeight: FontWeight.w800,
-                        color: colors.textPrimary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    if (_activeQuery.isNotEmpty)
-                      GestureDetector(
-                        onTap: _clearSearch,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10.0, vertical: 4.0),
-                          decoration: BoxDecoration(
-                            color: colors.card,
-                            borderRadius: BorderRadius.circular(12.0),
-                            boxShadow: SoftDecorations.softShadows(colors,
-                                elevation: 1.0),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.close,
-                                  size: 14.0, color: colors.textSecondary),
-                              const SizedBox(width: 4.0),
-                              Text('清除搜索',
-                                  style: TextStyle(
-                                      fontSize: 12.0,
-                                      color: colors.textSecondary)),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+            // 标题栏：折叠式。下方搜索+分类栏已常驻吸顶，这里不再常驻，
+            // 否则两条栏叠起来要占掉 156px，手机上接近两成屏幕。
+            CollapsingHeader.sliver(
+              colors: colors,
+              title: '探索好书',
+              expandedTitleSize: 26.0,
+              pinned: false,
+              trailing: _activeQuery.isEmpty ? null : _buildClearSearchChip(colors),
             ),
 
             // 吸顶搜索输入框与横向分类标签栏 (长书单随时切分类、随时发起并发打捞)

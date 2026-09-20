@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 /// 环境光流体微网格 (Ambient Mesh Glow)、双层低饱和漫射软阴影。
 
 enum SoftPaletteType {
-  mistyJade, // 翠竹微雨 · 宋瓷天青 (Default 旗舰首选·空蒙灵秀)
+  mistyJade, // 翠竹微雨 · 宋瓷天青 (空蒙灵秀)
   warmAmber, // 暖杏流光 · 暖阳蜜蜡 (纸墨温润·安宁治愈)
   moonSilver, // 霁月清辉 · 天光月华 (澄澈净心·月霁微澜)
-  darkJade, // 极夜星芒 · 纯粹暗夜 (钛墨零眩光·柔润护眼)
+  darkJade, // 极夜星芒 · 纯粹暗夜 (Default 默认意境·钛墨零眩光·柔润护眼)
   paper, // 水墨玄素 · 极简墨水屏 (类 Kindle 纯粹阅读)
 
   // --- 向前兼容别名 ---
@@ -207,50 +207,60 @@ class SoftColors {
   );
 
   // ===================== 4. 极夜星芒 (auroraSpace / darkJade) =====================
-  /// 极夜星芒 · 日间 (Light) - Apple 钛金属极客风 (高冷极简，通透干练)
+  /// 极夜星芒 · 日间 (Light) - 钛金冰川，冷钢青灰
+  ///
+  /// 原先这套用的是 #0D9488 青碧 + #F8F9FA 微绿白，和「翠竹微雨」
+  /// 同属绿松色系、底色 RGB 只差 0/1/3，两个意境肉眼分不出。
+  /// 现按它自己的名字走冷色：背景带蓝灰调，强调色换成钢青，
+  /// 与绿（翠竹微雨）/ 琥珀（暖杏流光）/ 紫（霁月清辉）各占一个色相。
   static const auroraSpaceLight = SoftColors(
     type: SoftPaletteType.auroraSpace,
     title: '极夜星芒',
-    subtitle: '钛金冰川 · 冷萃极简极客清爽',
-    background: Color(0xFFF8F9FA),
-    surface: Color(0xFFEEF0F2),
+    subtitle: '钛金冰川 · 冷钢极简',
+    background: Color(0xFFF5F7FA),
+    surface: Color(0xFFE9EDF2),
     card: Color(0xFFFFFFFF),
-    textPrimary: Color(0xFF111827),
-    textSecondary: Color(0xFF4B5563),
-    textTertiary: Color(0xFF9CA3AF),
-    accent: Color(0xFF0D9488),
-    accentSoft: Color(0x140D9488),
-    accentGlow: Color(0x300D9488),
-    border: Color(0x0A000000),
-    borderSubtle: Color(0x08000000),
+    textPrimary: Color(0xFF0F1922),
+    textSecondary: Color(0xFF47566B),
+    textTertiary: Color(0xFF94A3B8),
+    accent: Color(0xFF2E6FA8),
+    accentSoft: Color(0x142E6FA8),
+    accentGlow: Color(0x302E6FA8),
+    border: Color(0x0A000F1A),
+    borderSubtle: Color(0x08000F1A),
     borderInner: Color(0xF2FFFFFF),
     isDark: false,
-    meshGlow1: Color(0x38CCFBF1),
-    meshGlow2: Color(0x2EE0E7FF),
-    meshGlow3: Color(0x2EF3E8FF),
+    meshGlow1: Color(0x38D6E6F5),
+    meshGlow2: Color(0x2EDCE4F0),
+    meshGlow3: Color(0x2EE6EAF2),
   );
 
-  /// 极夜星芒 · 夜间 (Dark) - OLED 纯黑极光
+  /// 极夜星芒 · 夜间 (Dark) - OLED 纯黑极光，冰蓝
+  ///
+  /// 原先卡片 #131A16 与「翠竹微雨·夜」的 #111814 相差仅 RGB 6，
+  /// 强调色 #38D9A9 与其 #34D399 相差 26，正文色完全相同——
+  /// 夜间两套几乎是同一个皮肤。现改为中性炭底 + 冰蓝极光，
+  /// 背景用纯黑吃满 OLED 熄屏像素。
   static const auroraSpaceDark = SoftColors(
     type: SoftPaletteType.auroraSpace,
     title: '极夜星芒',
-    subtitle: '纯黑极光 · 钛墨深空纯粹沉浸',
-    background: Color(0xFF0C110E),
-    surface: Color(0xFF131A16),
-    card: Color(0xFF1B231F),
-    textPrimary: Color(0xFFF0F5F2),
-    textSecondary: Color(0xFF8DA297),
-    textTertiary: Color(0xFF5B7066),
-    accent: Color(0xFF38D9A9),
-    accentSoft: Color(0x1F38D9A9),
-    accentGlow: Color(0x4738D9A9),
+    subtitle: '纯黑极光 · 冰蓝深空',
+    background: Color(0xFF000000),
+    surface: Color(0xFF12161A),
+    card: Color(0xFF1A2027),
+    textPrimary: Color(0xFFEDF2F7),
+    textSecondary: Color(0xFF93A4B8),
+    textTertiary: Color(0xFF5E7186),
+    accent: Color(0xFF4CC2FF),
+    accentSoft: Color(0x1F4CC2FF),
+    accentGlow: Color(0x474CC2FF),
     border: Color(0x14FFFFFF),
     borderSubtle: Color(0x0DFFFFFF),
     borderInner: Color(0x0DFFFFFF),
     isDark: true,
-    meshGlow1: Color(0x1A10B981),
-    meshGlow2: Color(0x1414B8A6),
-    meshGlow3: Color(0x146366F1),
+    meshGlow1: Color(0x1A2E90D9),
+    meshGlow2: Color(0x14386FA8),
+    meshGlow3: Color(0x14475B78),
   );
 
   // 兼容老引用
