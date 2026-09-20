@@ -53,6 +53,20 @@ class PlatformAdaptiveHelper {
     return isOhosTarget;
   }
 
+  /// 当前平台能否把物理音量键交给应用做翻页。
+  ///
+  /// 只有 Android 可以——MainActivity 覆写 `onKeyDown` 就能拦下来。
+  /// iOS 不把音量键事件分发给普通应用；鸿蒙由系统 sceneboard 独占
+  /// （实测注入音量键只会弹出系统音量条，应用收不到任何 KeyEvent，
+  /// 想拦得有 INPUT_MONITORING 系统权限）。Web / 桌面端没有这回事。
+  ///
+  /// 按「平台有没有这个能力」判断，而不是按平台名——
+  /// 否则每新增一个平台都要回来改一次分支。
+  /// 注意：鸿蒙上 Flutter 的 defaultTargetPlatform 报的也是 android，
+  /// 这里的 isHarmonyOS 只能靠环境变量嗅探、并不可靠。
+  /// 调用方应再叠加宿主自报的 VersionCheckService.isHarmonyOS 才稳妥。
+  bool get supportsVolumeKeyPaging => isAndroid && !isHarmonyOS;
+
   /// 获取当前设备形态断点
   DeviceFormFactor getFormFactor(BuildContext context) {
     if (testFormFactorOverride != null) {

@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private static let pickerChannelName = "com.kline.novelreader/file_picker"
+  private static let updateChannelName = "com.kline.novelreader/app_update"
 
   /// 文件选择是异步的，结果要等到 delegate 回调才有
   private var pendingPickResult: FlutterResult?
@@ -19,6 +20,52 @@ import UniformTypeIdentifiers
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     registerFilePickerChannel(engineBridge)
+    registerUpdateChannel(engineBridge)
+  }
+
+  /// 宿主信息通道。
+  ///
+  /// 此前 iOS 侧完全没有实现，`getPackageInfo` 抛 MissingPluginException，
+  /// VersionCheckService 只能回退到内置默认值 v1.0.1——和鸿蒙补通道之前
+  /// 一模一样的毛病：装着新版的机器每次检查更新都被告知「发现新版本」。
+  private func registerUpdateChannel(_ engineBridge: FlutterImplicitEngineBridge) {
+    guard let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "NovelReaderAppUpdate"
+    ) else { return }
+
+    let channel = FlutterMethodChannel(
+      name: AppDelegate.updateChannelName,
+      binaryMessenger: registrar.messenger()
+    )
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getPackageInfo":
+        let info = Bundle.main.infoDictionary
+        let name = info?["CFBundleShortVersionString"] as? String ?? ""
+        // CFBundleVersion 在 iOS 上是字符串，Dart 侧要的是 int
+        let build = Int(info?["CFBundleVersion"] as? String ?? "") ?? 0
+        result([
+          "versionCode": build,
+          "versionName": name,
+          "packageName": Bundle.main.bundleIdentifier ?? "",
+        ])
+      case "openUrl":
+        guard
+          let args = call.arguments as? [String: Any],
+          let urlString = args["url"] as? String,
+          let url = URL(string: urlString)
+        else {
+          result(FlutterError(code: "INVALID_URL", message: "url is invalid", details: nil))
+          return
+        }
+        UIApplication.shared.open(url, options: [:]) { ok in result(ok) }
+      case "installApk":
+        // iOS 不存在侧载安装，更新一律走 App Store
+        result(false)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   private func registerFilePickerChannel(_ engineBridge: FlutterImplicitEngineBridge) {

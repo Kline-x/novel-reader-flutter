@@ -5,6 +5,7 @@ import '../../../core/components/ambient_mesh_background.dart';
 import '../../../core/components/soft_card.dart';
 import '../../../core/components/soft_switch.dart';
 import '../../../core/theme/soft_theme.dart';
+import '../../../core/utils/platform_adaptive_helper.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../local_books/presentation/wifi_transfer_dialog.dart';
 import '../../../core/components/docked_bottom_bar.dart';
@@ -74,6 +75,16 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     return parts.isEmpty ? '还没有开始阅读，去挑一本好书吧' : parts.join(' · ');
   }
+
+  /// 音量键翻页是否可用。按平台能力判断，不按平台名。
+  ///
+  /// 只有 Android 有拦截实现（MainActivity 覆写 onKeyDown）。
+  /// 鸿蒙上 defaultTargetPlatform 同样报 android，所以必须再用宿主
+  /// 自报的 isHarmonyOS 排除——那是 getPackageInfo 带回来的，比
+  /// 环境变量嗅探可靠。iOS 本就不分发音量键给应用。
+  bool get _canUseVolumeKeyPaging =>
+      PlatformAdaptiveHelper.instance.supportsVolumeKeyPaging &&
+      !VersionCheckService.isHarmonyOS;
 
   Future<void> _loadSettings() async {
     final vPaging = await _storageService.getVolumeKeyPaging();
@@ -500,32 +511,30 @@ class _SettingsPageState extends State<SettingsPage> {
                           horizontal: 16.0, vertical: 6.0),
                       child: Column(
                         children: [
-                          // 鸿蒙把音量键交给系统 sceneboard 独占处理，普通应用收不到
-                          // 按键事件（要拦截得有 INPUT_MONITORING 系统权限）。
-                          // 实测开关打开也不会翻页，所以这里直接禁用并说明原因，
-                          // 不给「已启用」的错觉。
+                          // 只有 Android 能把音量键交给应用：iOS 不分发给普通应用，
+                          // 鸿蒙由系统 sceneboard 独占（实测注入音量键只弹系统音量条）。
+                          // 不支持的平台直接禁用并说明原因，不给「已启用」的错觉。
                           ListTile(
                             contentPadding: EdgeInsets.zero,
-                            enabled: !VersionCheckService.isHarmonyOS,
+                            enabled: _canUseVolumeKeyPaging,
                             title: Text('物理音量键翻页',
                                 style: TextStyle(
-                                  color: VersionCheckService.isHarmonyOS
-                                      ? colors.textSecondary
-                                      : colors.textPrimary,
+                                  color: _canUseVolumeKeyPaging
+                                      ? colors.textPrimary
+                                      : colors.textSecondary,
                                 )),
                             subtitle: Text(
-                                VersionCheckService.isHarmonyOS
-                                    ? '鸿蒙系统独占音量键，应用无法接管'
-                                    : '支持长篇阅读时免触屏快速下翻',
+                                _canUseVolumeKeyPaging
+                                    ? '支持长篇阅读时免触屏快速下翻'
+                                    : '当前系统独占音量键，应用无法接管',
                                 style: TextStyle(
                                     fontSize: 12.0,
                                     color: colors.textSecondary)),
                             trailing: SoftSwitch(
                               key: const ValueKey('switch_volume_paging'),
-                              value: _volumeKeyPaging &&
-                                  !VersionCheckService.isHarmonyOS,
+                              value: _volumeKeyPaging && _canUseVolumeKeyPaging,
                               colors: colors,
-                              onChanged: VersionCheckService.isHarmonyOS
+                              onChanged: !_canUseVolumeKeyPaging
                                   ? null
                                   : (val) async {
                                       setState(() => _volumeKeyPaging = val);
