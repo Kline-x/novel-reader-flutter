@@ -264,8 +264,17 @@ class VersionCheckService {
       if (abis is List) {
         deviceAbis = abis.whereType<String>().toList();
       }
+      // 宿主自报平台。鸿蒙上 Platform.isAndroid 为 false、isIOS 也为 false，
+      // Dart 侧没有可靠的内置判据，只能由 ArkTS 侧带回来。
+      // 这个标志一旦为 true，更新流程会切到应用市场分支，
+      // 不再去下那个在纯血鸿蒙上根本装不了的 APK。
+      final platform = info['platform'];
+      if (platform is String && platform.toLowerCase() == 'ohos') {
+        isHarmonyOS = true;
+      }
       debugPrint(
-          '[VersionCheckService] 已读取真实安装版本: $currentVersionName+$currentVersionCode');
+          '[VersionCheckService] 已读取真实安装版本: $currentVersionName+$currentVersionCode'
+          '${isHarmonyOS ? ' (HarmonyOS)' : ''}');
     } catch (e) {
       debugPrint('[VersionCheckService] 读取安装版本失败，沿用内置默认值: $e');
     }
@@ -551,16 +560,18 @@ class VersionCheckService {
       return;
     }
 
-    // 2. 鸿蒙 HarmonyOS NEXT 平台：优先唤起华为应用市场
+    // 2. 鸿蒙 HarmonyOS NEXT 平台：一律唤起华为应用市场。
+    //
+    // 这里不再看 installMode——清单里没有 harmony 段时 platformInfo 会回退到
+    // android，若因此继续往下走就会去下 APK，而那个包在纯血鸿蒙上装不了。
+    // 鸿蒙不允许侧载（.hap 的 Profile 绑定设备 UDID），应用市场是唯一出路。
     if (isHarmonyOS) {
       final marketUrl = platformInfo?.storeUrl ??
           'appmarket://details?id=com.kline.novelreader';
-      if (platformInfo?.installMode == 'app_market') {
-        onProgress(0.5, null);
-        await openExternalUrl(marketUrl);
-        onProgress(1.0, null);
-        return;
-      }
+      onProgress(0.5, null);
+      await openExternalUrl(marketUrl);
+      onProgress(1.0, null);
+      return;
     }
 
     // 3. Android 平台（或非 iOS 的移动端）：走应用内流式下载 APK + FileProvider 覆盖安装

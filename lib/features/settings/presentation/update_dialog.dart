@@ -97,10 +97,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
   bool get _isDirectDownload {
     if (!kIsWeb && Platform.isIOS) return false;
-    if (VersionCheckService.isHarmonyOS) {
-      final platformInfo = widget.info.currentPlatformInfo;
-      return platformInfo?.installMode != 'app_market';
-    }
+    // 鸿蒙一律不直接下载安装：.hap 的 Profile 与设备 UDID 一对一绑定，
+    // 而清单里没有 harmony 段时 currentPlatformInfo 会回退到 android，
+    // 那是个在纯血鸿蒙上装不了的 APK，下下来也只是白等。
+    if (VersionCheckService.isHarmonyOS) return false;
     return true;
   }
 

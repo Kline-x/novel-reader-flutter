@@ -1,0 +1,59 @@
+/*
+ * 鸿蒙工程构建配置模板。
+ *
+ * 用法：复制成同目录下的 build-profile.json5（该文件已被 .gitignore 忽略），
+ * 再用 DevEco Studio 的「文件 → 项目结构 → 签名配置」勾选自动生成签名，
+ * DevEco 会把证书路径与加密后的口令写进 signingConfigs。
+ *
+ * 为什么不直接入库：DevEco 生成的 signingConfigs 里含有
+ * 指向本机 .p12 / .p7b 的绝对路径，以及加密后的 keyPassword / storePassword。
+ * 这是私钥材料，本仓库是公开仓库，一律不入库——
+ * 与 android/key.properties 的处理方式一致。
+ *
+ * 另外 Profile 与设备 UDID 一对一绑定，别人的证书对你的设备也没用，
+ * 每个开发者都必须自己在 AGC 申请（见 STATUS.md「装到真机」一节）。
+ *
+ * compatibleSdkVersion / targetSdkVersion 的取值要对上你的设备 API：
+ * hvigor 只接受它内置表里的最新 API，设备比 IDE 旧时需要降级构建，
+ * 做法见 STATUS.md 第 16 关。平台版本与 API 的对应关系：
+ *   26.0.0 -> 26.0.0 / 6.1.1 -> 24 / 6.1.0 -> 23 / 6.0.0 -> 20 / 5.0.5 -> 17
+ */
+{
+  "app": {
+    "signingConfigs": [],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "6.1.1(24)",
+        "targetSdkVersion": "6.1.1(24)",
+        "runtimeOS": "HarmonyOS",
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "profile"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

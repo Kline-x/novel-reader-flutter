@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "藏书阁主模块"
+      "value": "Novel Reader main module"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "藏书阁 · 书架与阅读"
+      "value": "Novel Reader shelf and reader"
     },
     {
       "name": "EntryAbility_label",
-      "value": "藏书阁"
+      "value": "Novel Reader"
     }
   ]
 }

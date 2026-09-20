@@ -1,13 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_reader_flutter/features/notes/models/annotation.dart';
 import 'package:novel_reader_flutter/features/notes/presentation/add_annotation_dialog.dart';
 import 'package:novel_reader_flutter/features/local_books/services/txt_parser_engine.dart';
 import 'package:novel_reader_flutter/features/reader/presentation/typography_drawer.dart';
+import 'package:novel_reader_flutter/features/settings/services/version_check_service.dart';
 
 /// 鸿蒙真机 e2e 发现的问题的回归护栏。
 /// 详见 ohos/E2E-ISSUES.md。
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('问题 1 / 2：宿主必须报出真实版本号与鸿蒙身份', () {
+    const channel = MethodChannel(VersionCheckService.updateChannelName);
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+
+    tearDown(() {
+      messenger.setMockMethodCallHandler(channel, null);
+      // isHarmonyOS 是全局静态量，必须复位，否则污染后续用例
+      VersionCheckService.isHarmonyOS = false;
+    });
+
+    test('鸿蒙宿主返回 platform=ohos 时读到真实版本并标记为鸿蒙', () async {
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'getPackageInfo') {
+          return <String, Object>{
+            'versionCode': 6007,
+            'versionName': '1.0.9',
+            'packageName': 'com.kline.novelreader.novel_reader_flutter',
+            'platform': 'ohos',
+          };
+        }
+        return null;
+      });
+
+      final svc = VersionCheckService();
+      await svc.loadInstalledVersion(force: true);
+
+      expect(svc.currentVersionName, '1.0.9',
+          reason: '真机上这里读不到就会回退成 v1.0.1，'
+              '导致装着 1.0.9 的机器被提示"发现新版本 1.0.9"');
+      expect(svc.currentVersionCode, 6007);
+      expect(VersionCheckService.isHarmonyOS, isTrue,
+          reason: '鸿蒙身份要靠宿主带回来，Dart 侧没有可靠内置判据');
+    });
+
+    test('通道未实现时沿用内置默认值且不标记为鸿蒙', () async {
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        throw MissingPluginException('No implementation found');
+      });
+
+      final svc = VersionCheckService();
+      await svc.loadInstalledVersion(force: true);
+
+      expect(VersionCheckService.isHarmonyOS, isFalse);
+    });
+
+    test('Android 宿主不会被误标成鸿蒙', () async {
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'getPackageInfo') {
+          return <String, Object>{
+            'versionCode': 6007,
+            'versionName': '1.0.9',
+            'abis': <String>['arm64-v8a'],
+          };
+        }
+        return null;
+      });
+
+      final svc = VersionCheckService();
+      await svc.loadInstalledVersion(force: true);
+
+      expect(svc.deviceAbis, contains('arm64-v8a'));
+      expect(VersionCheckService.isHarmonyOS, isFalse);
+    });
+  });
+
   group('问题 8：调字号不得把行距档位带跑', () {
     test('字号变化时行距按原倍数同步重算，倍数保持不变', () {
       const oldFont = 18.0;
