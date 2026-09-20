@@ -42,6 +42,19 @@ flutter build apk --release --split-per-abi
 
 签名密钥一次性配置：`bash tool/setup_signing_secrets.sh`。
 
+**升版本号时要连 `version_manifest.json` 一起改**。CI 有一道
+「pubspec 与清单版本一致」的门禁，而清单里的下载地址和 sha256 是发版流水线
+跑完才回填的——如果只改 pubspec 就合并，合并那一刻 CI 必然红一次
+（pubspec 已是新版本、清单还停在旧版本），要等流水线回填后才恢复。
+而回填提交由 Actions 的 token 推送，默认不会再触发 CI，
+于是 main 的状态会一直停在那次失败上。
+
+所以改版本号的提交里顺手跑一次：
+
+```bash
+dart run tool/sync_version_manifest.dart --write
+```
+
 ### 版本号
 
 `--split-per-abi` 会把 versionCode 重写成 `abiCode * 1000 + 基础号`，
