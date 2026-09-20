@@ -23,8 +23,6 @@
 
 set -euo pipefail
 
-REPO="Kline-x/novel-reader-flutter"
-BACKUP_REPO="Kline-x/novel-reader-signing"
 ALIAS="novel-reader"
 WORKDIR="$(mktemp -d)"
 JKS="$WORKDIR/novel-reader-release.jks"
@@ -35,6 +33,12 @@ trap cleanup EXIT
 command -v gh      >/dev/null || { echo "✕ 需要 gh CLI"; exit 1; }
 command -v keytool >/dev/null || { echo "✕ 需要 keytool（JDK 自带，把 <JDK>/bin 加进 PATH）"; exit 1; }
 gh auth status >/dev/null 2>&1 || { echo "✕ gh 未登录，先跑 gh auth login"; exit 1; }
+
+# 仓库名从当前 git remote 推导，fork 的人直接跑这个脚本不会误操作上游仓库。
+# 放在依赖检查之后，否则 gh 不存在时会先抛一个看不懂的错。
+REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+BACKUP_REPO="${REPO%%/*}/novel-reader-signing"
+echo "→ 目标仓库 $REPO，备份仓库 $BACKUP_REPO"
 
 if gh secret list --repo "$REPO" 2>/dev/null | grep -q ANDROID_KEYSTORE_BASE64; then
   echo "✕ $REPO 已配置 ANDROID_KEYSTORE_BASE64。"
@@ -86,7 +90,7 @@ printf 'keystore=novel-reader-release.jks\nalias=%s\npassword=%s\n' "$ALIAS" "$P
 cat > "$CLONE/README.md" <<'EOF'
 # 藏书阁 Android 正式签名密钥备份
 
-这是 [novel-reader-flutter](https://github.com/Kline-x/novel-reader-flutter) 的正式签名密钥。
+这是 [__REPO__](https://github.com/__REPO__) 的正式签名密钥。
 
 ## 千万不要
 
@@ -104,12 +108,15 @@ cat > "$CLONE/README.md" <<'EOF'
 只有在 Secrets 丢失、需要重新配置时才用得上：
 
 ```bash
-gh repo clone Kline-x/novel-reader-signing
+gh repo clone __BACKUP_REPO__
 cd novel-reader-signing
-base64 -w0 novel-reader-release.jks | gh secret set ANDROID_KEYSTORE_BASE64 --repo Kline-x/novel-reader-flutter
+base64 -w0 novel-reader-release.jks | gh secret set ANDROID_KEYSTORE_BASE64 --repo __REPO__
 # 口令与别名见 credentials.txt，另外三个 Secret 同法设置
 ```
 EOF
+# 占位符在此替换：README 里有 Markdown 反引号，
+# 直接用可插值 heredoc 会被当成命令替换执行。
+sed -i "s|__REPO__|$REPO|g; s|__BACKUP_REPO__|$BACKUP_REPO|g" "$CLONE/README.md"
 
 git -C "$CLONE" add -A
 git -C "$CLONE" -c user.name="$(git config user.name || echo backup)" \

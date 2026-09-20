@@ -106,7 +106,7 @@ jobs:
 
       - name: Build Android Release APKs (Split per ABI & R8 Shrink)
         run: |
-          flutter build apk --release --split-per-abi
+          flutter build apk --release --split-per-abi --dart-define=UPDATE_REPO=${{ github.repository }}
           mkdir -p release-artifacts/apk
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-artifacts/apk/novel-reader-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-artifacts/apk/novel-reader-armeabi-v7a.apk
@@ -120,13 +120,13 @@ jobs:
 
       - name: Build Android App Bundle (AAB)
         run: |
-          flutter build appbundle --release
+          flutter build appbundle --release --dart-define=UPDATE_REPO=${{ github.repository }}
           mkdir -p release-artifacts/aab
           cp build/app/outputs/bundle/release/app-release.aab release-artifacts/aab/novel-reader-release.aab
 
       - name: Build Web Release Bundle
         run: |
-          flutter build web --release
+          flutter build web --release --dart-define=UPDATE_REPO=${{ github.repository }}
           cd build/web
           zip -r ../../release-artifacts/novel-reader-web.zip .
           cd ../..
@@ -218,7 +218,7 @@ jobs:
             git commit -m "chore(release): 回填 ${{ github.event.inputs.version_tag || github.ref_name }} 的下载地址与 sha256 校验和"
             if git push origin HEAD:main; then
               echo "清单回填成功，触发 jsDelivr CDN 缓存全球刷新"
-              curl -s -m 10 "https://purge.jsdelivr.net/gh/Kline-x/novel-reader-flutter@main/version_manifest.json" || true
+              curl -s -m 10 "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/version_manifest.json" || true
               exit 0
             fi
             echo "推送被拒（main 期间有新提交），重试 $i/3"
@@ -231,5 +231,5 @@ jobs:
         if: always()
         run: |
           echo "主动刷新 jsDelivr CDN 缓存..."
-          curl -s -m 10 "https://purge.jsdelivr.net/gh/Kline-x/novel-reader-flutter@main/version_manifest.json" || true
+          curl -s -m 10 "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/version_manifest.json" || true
 
