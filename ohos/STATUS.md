@@ -10,8 +10,12 @@ HUAWEI HBN-AL00 / `OpenHarmony-6.1.1.120` / API 24。
 降级 API 声明才能装进比 IDE 旧的设备（第 16 关）、
 补三个 `*_ohos` 插件实现（第 17 关）。
 
-尚未验证：TTS 听书、WiFi 传书、本地导入、应用内更新
-（`installApk` 在鸿蒙无对等能力，只能跳应用市场）。
+补上三个 `*_ohos` 插件后，**阅读器正文、分页翻页、设置持久化（冷重启保持）
+也全部实测通过**，鸿蒙版已是功能可用状态。
+
+尚未实现/未验证：**物理音量键翻页**（开关能开但 `volume_key` 这个自写 channel
+鸿蒙侧没实现，实际不生效）、应用内更新（`installApk` 无对等能力，只能跳应用市场）、
+TTS 听书、WiFi 传书、本地导入。
 
 在此之前，仓库各处声称「纯血鸿蒙 NEXT 对等支持」「全平台多端对等」，
 且版本清单里挂着指向从不存在的 `.hap` 的下载地址。已清理。
@@ -275,6 +279,11 @@ flutterEngine.getPlugins()?.add(new SharedPreferencesPlugin());
 flutterEngine.getPlugins()?.add(new PathProviderPlugin());
 flutterEngine.getPlugins()?.add(new FlutterTtsPlugin());
 ```
+
+接上之后实测：阅读器正文正常加载、分页翻页正常；
+切换主题后**冷重启仍保持**，且累计阅读时长有记录——
+说明 `shared_preferences_ohos` 与 `path_provider_ohos` 都真正在工作，
+不只是「不卡了」。
 
 ### 第 18 关：pub cache 必须和工程同一个盘
 
