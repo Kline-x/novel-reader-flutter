@@ -23,7 +23,7 @@ class WifiServerEvent {
 }
 
 /// 局域网 WiFi 极速网页传书服务 (wifi_transfer_server.dart)
-/// - 基于 Dart 原生 HttpServer 搭建，零多余平台依赖，跨 iOS / Android / HarmonyOS
+/// - 基于 Dart 原生 HttpServer 搭建，零多余平台依赖
 /// - 自动嗅探设备局域网 IPv4 地址
 /// - 内嵌 Modern Soft UI 美学网页端，支持桌面与手机浏览器无感极速传书
 class WifiTransferServer {
