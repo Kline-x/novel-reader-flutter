@@ -34,6 +34,35 @@
 2. **移动跨端形态 (Multi-Platform Mobile)**：iOS + Android（按需选配纯血鸿蒙 NEXT）。保留共享内核 `lib/`，按需挂载 `ios/`、`android/`、`ohos/`；
 3. **全平台形态 (Full-Stack / Desktop)**：Mobile + Desktop (macOS/Windows) + Web。业务内核独立，交互层采用响应式/断点自适应布局。
 
+### 平台对等铁律：改一端就得改齐所有在矩阵内的端
+
+**裁切决定了支持哪些平台；一旦某个平台在矩阵内，针对它做的改动就必须同步覆盖其余各端。**
+只修一端的后果是「另一端静默坏掉」——本项目踩过两次，都是修完一个平台才发现别的平台
+压根没有对应实现：
+
+- 鸿蒙侧插件注册表为空，`path_provider` 的调用**既不返回也不抛异常**，
+  `try/catch` 接不住，界面永远停在「正在加载」；
+- 补完鸿蒙才发现 **iOS 从来没有 `app_update` 通道**，版本号同样回退到内置默认值 v1.0.1，
+  把已装版本当新版本推给用户——和鸿蒙修复前一模一样的毛病，只是没人在 iOS 上验证过。
+
+落到具体要求：
+
+1. **自写 MethodChannel 必须各端都有实现**。做不到的要在
+   `test/platform_parity_test.dart` 的豁免表里写清楚原因（例如音量键在 iOS
+   系统层面就拦不到），不接受「以后再补」。
+2. **平台差异按「能力」判断，不按「平台名」判断**。写
+   `PlatformAdaptiveHelper.instance.supportsVolumeKeyPaging` 而不是
+   `if (isHarmonyOS)`，否则每新增一个平台都要回头改一遍分支。
+   注意鸿蒙上 Flutter 的 `defaultTargetPlatform` 报的也是 `android`，
+   光看 `isAndroid` 排除不掉鸿蒙。
+3. **资源同样算改动**：应用图标、应用名、权限声明改了一端，另外两端一起改。
+   图标从 `design/icon/` 的 SVG 导出，不要直接改各平台的 PNG。
+4. **纯 Dart 的改动天然覆盖全平台**，不用额外处理；需要原生实现的才适用本条。
+
+`test/platform_parity_test.dart` 是这条铁律的可执行门禁：它扫描 `lib/` 里所有
+`com.kline.novelreader/` 开头的通道，逐一核对 Android / iOS / 鸿蒙三份宿主实现，
+并检查三端图标资源齐备。**规范会被忽略，门禁不会。**
+
 ---
 
 ## 三、 提交规范 (Commit Conventions)
