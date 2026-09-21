@@ -1,24 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <!-- 背景：深夜色，把冰蓝整个让给主体 -->
-    <linearGradient id="bg" x1="0" y1="0" x2="0.72" y2="1">
-      <stop offset="0" stop-color="#14486A"/>
-      <stop offset="0.55" stop-color="#0B2B41"/>
-      <stop offset="1" stop-color="#05151F"/>
+<defs>
+    <!-- 背景：同色系单一渐变，饱和度克制 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#5ACCFF"/>
+      <stop offset="0.52" stop-color="#2E6FA8"/>
+      <stop offset="1" stop-color="#0C2B45"/>
     </linearGradient>
-    <!-- 檐口：最亮的一档冰蓝。必须 userSpaceOnUse——三道檐要共用同一段渐变，
-         默认的 objectBoundingBox 会让每道檐各自从头渐变一遍，层次就散了 -->
-    <linearGradient id="eave" gradientUnits="userSpaceOnUse"
-                    x1="512" y1="280" x2="512" y2="660">
-      <stop offset="0" stop-color="#CDF4FF"/>
-      <stop offset="1" stop-color="#7FDCFF"/>
+    <!-- 书：几乎纯白，只留一点点冷调 -->
+    <linearGradient id="cover" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EDF5F2"/>
     </linearGradient>
-    <!-- 屋身：压暗一档，让檐口浮起来 -->
-    <linearGradient id="body" gradientUnits="userSpaceOnUse"
-                    x1="512" y1="300" x2="512" y2="700">
-      <stop offset="0" stop-color="#57C6F7"/>
-      <stop offset="1" stop-color="#2E9FDC"/>
+    <!-- 门内：比背景更深，拉开层次 -->
+    <linearGradient id="door" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#06151F"/>
+      <stop offset="0.55" stop-color="#0A2335"/>
+      <stop offset="1" stop-color="#154866"/>
     </linearGradient>
+    <radialGradient id="starGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="0.38" stop-color="#A8E0FF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#A8E0FF" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="doorClip">
+      <path d="M368 838 V 526 c 0 -80 64 -144 144 -144 s 144 64 144 144 v 312 z"/>
+    </clipPath>
   </defs>
   <rect width="1024" height="1024" fill="url(#bg)"/>
 </svg>
