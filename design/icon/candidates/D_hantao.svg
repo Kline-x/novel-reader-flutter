@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.72" y2="1">
+      <stop offset="0" stop-color="#14486A"/>
+      <stop offset="0.55" stop-color="#0B2B41"/>
+      <stop offset="1" stop-color="#05151F"/>
+    </linearGradient>
+    <linearGradient id="ice" gradientUnits="userSpaceOnUse" x1="512" y1="200" x2="512" y2="860">
+      <stop offset="0" stop-color="#CDF4FF"/>
+      <stop offset="1" stop-color="#7FDCFF"/>
+    </linearGradient>
+    <linearGradient id="mid" gradientUnits="userSpaceOnUse" x1="512" y1="240" x2="512" y2="860">
+      <stop offset="0" stop-color="#57C6F7"/>
+      <stop offset="1" stop-color="#2E9FDC"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect x="276" y="236" width="472" height="552" rx="40" fill="url(#mid)"/>
+  <rect x="276" y="236" width="150" height="552" rx="40" fill="url(#ice)"/>
+  <rect x="406" y="236" width="20" height="552" rx="0" fill="url(#ice)"/>
+  <rect x="322" y="386" width="62" height="26" rx="12" fill="#05151F"/>
+  <rect x="322" y="608" width="62" height="26" rx="12" fill="#05151F"/>
+  <rect x="492" y="352" width="214" height="12" rx="6" fill="url(#ice)"/>
+  <rect x="492" y="470" width="214" height="12" rx="6" fill="url(#ice)"/>
+  <rect x="492" y="588" width="214" height="12" rx="6" fill="url(#ice)"/>
+  <rect x="492" y="706" width="214" height="12" rx="6" fill="url(#ice)"/>
+</svg>
