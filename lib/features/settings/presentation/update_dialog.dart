@@ -53,7 +53,50 @@ class _UpdateDialogState extends State<UpdateDialog> {
   bool _movedToBackground = false;
 
   @override
+  void initState() {
+    super.initState();
+    // 后台可能已经有一次同版本的下载在跑（用户之前点过「后台下载」）。
+    // 这时要**挂接**上去显示它的进度，而不是再发起一次——
+    // 再发起会有两个 dio.download 往同一个文件路径写。
+    final running = _versionService.activeDownload.value;
+    if (running != null &&
+        running.info.versionCode == widget.info.versionCode) {
+      _movedToBackground = true; // 这次下载归服务持有，弹窗关掉不许掐它
+      _cancelToken = running.cancelToken;
+      _isProcessing = true;
+      _progress = running.progress;
+      _statusText = _progressText(running.progress, running.speedText);
+      _versionService.activeDownload.addListener(_onBackgroundProgress);
+    }
+  }
+
+  String _progressText(double progress, String? speedText) {
+    final pct = (progress * 100).toStringAsFixed(1);
+    final speed =
+        (speedText != null && speedText.isNotEmpty) ? ' · $speedText' : '';
+    return '正在高速下载升级包... $pct%$speed';
+  }
+
+  /// 后台那次下载的进度推过来了
+  void _onBackgroundProgress() {
+    if (!mounted) return;
+    final running = _versionService.activeDownload.value;
+    setState(() {
+      if (running == null) {
+        // 服务把它清掉了，说明已经下完并唤起安装器
+        _progress = 1.0;
+        _isInstalledInvoked = true;
+        _statusText = '下载完成，已唤起系统安装器';
+      } else {
+        _progress = running.progress;
+        _statusText = _progressText(running.progress, running.speedText);
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _versionService.activeDownload.removeListener(_onBackgroundProgress);
     // 只有「用户主动取消」或「弹窗被意外销毁」才取消下载。
     // 以前这里无条件 cancel，而「后台下载」按钮就是 pop() 一下，
     // 于是点「后台下载」等于直接把下载掐了——按钮名字和行为完全相反。

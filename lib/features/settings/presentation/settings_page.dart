@@ -235,6 +235,16 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _checkAppUpdate() async {
     if (_isCheckingUpdate) return;
+
+    // 后台已经有一次下载在跑：直接把进度弹窗叫回来。
+    // 不能再走一遍远端检查——那会弹出一个「立即更新」，
+    // 用户点下去就是第二个 dio.download 往同一个文件里写。
+    final running = _versionService.activeDownload.value;
+    if (running != null) {
+      UpdateDialog.show(context, running.info);
+      return;
+    }
+
     setState(() => _isCheckingUpdate = true);
 
     try {
@@ -870,11 +880,26 @@ class _SettingsPageState extends State<SettingsPage> {
                                       color: colors.textPrimary,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13.5)),
-                              subtitle: Text(
-                                '当前 v${_versionService.currentVersionName} (旗舰引擎)',
-                                style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: colors.textSecondary),
+                              subtitle: ValueListenableBuilder<ActiveDownload?>(
+                                valueListenable: _versionService.activeDownload,
+                                builder: (_, running, __) {
+                                  // 后台下载没有任何界面痕迹的话，用户不会知道
+                                  // 还能点回来看进度
+                                  final text = running == null
+                                      ? '当前 v${_versionService.currentVersionName} (旗舰引擎)'
+                                      : '正在后台下载 '
+                                          '${(running.progress * 100).toStringAsFixed(0)}%'
+                                          '，点此查看进度';
+                                  return Text(
+                                    text,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: running == null
+                                          ? colors.textSecondary
+                                          : colors.accent,
+                                    ),
+                                  );
+                                },
                               ),
                               trailing: _isCheckingUpdate
                                   ? SizedBox(

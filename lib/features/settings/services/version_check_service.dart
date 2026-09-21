@@ -209,6 +209,36 @@ class AppVersionInfo {
 ///    - iOS：一键直跳 App Store (itms-apps://) 或 TestFlight，苹果系统覆盖升级天然无损保留数据；
 ///    - 鸿蒙（HarmonyOS NEXT）：唤起华为应用市场 (appmarket://) 或企业 HAP 独立升级；
 ///    - Web / Desktop：唤起外部浏览器直达发布中心。
+/// 正在后台跑的那次下载。
+///
+/// 点「后台下载」之后弹窗就销毁了，下载却还在跑。这个状态如果只住在
+/// 弹窗的 State 里，会有两个后果：用户再也看不到进度，只能干等安装器
+/// 自己弹出来；而且再点一次「检查更新 → 立即更新」会起**第二个**
+/// dio.download 往同一个文件路径写，两个写者抢一个文件，校验和多半对不上。
+///
+/// 所以下载状态归服务持有，弹窗只是挂接上来看一眼。
+class ActiveDownload {
+  final AppVersionInfo info;
+  final CancelToken cancelToken;
+  final double progress;
+  final String? speedText;
+
+  const ActiveDownload({
+    required this.info,
+    required this.cancelToken,
+    this.progress = 0.0,
+    this.speedText,
+  });
+
+  ActiveDownload copyWith({double? progress, String? speedText}) =>
+      ActiveDownload(
+        info: info,
+        cancelToken: cancelToken,
+        progress: progress ?? this.progress,
+        speedText: speedText ?? this.speedText,
+      );
+}
+
 class VersionCheckService {
   static final VersionCheckService _instance = VersionCheckService._internal();
   factory VersionCheckService() => _instance;
@@ -226,6 +256,12 @@ class VersionCheckService {
 
   @visibleForTesting
   set customDio(Dio dio) => _customDio = dio;
+
+  /// 后台正在跑的下载。弹窗关掉后由它继续持有，供重新打开时挂接。
+  final ValueNotifier<ActiveDownload?> activeDownload =
+      ValueNotifier<ActiveDownload?>(null);
+
+  bool get hasActiveDownload => activeDownload.value != null;
 
   /// 当前客户端版本号。
   ///
@@ -600,6 +636,29 @@ class VersionCheckService {
     required void Function(double progress, [String? speedText]) onProgress,
     CancelToken? cancelToken,
   }) async {
+    // 守卫放在最前面：同版本已经有一个在跑就直接返回，
+    // 绝不让第二个 dio.download 往同一个文件路径里写。
+    final running = activeDownload.value;
+    if (running != null && running.info.versionCode == info.versionCode) {
+      debugPrint('[VersionCheckService] 同版本下载已在进行中，不再重复发起');
+      return;
+    }
+
+    final token = cancelToken ?? CancelToken();
+    activeDownload.value = ActiveDownload(info: info, cancelToken: token);
+
+    try {
+      await _runDownload(info, onProgress: onProgress, cancelToken: token);
+    } finally {
+      activeDownload.value = null;
+    }
+  }
+
+  Future<void> _runDownload(
+    AppVersionInfo info, {
+    required void Function(double progress, [String? speedText]) onProgress,
+    required CancelToken cancelToken,
+  }) async {
     final tempDir = await getTemporaryDirectory();
     final fileName =
         'novel_reader_v${info.versionName}_${info.versionCode}.apk';
@@ -618,7 +677,7 @@ class VersionCheckService {
     final candidates = await raceCandidateUrls(rawCandidates);
 
     for (final url in candidates) {
-      if (cancelToken?.isCancelled == true) {
+      if (cancelToken.isCancelled) {
         return;
       }
       try {
@@ -650,7 +709,11 @@ class VersionCheckService {
               final speedStr = currentSpeedMB > 0.05
                   ? '${currentSpeedMB.toStringAsFixed(1)} MB/s'
                   : '';
-              onProgress(progress, speedStr.isNotEmpty ? speedStr : null);
+              final speed = speedStr.isNotEmpty ? speedStr : null;
+              // 同时更新对外可见的状态：弹窗关掉后，别处要靠它显示进度
+              activeDownload.value = activeDownload.value
+                  ?.copyWith(progress: progress, speedText: speed);
+              onProgress(progress, speed);
             }
           },
         );
@@ -672,7 +735,7 @@ class VersionCheckService {
         downloadSuccess = true;
         break;
       } catch (e) {
-        if (cancelToken?.isCancelled == true) {
+        if (cancelToken.isCancelled) {
           debugPrint('[VersionCheckService] 用户取消了下载: $e');
           return;
         }
@@ -680,7 +743,7 @@ class VersionCheckService {
       }
     }
 
-    if (cancelToken?.isCancelled == true) {
+    if (cancelToken.isCancelled) {
       return;
     }
 
