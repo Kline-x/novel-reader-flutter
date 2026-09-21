@@ -19,7 +19,12 @@ class MainActivity : FlutterActivity() {
     /** 文件选择是跨 Activity 的异步流程，结果要等到 onActivityResult 才有 */
     private var pendingPickResult: MethodChannel.Result? = null
 
+    /** 导出备份同理：用户选好落地位置后才能把临时文件写过去 */
+    private var pendingSaveResult: MethodChannel.Result? = null
+    private var pendingSaveSourcePath: String? = null
+
     private val REQ_PICK_BOOK = 0x7A01
+    private val REQ_SAVE_FILE = 0x7A02
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -28,7 +33,15 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PICKER_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "pickBookFile" -> openBookPicker(result)
+                    "pickBookFile" -> openBookPicker(
+                        result,
+                        call.argument<List<String>>("extensions")
+                    )
+                    "saveFile" -> saveFile(
+                        result,
+                        call.argument<String>("fileName"),
+                        call.argument<String>("sourcePath")
+                    )
                     else -> result.notImplemented()
                 }
             }
@@ -112,7 +125,26 @@ class MainActivity : FlutterActivity() {
      * 返回的 uri 不是文件系统路径，下游解析引擎直接 open 不了，
      * 所以复制进应用缓存目录再把落地路径回给 Dart。
      */
-    private fun openBookPicker(result: MethodChannel.Result) {
+    /** 按扩展名映射出选择器要放行的 MIME 类型 */
+    private fun mimeTypesFor(extensions: List<String>?): Array<String> {
+        // 不传扩展名时沿用原来的图书默认值
+        val exts = extensions ?: listOf("txt", "epub")
+        val mimes = LinkedHashSet<String>()
+        for (ext in exts) {
+            when (ext.removePrefix(".").lowercase()) {
+                "txt" -> mimes.add("text/plain")
+                "epub" -> mimes.add("application/epub+zip")
+                "zip" -> mimes.add("application/zip")
+                "json" -> mimes.add("application/json")
+            }
+        }
+        // 不少设备把 epub / zip 一律报成 octet-stream，不放行的话
+        // 用户在选择器里根本看不到自己的文件
+        mimes.add("application/octet-stream")
+        return mimes.toTypedArray()
+    }
+
+    private fun openBookPicker(result: MethodChannel.Result, extensions: List<String>?) {
         if (pendingPickResult != null) {
             result.error("BUSY", "another pick is in progress", null)
             return
@@ -121,22 +153,49 @@ class MainActivity : FlutterActivity() {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "*/*"
-                // epub 在部分设备上被识别成 octet-stream，一并放行，
-                // 否则用户在选择器里看不到自己的书
-                putExtra(
-                    Intent.EXTRA_MIME_TYPES,
-                    arrayOf(
-                        "text/plain",
-                        "application/epub+zip",
-                        "application/octet-stream"
-                    )
-                )
+                putExtra(Intent.EXTRA_MIME_TYPES, mimeTypesFor(extensions))
             }
             pendingPickResult = result
             startActivityForResult(intent, REQ_PICK_BOOK)
         } catch (e: Exception) {
             pendingPickResult = null
             result.error("PICK_FAILED", e.localizedMessage, null)
+        }
+    }
+
+    /**
+     * 让用户选一个落地位置，把 [sourcePath] 的文件写过去。
+     *
+     * 走 ACTION_CREATE_DOCUMENT 而不是直接往 Downloads 写：
+     * Android 10 起分区存储不允许应用随意写公共目录，
+     * 而且由用户自己决定存哪儿，导出的备份才找得回来。
+     */
+    private fun saveFile(
+        result: MethodChannel.Result,
+        fileName: String?,
+        sourcePath: String?
+    ) {
+        if (fileName.isNullOrEmpty() || sourcePath.isNullOrEmpty()) {
+            result.error("INVALID_ARGUMENT", "fileName and sourcePath are required", null)
+            return
+        }
+        if (pendingSaveResult != null) {
+            result.error("BUSY", "another save is in progress", null)
+            return
+        }
+        try {
+            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "application/zip"
+                putExtra(Intent.EXTRA_TITLE, fileName)
+            }
+            pendingSaveResult = result
+            pendingSaveSourcePath = sourcePath
+            startActivityForResult(intent, REQ_SAVE_FILE)
+        } catch (e: Exception) {
+            pendingSaveResult = null
+            pendingSaveSourcePath = null
+            result.error("SAVE_FAILED", e.localizedMessage, null)
         }
     }
 
@@ -154,6 +213,28 @@ class MainActivity : FlutterActivity() {
                 pending?.success(copyIntoCache(uri))
             } catch (e: Exception) {
                 pending?.error("COPY_FAILED", e.localizedMessage, null)
+            }
+            return
+        }
+        if (requestCode == REQ_SAVE_FILE) {
+            val pending = pendingSaveResult
+            val source = pendingSaveSourcePath
+            pendingSaveResult = null
+            pendingSaveSourcePath = null
+            val uri = data?.data
+            if (resultCode != Activity.RESULT_OK || uri == null || source == null) {
+                // 用户取消，返回 null 让 Dart 侧安静地什么都不做
+                pending?.success(null)
+                return
+            }
+            try {
+                contentResolver.openOutputStream(uri).use { output ->
+                    requireNotNull(output) { "cannot open target uri" }
+                    File(source).inputStream().use { input -> input.copyTo(output) }
+                }
+                pending?.success(queryDisplayName(uri) ?: uri.toString())
+            } catch (e: Exception) {
+                pending?.error("SAVE_FAILED", e.localizedMessage, null)
             }
             return
         }

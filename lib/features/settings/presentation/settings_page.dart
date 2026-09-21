@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/components/collapsing_header.dart';
 import '../../../core/components/ambient_mesh_background.dart';
 import '../../../core/components/soft_card.dart';
@@ -11,6 +15,7 @@ import '../../local_books/presentation/wifi_transfer_dialog.dart';
 import '../../../core/components/docked_bottom_bar.dart';
 import '../../reader/data/storage_service.dart';
 import '../../sync/presentation/webdav_config_sheet.dart';
+import '../services/backup_service.dart';
 import '../services/version_check_service.dart';
 import '../../sources/services/pinyin_rule_service.dart';
 import 'pinyin_rules_sheet.dart';
@@ -125,8 +130,121 @@ class _SettingsPageState extends State<SettingsPage> {
     WebDavConfigSheet.show(context);
   }
 
+  /// 宿主文件通道：选文件（导入）与存文件（导出）。三端都有实现，
+  /// 详见 test/platform_parity_test.dart 的对等门禁。
+  static const MethodChannel _fileChannel =
+      MethodChannel('com.kline.novelreader/file_picker');
+
+  final BackupService _backupService = BackupService();
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  /// 导出备份：打包 → 落到临时文件 → 交给系统保存选择器由用户决定存哪儿
+  Future<void> _exportBackup() async {
+    _toast('正在打包备份...');
+    try {
+      final bytes = await _backupService.exportToBytes();
+      final fileName = BackupService.suggestedFileName();
+      final tmp = await getTemporaryDirectory();
+      final staged = File('${tmp.path}/$fileName');
+      await staged.writeAsBytes(bytes);
+
+      final sizeText = '${(bytes.length / 1024 / 1024).toStringAsFixed(1)} MB';
+      try {
+        final saved = await _fileChannel.invokeMethod<String>('saveFile', {
+          'fileName': fileName,
+          'sourcePath': staged.path,
+        });
+        if (saved == null) return; // 用户取消，不打扰
+        _toast('备份已导出（$sizeText，不含 WebDAV 密码）');
+      } on MissingPluginException {
+        // 通道缺失时不能让用户白等一场，至少告诉他文件在哪
+        _toast('已生成备份（$sizeText），存于应用目录：${staged.path}');
+      }
+    } catch (e) {
+      _toast('导出失败：$e');
+    }
+  }
+
+  /// 导入备份：选 zip → 读概要让用户确认 → 恢复
+  Future<void> _importBackup() async {
+    String? picked;
+    try {
+      picked = await _fileChannel.invokeMethod<String>('pickBookFile', {
+        'extensions': ['zip'],
+      });
+    } on MissingPluginException {
+      _toast('当前平台暂不支持选择文件');
+      return;
+    } catch (e) {
+      _toast('打开文件选择器失败：$e');
+      return;
+    }
+    if (picked == null || picked.isEmpty) return; // 用户取消
+
+    final bytes = await File(picked).readAsBytes();
+    final summary = BackupService.peek(bytes);
+    if (summary == null) {
+      _toast('这不是一份有效的藏书阁备份');
+      return;
+    }
+    if (!mounted) return;
+
+    // 恢复会覆盖现有书架与进度，属于不可撤销操作，必须先让用户确认
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('导入这份备份？'),
+        content: Text(
+          '${summary.display}\n\n'
+          '导入后当前的书架、阅读进度与偏好会被备份里的内容覆盖，且无法撤销。',
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('btn_cancel_import_backup'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            key: const ValueKey('btn_confirm_import_backup'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('确认导入'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final result = await _backupService.importFromBytes(bytes);
+    if (!result.ok) {
+      _toast('导入失败：${result.error}');
+      return;
+    }
+    // WebDAV 密码没有进备份，恢复后要手动补，不提醒的话用户只会看到同步一直失败
+    _toast('已恢复 ${result.restoredKeys} 项设置与 ${result.restoredFiles} 个文件，'
+        '请重启应用生效；WebDAV 密码需重新填写');
+  }
+
   Future<void> _checkAppUpdate() async {
     if (_isCheckingUpdate) return;
+
+    // 后台已经有一次下载在跑：直接把进度弹窗叫回来。
+    // 不能再走一遍远端检查——那会弹出一个「立即更新」，
+    // 用户点下去就是第二个 dio.download 往同一个文件里写。
+    final running = _versionService.activeDownload.value;
+    if (running != null) {
+      UpdateDialog.show(context, running.info);
+      return;
+    }
+
     setState(() => _isCheckingUpdate = true);
 
     try {
@@ -640,6 +758,50 @@ class _SettingsPageState extends State<SettingsPage> {
                               thickness: 0.5,
                               color: colors.borderSubtle),
                           GestureDetector(
+                            key: const ValueKey('settings_export_backup_tile'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _exportBackup,
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Text('📦',
+                                  style: TextStyle(fontSize: 20.0)),
+                              title: Text('导出备份',
+                                  style: TextStyle(color: colors.textPrimary)),
+                              subtitle: Text('书架、进度、批注与本地书打包成一个文件（不含密码）',
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: colors.textSecondary)),
+                              trailing: Icon(Icons.arrow_forward_ios_rounded,
+                                  size: 14.0, color: colors.textSecondary),
+                            ),
+                          ),
+                          Divider(
+                              height: 1.0,
+                              thickness: 0.5,
+                              color: colors.borderSubtle),
+                          GestureDetector(
+                            key: const ValueKey('settings_import_backup_tile'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _importBackup,
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Text('📥',
+                                  style: TextStyle(fontSize: 20.0)),
+                              title: Text('导入备份',
+                                  style: TextStyle(color: colors.textPrimary)),
+                              subtitle: Text('从备份文件恢复，会覆盖当前数据',
+                                  style: TextStyle(
+                                      fontSize: 12.0,
+                                      color: colors.textSecondary)),
+                              trailing: Icon(Icons.arrow_forward_ios_rounded,
+                                  size: 14.0, color: colors.textSecondary),
+                            ),
+                          ),
+                          Divider(
+                              height: 1.0,
+                              thickness: 0.5,
+                              color: colors.borderSubtle),
+                          GestureDetector(
                             key: const ValueKey('settings_wifi_transfer_tile'),
                             behavior: HitTestBehavior.opaque,
                             onTap: () => WifiTransferDialog.show(context),
@@ -718,11 +880,26 @@ class _SettingsPageState extends State<SettingsPage> {
                                       color: colors.textPrimary,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13.5)),
-                              subtitle: Text(
-                                '当前 v${_versionService.currentVersionName} (旗舰引擎)',
-                                style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: colors.textSecondary),
+                              subtitle: ValueListenableBuilder<ActiveDownload?>(
+                                valueListenable: _versionService.activeDownload,
+                                builder: (_, running, __) {
+                                  // 后台下载没有任何界面痕迹的话，用户不会知道
+                                  // 还能点回来看进度
+                                  final text = running == null
+                                      ? '当前 v${_versionService.currentVersionName} (旗舰引擎)'
+                                      : '正在后台下载 '
+                                          '${(running.progress * 100).toStringAsFixed(0)}%'
+                                          '，点此查看进度';
+                                  return Text(
+                                    text,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: running == null
+                                          ? colors.textSecondary
+                                          : colors.accent,
+                                    ),
+                                  );
+                                },
                               ),
                               trailing: _isCheckingUpdate
                                   ? SizedBox(

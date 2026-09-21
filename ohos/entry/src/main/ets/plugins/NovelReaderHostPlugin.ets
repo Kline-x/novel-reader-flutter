@@ -79,7 +79,10 @@ export default class NovelReaderHostPlugin implements FlutterPlugin, AbilityAwar
         this.handleOpenUrl(call, result);
         break;
       case 'pickBookFile':
-        this.handlePickBookFile(result);
+        this.handlePickBookFile(call, result);
+        break;
+      case 'saveFile':
+        this.handleSaveFile(call, result);
         break;
       case 'installApk':
         // 鸿蒙不允许侧载：.hap 的 Profile 与设备 UDID 一对一绑定，
@@ -148,7 +151,7 @@ export default class NovelReaderHostPlugin implements FlutterPlugin, AbilityAwar
   /// 选择器给回来的是 file://docs/... 这类 uri，不是文件系统路径，
   /// 下游的 TxtParserEngine 直接拿它 open 不了。这里复制一份进沙箱再返回，
   /// 后续导入逻辑完全不用改。
-  private handlePickBookFile(result: MethodResult): void {
+  private handlePickBookFile(call: MethodCall, result: MethodResult): void {
     const context = this.abilityContext;
     if (context === null) {
       result.error('NO_CONTEXT', 'ability context is not ready', null);
@@ -157,7 +160,11 @@ export default class NovelReaderHostPlugin implements FlutterPlugin, AbilityAwar
 
     const options = new picker.DocumentSelectOptions();
     options.maxSelectNumber = 1;
-    options.fileSuffixFilters = ['.txt', '.epub'];
+    // 不传扩展名时沿用原来的图书默认值；备份导入要的是 .zip
+    const exts = call.argument('extensions') as Array<string>;
+    options.fileSuffixFilters = (exts && exts.length > 0)
+      ? exts.map((e: string) => e.startsWith('.') ? e : `.${e}`)
+      : ['.txt', '.epub'];
 
     const documentPicker = new picker.DocumentViewPicker(context);
     documentPicker.select(options).then((uris: Array<string>) => {
@@ -176,6 +183,60 @@ export default class NovelReaderHostPlugin implements FlutterPlugin, AbilityAwar
     }).catch((err: BusinessError) => {
       Log.e(TAG, `pickBookFile failed: ${err.code} ${err.message}`);
       result.error('PICK_FAILED', err.message, null);
+    });
+  }
+
+  /// 让用户选一个落地位置，把 sourcePath 的文件导出过去。
+  ///
+  /// 鸿蒙应用同样写不到沙箱外，只能交给系统的 DocumentViewPicker.save()
+  /// 由用户决定放哪儿——和 Android 的 ACTION_CREATE_DOCUMENT、
+  /// iOS 的 forExporting 是同一套思路。
+  private handleSaveFile(call: MethodCall, result: MethodResult): void {
+    const context = this.abilityContext;
+    if (context === null) {
+      result.error('NO_CONTEXT', 'ability context is not ready', null);
+      return;
+    }
+    const fileName = call.argument('fileName') as string;
+    const sourcePath = call.argument('sourcePath') as string;
+    if (!fileName || !sourcePath) {
+      result.error('INVALID_ARGUMENT', 'fileName and sourcePath are required', null);
+      return;
+    }
+
+    const options = new picker.DocumentSaveOptions();
+    options.newFileNames = [fileName];
+
+    const documentPicker = new picker.DocumentViewPicker(context);
+    documentPicker.save(options).then((uris: Array<string>) => {
+      if (!uris || uris.length === 0) {
+        // 用户取消，返回 null 让 Dart 侧安静地什么都不做
+        result.success(null);
+        return;
+      }
+      let src: fs.File | null = null;
+      let dest: fs.File | null = null;
+      try {
+        src = fs.openSync(sourcePath, fs.OpenMode.READ_ONLY);
+        dest = fs.openSync(uris[0], fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+        fs.copyFileSync(src.fd, dest.fd);
+        Log.i(TAG, `backup exported to ${uris[0]}`);
+        result.success(fileName);
+      } catch (err) {
+        const e = err as BusinessError;
+        Log.e(TAG, `saveFile copy failed: ${e.code} ${e.message}`);
+        result.error('SAVE_FAILED', e.message, null);
+      } finally {
+        if (src !== null) {
+          fs.closeSync(src);
+        }
+        if (dest !== null) {
+          fs.closeSync(dest);
+        }
+      }
+    }).catch((err: BusinessError) => {
+      Log.e(TAG, `saveFile failed: ${err.code} ${err.message}`);
+      result.error('SAVE_FAILED', err.message, null);
     });
   }
 
