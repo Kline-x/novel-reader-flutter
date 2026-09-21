@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.72" y2="1">
+      <stop offset="0" stop-color="#14486A"/>
+      <stop offset="0.55" stop-color="#0B2B41"/>
+      <stop offset="1" stop-color="#05151F"/>
+    </linearGradient>
+    <linearGradient id="bgSolid" x1="0" y1="0" x2="0.72" y2="1">
+      <stop offset="0" stop-color="#9FE4FF"/>
+      <stop offset="1" stop-color="#2E9FDC"/>
+    </linearGradient>
+    <linearGradient id="ice" gradientUnits="userSpaceOnUse" x1="512" y1="200" x2="512" y2="824">
+      <stop offset="0" stop-color="#EAFBFF"/>
+      <stop offset="1" stop-color="#6FD3F9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g transform="translate(216.0 216.0) scale(24.6667)" fill="none" stroke="url(#ice)" stroke-width="2.45" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 5v16" />
+      <path d="M16 13h2" />
+      <path d="M16 9h2" />
+      <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" />
+      <path d="M6 13h2" />
+      <path d="M6 9h2" />
+  </g>
+</svg>
