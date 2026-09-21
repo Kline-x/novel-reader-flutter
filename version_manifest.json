@@ -1,40 +1,40 @@
 {
-  "versionCode": 4009,
+  "versionCode": 6009,
   "versionName": "1.0.11",
   "publishDate": "2026-09-21",
   "releaseNotes": "1、新增备份导出与导入：书架、进度、批注与本地书打包成一个文件，导出不含 WebDAV 密码；\n2、「后台下载」修复：转入后台后下载不再被掐断，且可随时点回查看进度；\n3、更新下载不会再被重复发起。",
   "isForceUpdate": false,
   "platforms": {
     "android": {
-      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-arm64-v8a.apk",
-      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-arm64-v8a.apk",
-      "fileSize": 22837537,
+      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-arm64-v8a.apk",
+      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-arm64-v8a.apk",
+      "fileSize": 22968609,
       "installMode": "in_app_apk",
       "variants": {
         "arm64-v8a": {
-          "versionCode": 6008,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-arm64-v8a.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-arm64-v8a.apk",
-          "fileSize": 22837537,
-          "sha256": "1ae3db78875ac0e9d2b1f198f158ed2539bb0bd96bc12bac67bd00bd9c4cbc56"
+          "versionCode": 6009,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-arm64-v8a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-arm64-v8a.apk",
+          "fileSize": 22968609,
+          "sha256": "1b801a3bff40d0c3c9f237f24dc6aebef7be0d8b6853d2ee94f7a421f5d4dd5e"
         },
         "armeabi-v7a": {
-          "versionCode": 5008,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-armeabi-v7a.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-armeabi-v7a.apk",
-          "fileSize": 21491437,
-          "sha256": "f2f4f23739e2583989469a5e482bac8675f8ecdc86fb3fb668fa632345b95c8b"
+          "versionCode": 5009,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-armeabi-v7a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-armeabi-v7a.apk",
+          "fileSize": 21638893,
+          "sha256": "f1e5584f326afb2d053eafb58ca93803d1f9c6bd3dc6660751520e708e013fe2"
         },
         "x86_64": {
-          "versionCode": 8008,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-x86_64.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.10/novel-reader-x86_64.apk",
-          "fileSize": 24059165,
-          "sha256": "7d68c8f244128dc6ae154b9b68d291ba2c529b771515f179c8d42a1beb3cb728"
+          "versionCode": 8009,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-x86_64.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.11/novel-reader-x86_64.apk",
+          "fileSize": 24190237,
+          "sha256": "d7e645be7a614e8fae32abd7b5f3ec168bc2fcf895926b6192e1515cf579e405"
         }
       },
-      "sha256": "1ae3db78875ac0e9d2b1f198f158ed2539bb0bd96bc12bac67bd00bd9c4cbc56",
-      "versionCode": 6008
+      "sha256": "1b801a3bff40d0c3c9f237f24dc6aebef7be0d8b6853d2ee94f7a421f5d4dd5e",
+      "versionCode": 6009
     },
     "ios": {
       "storeUrl": "itms-apps://itunes.apple.com/app/id6478901234",
