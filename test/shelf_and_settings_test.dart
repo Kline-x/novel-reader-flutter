@@ -264,16 +264,18 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tab_settings')));
       await tester.pumpAndSettle();
 
-      // 验证真实初始缓存大小
-      expect(find.textContaining(expectedInitial), findsOneWidget);
-
-      // 设置页改用折叠标题后内容整体下移，按钮可能落在视口外，先滚到可见
+      // 设置页改用折叠标题后内容整体下移，按钮可能落在视口外，先滚到可见。
+      // 缓存大小的断言必须放在滚动**之后**：CustomScrollView 是懒构建的，
+      // 视口外的那一段压根没建出来，先断言只会扑空。
       await tester.dragUntilVisible(
         find.byKey(const ValueKey('btn_clear_cache')),
         find.byType(CustomScrollView),
         const Offset(0.0, -120.0),
       );
       await tester.pumpAndSettle();
+
+      // 验证真实初始缓存大小
+      expect(find.textContaining(expectedInitial), findsOneWidget);
 
       // 点击清理缓存按钮唤起弹窗
       await tester.tap(find.byKey(const ValueKey('btn_clear_cache')));

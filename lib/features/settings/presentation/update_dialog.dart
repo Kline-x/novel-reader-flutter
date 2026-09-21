@@ -6,6 +6,17 @@ import '../../../core/components/soft_button.dart';
 import '../../../core/theme/soft_theme.dart';
 import '../services/version_check_service.dart';
 
+/// 弹窗被 pop 时是否该把正在跑的下载一并取消。
+///
+/// 「后台下载」按钮的实现就是 `Navigator.pop()` 收起弹窗，而 `PopScope` 的
+/// `onPopInvokedWithResult` 对**任何** pop 都会触发，分不清这次 pop 是
+/// 用户按返回键还是转入后台——不区分就会出现「点后台下载 = 取消下载」。
+bool shouldCancelDownloadOnPop({
+  required bool isProcessing,
+  required bool movedToBackground,
+}) =>
+    isProcessing && !movedToBackground;
+
 /// Modern Soft UI 极具科技感与温度的跨端新版本更新弹窗
 class UpdateDialog extends StatefulWidget {
   final AppVersionInfo info;
@@ -46,7 +57,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
     // 只有「用户主动取消」或「弹窗被意外销毁」才取消下载。
     // 以前这里无条件 cancel，而「后台下载」按钮就是 pop() 一下，
     // 于是点「后台下载」等于直接把下载掐了——按钮名字和行为完全相反。
-    if (!_movedToBackground) {
+    if (shouldCancelDownloadOnPop(
+      isProcessing: _isProcessing,
+      movedToBackground: _movedToBackground,
+    )) {
       _cancelToken?.cancel('弹窗销毁');
     }
     super.dispose();
@@ -175,7 +189,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
     return PopScope(
       canPop: !widget.info.isForceUpdate,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop && _isProcessing) {
+        if (didPop &&
+            shouldCancelDownloadOnPop(
+              isProcessing: _isProcessing,
+              movedToBackground: _movedToBackground,
+            )) {
           _cancelToken?.cancel('物理返回退出弹窗');
         }
       },

@@ -10,6 +10,9 @@ import UniformTypeIdentifiers
   /// 文件选择是异步的，结果要等到 delegate 回调才有
   private var pendingPickResult: FlutterResult?
 
+  /// 导出备份走的是同一套 delegate，用这个区分「这次是选文件还是存文件」
+  private var pendingSaveResult: FlutterResult?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -78,11 +81,26 @@ import UniformTypeIdentifiers
       binaryMessenger: registrar.messenger()
     )
     channel.setMethodCallHandler { [weak self] call, result in
-      guard call.method == "pickBookFile" else {
+      let args = call.arguments as? [String: Any]
+      switch call.method {
+      case "pickBookFile":
+        self?.presentBookPicker(result, extensions: args?["extensions"] as? [String])
+      case "saveFile":
+        guard
+          let fileName = args?["fileName"] as? String,
+          let sourcePath = args?["sourcePath"] as? String
+        else {
+          result(FlutterError(
+            code: "INVALID_ARGUMENT",
+            message: "fileName and sourcePath are required",
+            details: nil
+          ))
+          return
+        }
+        self?.presentSavePicker(result, fileName: fileName, sourcePath: sourcePath)
+      default:
         result(FlutterMethodNotImplemented)
-        return
       }
-      self?.presentBookPicker(result)
     }
   }
 
@@ -91,8 +109,8 @@ import UniformTypeIdentifiers
   /// 选中的 URL 是安全作用域资源，不能直接交给解析引擎；
   /// 这里复制进 Documents/imported 再把落地路径回给 Dart，
   /// 与 Android / 鸿蒙两侧的行为保持一致。
-  private func presentBookPicker(_ result: @escaping FlutterResult) {
-    if pendingPickResult != nil {
+  private func presentBookPicker(_ result: @escaping FlutterResult, extensions: [String]?) {
+    if pendingPickResult != nil || pendingSaveResult != nil {
       result(FlutterError(code: "BUSY", message: "another pick is in progress", details: nil))
       return
     }
@@ -101,23 +119,83 @@ import UniformTypeIdentifiers
       return
     }
 
+    // 不传扩展名时沿用原来的图书默认值
+    let exts = extensions ?? ["txt", "epub"]
     let picker: UIDocumentPickerViewController
     if #available(iOS 14.0, *) {
-      var types: [UTType] = [.plainText]
-      if let epub = UTType(filenameExtension: "epub") {
-        types.append(epub)
+      var types: [UTType] = []
+      for ext in exts {
+        let clean = ext.hasPrefix(".") ? String(ext.dropFirst()) : ext
+        switch clean.lowercased() {
+        case "txt": types.append(.plainText)
+        case "zip": types.append(.zip)
+        case "json": types.append(.json)
+        default:
+          if let t = UTType(filenameExtension: clean) { types.append(t) }
+        }
       }
+      if types.isEmpty { types = [.data] }
       picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: true)
     } else {
-      picker = UIDocumentPickerViewController(
-        documentTypes: ["public.plain-text", "org.idpf.epub-container"],
-        in: .import
-      )
+      var types: [String] = []
+      for ext in exts {
+        switch ext.replacingOccurrences(of: ".", with: "").lowercased() {
+        case "txt": types.append("public.plain-text")
+        case "epub": types.append("org.idpf.epub-container")
+        case "zip": types.append("public.zip-archive")
+        default: types.append("public.data")
+        }
+      }
+      picker = UIDocumentPickerViewController(documentTypes: types, in: .import)
     }
     picker.allowsMultipleSelection = false
     picker.delegate = self
 
     pendingPickResult = result
+    root.present(picker, animated: true)
+  }
+
+  /// 让用户选一个落地位置，把 [sourcePath] 的文件导出过去。
+  ///
+  /// iOS 应用写不到沙箱外，只能把文件交给系统的导出选择器，
+  /// 由用户决定放进「文件」App 的哪个位置——和 Android 的
+  /// ACTION_CREATE_DOCUMENT、鸿蒙的 DocumentSaveOptions 是同一套思路。
+  private func presentSavePicker(
+    _ result: @escaping FlutterResult,
+    fileName: String,
+    sourcePath: String
+  ) {
+    if pendingPickResult != nil || pendingSaveResult != nil {
+      result(FlutterError(code: "BUSY", message: "another save is in progress", details: nil))
+      return
+    }
+    guard let root = window?.rootViewController else {
+      result(FlutterError(code: "NO_ROOT_VC", message: "root view controller is nil", details: nil))
+      return
+    }
+
+    // 导出选择器用的是源文件的文件名，所以先在临时目录按目标名做一份副本
+    let fm = FileManager.default
+    let staged = fm.temporaryDirectory.appendingPathComponent(fileName)
+    do {
+      if fm.fileExists(atPath: staged.path) {
+        try fm.removeItem(at: staged)
+      }
+      try fm.copyItem(at: URL(fileURLWithPath: sourcePath), to: staged)
+    } catch {
+      result(FlutterError(code: "SAVE_FAILED", message: error.localizedDescription, details: nil))
+      return
+    }
+
+    let picker: UIDocumentPickerViewController
+    if #available(iOS 14.0, *) {
+      picker = UIDocumentPickerViewController(forExporting: [staged], asCopy: true)
+    } else {
+      picker = UIDocumentPickerViewController(url: staged, in: .exportToService)
+    }
+    picker.delegate = self
+
+    pendingSaveResult = result
     root.present(picker, animated: true)
   }
 
@@ -148,6 +226,13 @@ extension AppDelegate: UIDocumentPickerDelegate {
     _ controller: UIDocumentPickerViewController,
     didPickDocumentsAt urls: [URL]
   ) {
+    // 导出选择器完成时走的也是这个回调，此时不该再去复制文件
+    if let saveResult = pendingSaveResult {
+      pendingSaveResult = nil
+      saveResult(urls.first?.lastPathComponent ?? "")
+      return
+    }
+
     let result = pendingPickResult
     pendingPickResult = nil
     guard let url = urls.first else {
@@ -163,6 +248,11 @@ extension AppDelegate: UIDocumentPickerDelegate {
 
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
     // 用户取消，返回 nil 让 Dart 侧安静地什么都不做
+    if let saveResult = pendingSaveResult {
+      pendingSaveResult = nil
+      saveResult(nil)
+      return
+    }
     let result = pendingPickResult
     pendingPickResult = nil
     result?(nil)

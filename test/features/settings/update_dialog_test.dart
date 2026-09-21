@@ -100,4 +100,29 @@ void main() {
 
     expect(find.text('发现新版本'), findsNothing);
   });
+
+  group('后台下载不能把下载掐掉', () {
+    // 「后台下载」按钮的行为就是 Navigator.pop() 一下把弹窗收起来，
+    // 而 PopScope 的 onPopInvokedWithResult 对**任何** pop 都会触发，
+    // 分不清这次 pop 是用户返回还是转入后台。
+    // 上一轮只在 dispose() 里加了判断，漏了 PopScope 这条路，
+    // 于是点「后台下载」依然等于取消下载——真机上表现为「后台更新还是不行」。
+    test('转入后台时不取消，其余情况照常取消', () {
+      expect(
+        shouldCancelDownloadOnPop(isProcessing: true, movedToBackground: true),
+        isFalse,
+        reason: '点「后台下载」必须让下载继续跑完',
+      );
+      expect(
+        shouldCancelDownloadOnPop(isProcessing: true, movedToBackground: false),
+        isTrue,
+        reason: '物理返回 / 点遮罩退出弹窗，仍应取消下载',
+      );
+      expect(
+        shouldCancelDownloadOnPop(isProcessing: false, movedToBackground: false),
+        isFalse,
+        reason: '压根没在下载，没有可取消的东西',
+      );
+    });
+  });
 }
