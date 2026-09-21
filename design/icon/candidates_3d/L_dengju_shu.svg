@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.72" y2="1">
+      <stop offset="0" stop-color="#14486A"/>
+      <stop offset="0.55" stop-color="#0B2B41"/>
+      <stop offset="1" stop-color="#05151F"/>
+    </linearGradient>
+    <linearGradient id="fTop" gradientUnits="userSpaceOnUse" x1="512" y1="140" x2="512" y2="760">
+      <stop offset="0" stop-color="#EAFBFF"/><stop offset="1" stop-color="#A8E7FF"/>
+    </linearGradient>
+    <linearGradient id="fLeft" gradientUnits="userSpaceOnUse" x1="512" y1="220" x2="512" y2="900">
+      <stop offset="0" stop-color="#6FD3F9"/><stop offset="1" stop-color="#3CACE6"/>
+    </linearGradient>
+    <linearGradient id="fRight" gradientUnits="userSpaceOnUse" x1="512" y1="220" x2="512" y2="900">
+      <stop offset="0" stop-color="#2F90CB"/><stop offset="1" stop-color="#1B6497"/>
+    </linearGradient>
+    <linearGradient id="fBack" gradientUnits="userSpaceOnUse" x1="512" y1="220" x2="512" y2="900">
+      <stop offset="0" stop-color="#1D6EA3"/><stop offset="1" stop-color="#134C72"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#EAFBFF" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#7FDCFF" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#7FDCFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cone" gradientUnits="userSpaceOnUse" x1="512" y1="438" x2="512" y2="806">
+      <stop offset="0" stop-color="#EAFBFF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#7FDCFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#01080D" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#01080D" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <ellipse cx="512" cy="860" rx="250" ry="40" fill="url(#shadow)"/>
+  <polygon points="262.0,536.0 512.0,676.0 512.0,780.0 262.0,640.0" fill="url(#fLeft)"/>
+  <polygon points="762.0,536.0 512.0,676.0 512.0,780.0 762.0,640.0" fill="url(#fRight)"/>
+  <polygon points="512.0,396.0 762.0,536.0 512.0,676.0 262.0,536.0" fill="url(#fTop)"/>
+  <path d="M 512 700 L 762 560" stroke="#0B2B41" stroke-width="9" stroke-opacity="0.35" stroke-linecap="round"/>
+  <path d="M 512 724 L 762 584" stroke="#0B2B41" stroke-width="9" stroke-opacity="0.35" stroke-linecap="round"/>
+  <path d="M 512 748 L 762 608" stroke="#0B2B41" stroke-width="9" stroke-opacity="0.35" stroke-linecap="round"/>
+  <polygon points="462.0,424.0 712.0,564.0 677.0,583.6 427.0,443.6" fill="url(#fLeft)"/>
+</svg>
