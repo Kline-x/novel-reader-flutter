@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_reader_flutter/features/settings/services/backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -222,5 +223,55 @@ void main() {
       BackupService.suggestedFileName(DateTime(2026, 9, 21, 14, 30)),
       '藏书阁备份_20260921_1430.zip',
     );
+  });
+
+  group('凭据不进备份', () {
+    // 备份是个用户会随手丢进网盘、发给自己的文件。
+    // WebDAV 密码明文躺在里面，等于把云盘账号一起交出去。
+    test('WebDAV 的账号密码被抹掉，服务器地址等非敏感项保留', () {
+      final raw = jsonEncode({
+        'serverUrl': 'https://dav.example.com',
+        'username': 'reader',
+        'password': 's3cr3t',
+        'remotePath': '/novel_reader',
+        'autoSync': true,
+      });
+      final out = redactCredentials('novel_reader_webdav_config', raw) as String;
+      final m = jsonDecode(out) as Map<String, Object?>;
+      expect(m['password'], '');
+      expect(m['username'], '');
+      expect(m['serverUrl'], 'https://dav.example.com',
+          reason: '服务器地址不是凭据，抹掉它只会让恢复后还得重新翻一遍网盘设置');
+      expect(m['remotePath'], '/novel_reader');
+      expect(m['autoSync'], true);
+    });
+
+    test('非凭据键原样返回', () {
+      expect(redactCredentials('novel_reader_global_theme', 'dark'), 'dark');
+    });
+
+    test('凭据键的内容解析不了就整个丢弃，不原样带走', () {
+      expect(redactCredentials('novel_reader_webdav_config', '不是 JSON'), isNull);
+    });
+
+    test('导出的备份里搜不到密码原文', () async {
+      final dir = Directory('${tmpRoot.path}/cred')..createSync();
+      final prefs = await prefsWith({
+        'novel_reader_webdav_config': jsonEncode({
+          'serverUrl': 'https://dav.example.com',
+          'username': 'reader',
+          'password': 'hunter2-should-not-leak',
+        }),
+      });
+      final bytes =
+          await BackupService(prefs: prefs, docDir: dir).exportToBytes();
+      // zip 是压缩过的，直接搜字节不可靠——解出清单来搜
+      final archive = ZipDecoder().decodeBytes(bytes);
+      final manifest = archive.files
+          .firstWhere((f) => f.name == BackupService.manifestName);
+      final text = utf8.decode(manifest.content as List<int>);
+      expect(text, isNot(contains('hunter2-should-not-leak')));
+      expect(text, contains('dav.example.com'));
+    });
   });
 }

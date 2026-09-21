@@ -48,6 +48,19 @@ class BackupService {
   Future<Directory> _docDir() async =>
       _injectedDocDir ?? await getApplicationDocumentsDirectory();
 
+  /// 存着凭据的键。备份是个用户会随手丢进网盘、发给自己的文件，
+  /// 密码明文躺在里面等于把云盘账号一起交出去。
+  static const Set<String> credentialKeys = <String>{
+    'novel_reader_webdav_config',
+  };
+
+  /// 这些字段导出时抹掉。服务器地址、远程路径不算凭据，抹了只会让
+  /// 恢复后还得重新翻一遍网盘设置。
+  static const Set<String> credentialFields = <String>{
+    'username',
+    'password',
+  };
+
   /// 打包出一份完整备份
   Future<Uint8List> exportToBytes() async {
     final prefs = await _prefs();
@@ -56,7 +69,9 @@ class BackupService {
     final data = <String, Object?>{};
     for (final key in prefs.getKeys()) {
       if (!isBackupKey(key)) continue;
-      data[key] = prefs.get(key);
+      final value = redactCredentials(key, prefs.get(key));
+      if (value == null) continue; // 抹不干净的整项丢弃
+      data[key] = value;
     }
 
     final archive = Archive();
@@ -221,6 +236,27 @@ class BackupService {
     return '藏书阁备份_${t.year}${two(t.month)}${two(t.day)}_'
         '${two(t.hour)}${two(t.minute)}.zip';
   }
+}
+
+/// 导出前抹掉凭据字段。
+///
+/// 返回 null 表示这一项整个不要——内容解析不了就说明抹不干净，
+/// 这种情况下宁可少恢复一项，也不能把看不懂的东西原样带出去。
+Object? redactCredentials(String key, Object? value) {
+  if (!BackupService.credentialKeys.contains(key)) return value;
+  if (value is! String) return value;
+  Object? decoded;
+  try {
+    decoded = jsonDecode(value);
+  } catch (_) {
+    return null;
+  }
+  if (decoded is! Map) return null;
+  final map = Map<String, Object?>.from(decoded);
+  for (final field in BackupService.credentialFields) {
+    if (map.containsKey(field)) map[field] = '';
+  }
+  return jsonEncode(map);
 }
 
 /// 该键是否属于备份范围

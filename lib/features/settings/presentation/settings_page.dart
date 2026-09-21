@@ -164,7 +164,7 @@ class _SettingsPageState extends State<SettingsPage> {
           'sourcePath': staged.path,
         });
         if (saved == null) return; // 用户取消，不打扰
-        _toast('备份已导出（$sizeText）');
+        _toast('备份已导出（$sizeText，不含 WebDAV 密码）');
       } on MissingPluginException {
         // 通道缺失时不能让用户白等一场，至少告诉他文件在哪
         _toast('已生成备份（$sizeText），存于应用目录：${staged.path}');
@@ -228,7 +228,9 @@ class _SettingsPageState extends State<SettingsPage> {
       _toast('导入失败：${result.error}');
       return;
     }
-    _toast('已恢复 ${result.restoredKeys} 项设置与 ${result.restoredFiles} 个文件，请重启应用生效');
+    // WebDAV 密码没有进备份，恢复后要手动补，不提醒的话用户只会看到同步一直失败
+    _toast('已恢复 ${result.restoredKeys} 项设置与 ${result.restoredFiles} 个文件，'
+        '请重启应用生效；WebDAV 密码需重新填写');
   }
 
   Future<void> _checkAppUpdate() async {
@@ -755,7 +757,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   style: TextStyle(fontSize: 20.0)),
                               title: Text('导出备份',
                                   style: TextStyle(color: colors.textPrimary)),
-                              subtitle: Text('书架、进度、批注与本地书打包成一个文件',
+                              subtitle: Text('书架、进度、批注与本地书打包成一个文件（不含密码）',
                                   style: TextStyle(
                                       fontSize: 12.0,
                                       color: colors.textSecondary)),
