@@ -7,6 +7,7 @@ import '../models/source_rule.dart';
 import 'builtin_sources.dart';
 import 'network_client.dart';
 import 'pinyin_harmonizer.dart';
+import '../../reader/engine/cjk_punctuation.dart';
 
 /// 书源与规则解析引擎 (source_parser.dart)
 /// 解析 SourceRule，实现 searchBooks、fetchToc、fetchChapterContent
@@ -367,6 +368,27 @@ class SourceParser {
       if (line.length < 6 && originalLength - line.length > 0) continue;
       if (line.isEmpty) continue;
 
+      // 1c) 过滤纯标点/纯符号噪点行（如原网页残余实体 &middot;; 列表符 • ；、纯符号分隔线等无有效文字的行）
+      final strippedPunctuation =
+          line.replaceAll(RegExp(r'[\s·；;:,.，、。！？!?…~—\-_*#•●○■□◆◇\u2000-\u200f\u2028\u2029\ufeff]+'), '');
+      if (strippedPunctuation.isEmpty) continue;
+      if (!RegExp(r'[\u4e00-\u9fa5a-zA-Z0-9]').hasMatch(line)) continue;
+
+      // 1d) 西方人名中间间隔号变异自愈（如原网页 &middot;; 或 &bull;; 转码后留下的「杜维 • ； 罗林」自愈为「杜维·罗林」）
+      line = line.replaceAllMapped(
+        RegExp(r'(?<=[\u4e00-\u9fa5a-zA-Z])\s*[•·・]\s*[;；]?\s*(?=[\u4e00-\u9fa5a-zA-Z])'),
+        (m) => '·',
+      );
+
+      // 1e) 过滤残余 HTML 数字实体及变形实体（如「※#61618;」或「&#61618;」等源网残留噪点）
+      line = line.replaceAll(RegExp(r'[※&]#[0-9a-zA-Z]+;?'), '');
+      line = line.replaceAll(RegExp(r'^[※&]#\s*'), '');
+
+      // 1f) 清洗段首裸冒号噪点（如「：各族内讧……」自愈为「各族内讧……」）
+      if (line.startsWith('：') || line.startsWith(':')) {
+        line = line.substring(1).trimLeft();
+      }
+
       // 2) 强特征：命中即整行丢弃
       if (_hardNoisePatterns.any((p) => p.hasMatch(line))) continue;
 
@@ -392,13 +414,24 @@ class SourceParser {
           RegExp(r'''[^。！？!?…]*[。！？!?…]+[”"’'」』]?|[^。！？!?…]+$''');
       final matches = sentenceRegex.allMatches(line);
       final buffer = StringBuffer();
+      int quoteBalance = 0; // 追踪当前是否在未闭合引语作用域中
 
       for (final m in matches) {
         final sentence = m.group(0) ?? '';
+        for (int i = 0; i < sentence.length; i++) {
+          final c = sentence[i];
+          if (c == '“' || c == '「' || c == '『') {
+            quoteBalance++;
+          } else if (c == '”' || c == '」' || c == '』') {
+            if (quoteBalance > 0) quoteBalance--;
+          }
+        }
         buffer.write(sentence);
 
-        // 当当前段落累积超过 180 字且以完整句末标点结尾，断为新自然段
+        // 当当前段落累积超过 180 字且以完整句末标点结尾，
+        // 且必须不在未闭合的引语内部（quoteBalance == 0），杜绝劈开引语导致下半段只有结尾引号
         if (buffer.length >= 180 &&
+            quoteBalance == 0 &&
             RegExp(r'''[。！？!?…][”"’'」』]?$''')
                 .hasMatch(buffer.toString().trim())) {
           result.add(buffer.toString().trim());
@@ -415,7 +448,10 @@ class SourceParser {
     }
 
     // 4. 智能拼音敏感词自愈脱敏：自愈盗版书源中替换的拼音词与语境单字
-    return PinyinHarmonizer.restoreParagraphs(result);
+    final restored = PinyinHarmonizer.restoreParagraphs(result);
+
+    // 5. 段落级智能标点自愈：消除只有结尾引号无开头、冒号漏前引号、倒置引号与孤立尾部引号
+    return restored.map(CjkPunctuation.harmonizeQuotes).toList();
   }
 
   /// 依据 RuleSelector 提取节点对应属性或文本

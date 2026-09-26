@@ -95,3 +95,6 @@ downloaded_apks/
 android/key.properties
 *.jks
 *.keystore
+
+# Evidence screenshots
+docs/evidence/*.png

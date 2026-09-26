@@ -1,3 +1,4 @@
+import '../../sources/services/pinyin_harmonizer.dart';
 import 'cjk_punctuation.dart';
 import 'page_models.dart';
 
@@ -33,7 +34,17 @@ class ReaderLayoutEngine {
     return fontSize + letterSpacing;
   }
 
-  /// 将单个段落拆解为符合可用宽度的完整行集合（含避头避尾）
+  static bool _isWordChar(String char) {
+    if (char.isEmpty) return false;
+    final code = char.codeUnitAt(0);
+    return (code >= 65 && code <= 90) ||
+        (code >= 97 && code <= 122) ||
+        (code >= 48 && code <= 57) ||
+        code == 45 ||
+        code == 95;
+  }
+
+  /// 将单个段落拆解为符合可用宽度的完整行集合（含出版级避头避尾、标点悬挂与英文Word-wrap）
   static List<PageLineItem> splitParagraphToLines({
     required String rawParagraph,
     required int paragraphIndex,
@@ -42,7 +53,8 @@ class ReaderLayoutEngine {
     required double letterSpacing,
     required int globalCharOffsetStart,
   }) {
-    final para = CjkPunctuation.normalizeParagraph(rawParagraph);
+    final restored = PinyinHarmonizer.restorePinyin(rawParagraph);
+    final para = CjkPunctuation.normalizeParagraph(restored);
     if (para.isEmpty) return [];
 
     final lines = <PageLineItem>[];
@@ -50,86 +62,141 @@ class ReaderLayoutEngine {
     double currentLineWidth = 0;
     int lineIndexInPara = 0;
     int lineStartOffset = globalCharOffsetStart;
-    int curCharOffset = globalCharOffsetStart;
+
+    void commitLine(String text, {required bool isLast}) {
+      final trimmed = text.trimRight();
+      if (trimmed.isEmpty) return;
+      lines.add(PageLineItem(
+        text: trimmed,
+        paragraphIndex: paragraphIndex,
+        lineIndexInPara: lineIndexInPara++,
+        isFirstLineOfPara: lines.isEmpty,
+        isLastLineOfPara: isLast,
+        charStart: lineStartOffset,
+        charEnd: lineStartOffset + trimmed.length,
+      ));
+      lineStartOffset += trimmed.length;
+    }
+
+    double measureString(String str) {
+      double w = 0;
+      for (int i = 0; i < str.length; i++) {
+        w += measureChar(str[i], fontSize, letterSpacing);
+      }
+      return w;
+    }
 
     for (int i = 0; i < para.length; i++) {
       final char = para[i];
+
+      // 行首吞噬西文半角空格（但段首全角空格缩进严格保留）
+      if (currentLine.isEmpty && char == ' ') {
+        continue;
+      }
+
       final charW = measureChar(char, fontSize, letterSpacing);
-      curCharOffset++;
 
       if (currentLineWidth + charW <= availWidth) {
         currentLine += char;
         currentLineWidth += charW;
       } else {
-        // 放不下，需折行
-        // 1. 避头禁则：当前字符是禁止出现在行首的标点（如逗号、句号）
+        // 放不下，需折行处理
+        // 1. 避头标点行末悬挂（Hanging Punctuation）：
+        // 若当前字符为避头标点且外突在容差范围内（<= 0.75em），优先悬挂在当前行末
+        if (CjkPunctuation.isForbiddenStart(char) &&
+            currentLineWidth + charW <= availWidth + fontSize * 0.75) {
+          currentLine += char;
+          currentLineWidth += charW;
+          continue;
+        }
+
+        // 2. 避头禁则整体移行（Pull-down for Forbidden Start）：
+        // 若当前字符为避头标点且无法悬挂，拉回行末连续标点及前面的汉字，确保下一行行首不为标点
         if (CjkPunctuation.isForbiddenStart(char) && currentLine.length > 1) {
-          final lastChar = currentLine.substring(currentLine.length - 1);
-          currentLine = currentLine.substring(0, currentLine.length - 1);
-          lines.add(PageLineItem(
-            text: currentLine,
-            paragraphIndex: paragraphIndex,
-            lineIndexInPara: lineIndexInPara++,
-            isFirstLineOfPara: lines.isEmpty,
-            isLastLineOfPara: false,
-            charStart: lineStartOffset,
-            charEnd: curCharOffset - 2,
-          ));
-          lineStartOffset = curCharOffset - 2;
-          currentLine = lastChar + char;
-          currentLineWidth =
-              measureChar(lastChar, fontSize, letterSpacing) + charW;
-          continue;
+          int pullCount = 0;
+          while (pullCount < currentLine.length &&
+              CjkPunctuation.isForbiddenStart(
+                  currentLine[currentLine.length - 1 - pullCount])) {
+            pullCount++;
+          }
+          if (pullCount < currentLine.length) {
+            pullCount++; // 抓取前面的非避头字符（如汉字）
+          }
+
+          if (pullCount > 0 && pullCount < currentLine.length) {
+            final carryOver =
+                currentLine.substring(currentLine.length - pullCount);
+            final remainingLine =
+                currentLine.substring(0, currentLine.length - pullCount);
+            commitLine(remainingLine, isLast: false);
+            currentLine = carryOver + char;
+            currentLineWidth = measureString(currentLine);
+            continue;
+          }
         }
 
-        // 2. 避尾禁则：当前行末尾字符是前置标点（如左书名号《、前引号“）
-        final lastChar = currentLine.isNotEmpty
-            ? currentLine.substring(currentLine.length - 1)
-            : '';
-        if (CjkPunctuation.isForbiddenEnd(lastChar) && currentLine.length > 1) {
-          currentLine = currentLine.substring(0, currentLine.length - 1);
-          lines.add(PageLineItem(
-            text: currentLine,
-            paragraphIndex: paragraphIndex,
-            lineIndexInPara: lineIndexInPara++,
-            isFirstLineOfPara: lines.isEmpty,
-            isLastLineOfPara: false,
-            charStart: lineStartOffset,
-            charEnd: curCharOffset - 2,
-          ));
-          lineStartOffset = curCharOffset - 2;
-          currentLine = lastChar + char;
-          currentLineWidth =
-              measureChar(lastChar, fontSize, letterSpacing) + charW;
-          continue;
+        // 3. 避尾禁则（Push-down for Forbidden End）：
+        // 若当前行末尾是前置标点（如前引号“、书名号《），整体移至下一行行首
+        if (currentLine.isNotEmpty &&
+            CjkPunctuation.isForbiddenEnd(
+                currentLine.substring(currentLine.length - 1)) &&
+            currentLine.length > 1) {
+          int pushCount = 0;
+          while (pushCount < currentLine.length &&
+              CjkPunctuation.isForbiddenEnd(
+                  currentLine[currentLine.length - 1 - pushCount])) {
+            pushCount++;
+          }
+          if (pushCount > 0 && pushCount < currentLine.length) {
+            final carryOver =
+                currentLine.substring(currentLine.length - pushCount);
+            final remainingLine =
+                currentLine.substring(0, currentLine.length - pushCount);
+            commitLine(remainingLine, isLast: false);
+            currentLine = carryOver + char;
+            currentLineWidth = measureString(currentLine);
+            continue;
+          }
         }
 
-        // 正常换行
-        lines.add(PageLineItem(
-          text: currentLine,
-          paragraphIndex: paragraphIndex,
-          lineIndexInPara: lineIndexInPara++,
-          isFirstLineOfPara: lines.isEmpty,
-          isLastLineOfPara: false,
-          charStart: lineStartOffset,
-          charEnd: curCharOffset - 1,
-        ));
-        lineStartOffset = curCharOffset - 1;
-        currentLine = char;
-        currentLineWidth = charW;
+        // 4. 西文单词防撕裂（Word-wrap）：
+        // 若当前字符是西文字符且行末也是西文字符，将未完结单词整体移至下一行
+        if (_isWordChar(char) &&
+            currentLine.isNotEmpty &&
+            _isWordChar(currentLine.substring(currentLine.length - 1))) {
+          int wordLen = 0;
+          while (wordLen < currentLine.length &&
+              _isWordChar(currentLine[currentLine.length - 1 - wordLen])) {
+            wordLen++;
+          }
+          // 单词长度未占满整行且在合理单词长度内（<= 24字符），整体移行
+          if (wordLen > 0 && wordLen < currentLine.length && wordLen <= 24) {
+            final carryOver =
+                currentLine.substring(currentLine.length - wordLen);
+            final remainingLine =
+                currentLine.substring(0, currentLine.length - wordLen);
+            commitLine(remainingLine, isLast: false);
+            currentLine = carryOver + char;
+            currentLineWidth = measureString(currentLine);
+            continue;
+          }
+        }
+
+        // 5. 正常换行
+        commitLine(currentLine, isLast: false);
+        if (char == ' ') {
+          // 折行处为空格，直接忽略空格
+          currentLine = '';
+          currentLineWidth = 0;
+        } else {
+          currentLine = char;
+          currentLineWidth = charW;
+        }
       }
     }
 
     if (currentLine.isNotEmpty) {
-      lines.add(PageLineItem(
-        text: currentLine,
-        paragraphIndex: paragraphIndex,
-        lineIndexInPara: lineIndexInPara++,
-        isFirstLineOfPara: lines.isEmpty,
-        isLastLineOfPara: true,
-        charStart: lineStartOffset,
-        charEnd: curCharOffset,
-      ));
+      commitLine(currentLine, isLast: true);
     }
 
     return lines;

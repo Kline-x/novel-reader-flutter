@@ -108,6 +108,18 @@ class PinyinHarmonizer {
     'jundui': '军队',
     'zhanzheng': '战争',
     'shibing': '士兵',
+    'jingjiexian': '警戒线',
+    'saodong': '骚动',
+    'heise': '黑色',
+    'baise': '白色',
+    'zhencao': '贞操',
+    'jiecao': '节操',
+    'caozuo': '操作',
+    'lianse': '脸色',
+    'seyin': '色阴',
+    'yinchen': '阴沉',
+    'yinan': '阴暗',
+    'yinliang': '阴凉',
   };
 
   /// 常见单字拼音音节集合（用于变异解混淆中的单字归一化判定）
@@ -119,6 +131,8 @@ class PinyinHarmonizer {
     'nai',
     'bo',
     'cao',
+    'sao',
+    'se',
     'she',
     'da',
     'xiong',
@@ -246,13 +260,30 @@ class PinyinHarmonizer {
       replacement: (m) => '${m.group(1)}政',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'jing\s*([察界兵笛告服徽犬力报惕民卫醒鸣衔局署厅])', caseSensitive: false),
+      pattern: RegExp(r'jing\s*([察界兵笛告服徽犬力报惕民卫醒鸣衔局署厅戒备])', caseSensitive: false),
       replacement: (m) => '警${m.group(1)}',
     ),
     _ContextualPinyinRule(
       pattern:
           RegExp(r'([民巡特干交火网预女法刑协骑武片备狱示告提防预机])\s*jing', caseSensitive: false),
       replacement: (m) => '${m.group(1)}警',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'sao\s*([动乱扰客货气劲包情])', caseSensitive: false),
+      replacement: (m) => '骚${m.group(1)}',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([风发牢])\s*sao(?![a-z])', caseSensitive: false),
+      replacement: (m) => '${m.group(1)}骚',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'([脸神面气色变喜怒冷好黑白红黄蓝绿紫金灰青银肉血无变百暗深浅五彩绝杂暖冷春夏秋冬本美女性])\s*se(?![a-z])',
+          caseSensitive: false),
+      replacement: (m) => '${m.group(1)}色',
+    ),
+    _ContextualPinyinRule(
+      pattern: RegExp(r'se\s*([情欲香相盲彩界调泽狼盲鬼素度彩诱])', caseSensitive: false),
+      replacement: (m) => '色${m.group(1)}',
     ),
     _ContextualPinyinRule(
       pattern: RegExp(r'guo\s*([家民防境库度旗徽歌土界难戚界政主事都])', caseSensitive: false),
@@ -291,23 +322,24 @@ class PinyinHarmonizer {
       replacement: (m) => '勃${m.group(1)}',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'cao\s*([你他她妹娘蛋翻踏了])', caseSensitive: false),
+      pattern: RegExp(r'cao\s*([你他她妹娘蛋翻踏了心盘纵作控场])', caseSensitive: false),
       replacement: (m) => '操${m.group(1)}',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'([我被把给使猛直尽情])\s*cao', caseSensitive: false),
+      pattern: RegExp(r'([我被把给使猛直尽情贞节早粗体风])\s*cao(?![a-z])', caseSensitive: false),
       replacement: (m) => '${m.group(1)}操',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'she\s*([精出入头击穿向来程线])', caseSensitive: false),
+      pattern: RegExp(r'she\s*([精出入头击穿向来程线在到过落中下箭])', caseSensitive: false),
       replacement: (m) => '射${m.group(1)}',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'([放注发喷辐折反投映扫])\s*she', caseSensitive: false),
+      pattern: RegExp(r'([放注发喷辐折反投映扫照直漫透速骑激迸斜平散射镭电])\s*she(?![a-z])',
+          caseSensitive: false),
       replacement: (m) => '${m.group(1)}射',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'([夏烈春秋冬今明昨往末生落旭朝白终])\s*ri(?![a-z])',
+      pattern: RegExp(r'([之夏烈春秋冬今明昨往末生落旭朝白终当值吉节翌连数整百期同异半])\s*ri(?![a-z])',
           caseSensitive: false),
       replacement: (m) => '${m.group(1)}日',
     ),
@@ -340,7 +372,7 @@ class PinyinHarmonizer {
       replacement: (m) => '密${m.group(1)}',
     ),
     _ContextualPinyinRule(
-      pattern: RegExp(r'yin\s*([道唇毛部核水穴私暗乱])', caseSensitive: false),
+      pattern: RegExp(r'yin\s*([道唇毛部核水穴私暗乱沉冷险郁凉谋霾森狠毒湿翳])', caseSensitive: false),
       replacement: (m) => '阴${m.group(1)}',
     ),
     _ContextualPinyinRule(
@@ -419,18 +451,22 @@ class PinyinHarmonizer {
     'ǖ': 'v', 'ǘ': 'v', 'ǚ': 'v', 'ǜ': 'v',
     'ü': 'v',
     'ń': 'n', 'ň': 'n', 'ǹ': 'n', 'ḿ': 'm',
+    'Ā': 'a', 'Á': 'a', 'Ǎ': 'a', 'À': 'a',
+    'Ē': 'e', 'É': 'e', 'Ě': 'e', 'È': 'e',
+    'Ī': 'i', 'Í': 'i', 'Ǐ': 'i', 'Ì': 'i',
+    'Ō': 'o', 'Ó': 'o', 'Ǒ': 'o', 'Ò': 'o',
+    'Ū': 'u', 'Ú': 'u', 'Ǔ': 'u', 'Ù': 'u',
+    'Ǖ': 'v', 'Ǘ': 'v', 'Ǚ': 'v', 'Ǜ': 'v',
+    'Ü': 'v',
   };
 
-  /// 被汉字紧密包围的「带声调拼音片段」预归一化为无声调形式
-  ///
-  /// 只处理夹在汉字之间的片段，纯英文语境（café、naïve）绝不触碰。
-  static final RegExp _tonedSandwichPattern = RegExp(
-    '(?<=[一-龥])'
-    '([a-zA-Zāáǎàēéěè'
-    'īíǐìōóǒò'
-    'ūúǔùǖǘǚǜü'
-    'ńňǹḿ]{1,20})'
-    '(?=[一-龥])',
+
+
+  /// 匹配紧贴汉字（前或后）的带字母/声调片段，杜绝误伤由空格隔开的英文单词（如 café、naïve）
+  static final RegExp _tonedWordNearChinesePattern = RegExp(
+    r'(?:(?<=[\u4e00-\u9fa5])([a-zA-ZāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüńňǹḿĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙǕǗǙǛÜ]{1,20})'
+    r'|'
+    r'([a-zA-ZāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüńňǹḿĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙǕǗǙǛÜ]{1,20})(?=[\u4e00-\u9fa5]))',
   );
 
   /// 把一段拼音里的声调字母折叠掉
@@ -451,17 +487,17 @@ class PinyinHarmonizer {
   static String restorePinyin(String text) {
     if (text.isEmpty) return text;
 
-    // 若文本中完全不含英文字母，无需处理
-    if (!RegExp(r'[a-zA-Z]').hasMatch(text)) {
+    // 若文本中既不含英文字母，也不含带声调的拼音字母，无需处理
+    if (!RegExp(r'[a-zA-ZāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüńňǹḿĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙǕǗǙǛÜ]').hasMatch(text)) {
       return text;
     }
 
     var result = text;
 
-    // 阶段零：把夹在汉字之间的带声调拼音折叠成无声调形式，
-    // 让后续所有规则（字典 / 夹缝探测 / 语境单字）都能正常命中。
-    result = result.replaceAllMapped(_tonedSandwichPattern, (m) {
-      final token = m.group(1)!;
+    // 阶段零：把紧贴汉字的带声调拼音统一折叠为标准拉丁字母（如 贞cāo -> 贞cao, 黑sè -> 黑se）
+    // 确保无论拼音位于汉字夹缝、词尾接标点或词首接标点，均能精准命中自愈规则，同时不误伤独立英文单词
+    result = result.replaceAllMapped(_tonedWordNearChinesePattern, (m) {
+      final token = m.group(1) ?? m.group(2) ?? '';
       return _hasTone(token) ? foldTones(token) : token;
     });
 
@@ -533,8 +569,13 @@ class PinyinHarmonizer {
     }
 
     // 阶段六：语境单字/单音节混排规则自愈（如“第yi章”、“xing欲”、“rou体”）
-    for (final rule in _contextualRules) {
-      result = result.replaceAllMapped(rule.pattern, rule.replacement);
+    // 由于复合词可能相邻（如 脸seyin沉 -> yin先变为阴沉，使得前面的 脸se 暴露出后置汉字语境），最多执行 2 轮迭代
+    for (int iter = 0; iter < 2; iter++) {
+      final prev = result;
+      for (final rule in _contextualRules) {
+        result = result.replaceAllMapped(rule.pattern, rule.replacement);
+      }
+      if (result == prev) break;
     }
 
     return result;

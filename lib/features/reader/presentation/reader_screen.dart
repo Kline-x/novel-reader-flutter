@@ -35,8 +35,8 @@ class ReaderScreen extends ConsumerStatefulWidget {
   final String bookId;
   final String bookTitle;
   final String author;
-  final int initialChapterIndex;
-  final int initialCharOffset;
+  final int? initialChapterIndex;
+  final int? initialCharOffset;
   final String? bookUrl;
   final String? sourceName;
   final String? sourceId;
@@ -47,8 +47,8 @@ class ReaderScreen extends ConsumerStatefulWidget {
     required this.bookId,
     required this.bookTitle,
     required this.author,
-    this.initialChapterIndex = 0,
-    this.initialCharOffset = 0,
+    this.initialChapterIndex,
+    this.initialCharOffset,
     this.bookUrl,
     this.sourceName,
     this.sourceId,
@@ -99,8 +99,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     // 启用全局统一的透明沉浸式布局，不隐藏系统栏，消除页面跳转与进退砸落 (解决 1.4 / T1)
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    _currentChapterIndex = widget.initialChapterIndex;
-    _currentCharOffset = widget.initialCharOffset;
+    _currentChapterIndex = widget.initialChapterIndex ?? 0;
+    _currentCharOffset = widget.initialCharOffset ?? 0;
     _currentSourceName =
         widget.sourceName ?? widget.book?.sourceName ?? '笔趣阁CP';
     _resolvedBookUrl = widget.bookUrl ?? widget.book?.bookUrl;
@@ -294,9 +294,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen>
     // 1. 优先读取持久化的真实进度作为对照
     final savedProgress = await _storage.getReadingProgress(widget.bookId);
 
-    if (widget.initialChapterIndex > 0 || widget.initialCharOffset > 0) {
-      _currentChapterIndex = widget.initialChapterIndex;
-      _currentCharOffset = widget.initialCharOffset;
+    if (widget.initialChapterIndex != null) {
+      _currentChapterIndex = widget.initialChapterIndex!;
+      _currentCharOffset = widget.initialCharOffset ?? 0;
       // 若外部未提供具体字符偏移（为0），但数据库中存在对应章节的精准偏移，予以恢复
       if (_currentCharOffset <= 0 &&
           savedProgress != null &&
