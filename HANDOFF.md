@@ -1,6 +1,6 @@
 # 接手文档 — 藏书阁（Flutter / 纯血鸿蒙版）
 
-更新时间：2026-09-19　　当前分支：`feature/modern-soft-ui-sublime-v3`　　当前版本：`v1.0.8+6005`
+更新时间：2026-09-27　　当前分支：`main`　　当前版本：`v1.0.12+4010`
 
 > **这份文档是自包含的**：读完即可开工，不必先看其他文档。
 > 项目物理路径：`/Users/yang/Documents/code/vibCoding/novel_reader_flutter`
