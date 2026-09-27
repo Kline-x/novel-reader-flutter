@@ -299,4 +299,89 @@ void main() {
       expect(layoutPara, '${CjkPunctuation.indent}各族内讧，精灵族兽人族矮人族龙族等等，与人类争夺大陆掌控权。');
     });
   });
+
+  group('【《苟在两界修仙》真机实证专项自愈测试】单双混配、嵌套引语与段尾漏闭引号', () {
+    test('1. 专有名词开双闭单混配自愈（“方无尘’ -> “方无尘”）', () {
+      const input =
+          '他五官憨厚，穿著粗黄葛衣，修为却到了服气六层，竟然比方一心这个父亲还要高深一些。此人正是“方无尘’，一年前与乐家乐明雪完婚，自小修习《宝土归元诀》，进度一日千里。相比起来，旁边的“方无咎’就显得柔弱一些。';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed.contains('“方无尘”'), isTrue);
+      expect(fixed.contains('“方无咎”'), isTrue);
+      expect(fixed.contains('’'), isFalse);
+    });
+
+    test('2. 双引号内嵌套专有名词自愈为外双内单（“那“青桑枣树’……吧？’ -> “那‘青桑枣树’……吧？”）', () {
+      const input = '“那“青桑枣树’据说乃是服气灵根，每隔几年都有服气灵资出产……价值不凡，总能换一道道基功法吧？’';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed, '“那‘青桑枣树’据说乃是服气灵根，每隔几年都有服气灵资出产……价值不凡，总能换一道道基功法吧？”');
+      expect(fixed.startsWith('“'), isTrue);
+      expect(fixed.endsWith('”'), isTrue);
+    });
+
+    test('3. 冒号引语整段末尾漏闭引号自愈（冒号开双引号，段尾终止标点自动补闭引号）', () {
+      const input = '他跟胡全安对视一眼，简直有些麻木：“又要开战，这一次不知是哪家……灶神教？还是铁家？无生寺。';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed, '他跟胡全安对视一眼，简直有些麻木：“又要开战，这一次不知是哪家……灶神教？还是铁家？无生寺。”');
+      expect(fixed.endsWith('无生寺。”'), isTrue);
+    });
+
+    test('4. 台词首尾混配自愈（“没有太大变化！！’ -> “没有太大变化！！”）', () {
+      expect(CjkPunctuation.harmonizeQuotes('“没有太大变化！！’'), '“没有太大变化！！”');
+      expect(CjkPunctuation.harmonizeQuotes('“哼，她们艰难，佛爷便不艰难了么？’'),
+          '“哼，她们艰难，佛爷便不艰难了么？”');
+    });
+
+    test('5. 心理引语后转叙述断句闭合自愈（……便是他了…他走出地宫 -> ……便是他了…”他走出地宫）', () {
+      const input =
+          '甚至心中还有些后悔：“当初为何要针对排挤那方水明子？若他不走……今时今日顶著的，便是他了…他走出地宫，就见妙水明妃前来，递过一封银色书信。';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed.contains('便是他了…”他走出地宫'), isTrue);
+      expect('“'.allMatches(fixed).length, equals('”'.allMatches(fixed).length));
+    });
+
+    test('6. 台词粘连断句自愈（误了孩子性“这第二么 -> 误了孩子性。”“这第二么）', () {
+      const input = '我险些耽误大事，误了孩子性“这第二么，便是功法问题……';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed, contains('误了孩子性。”“这第二么'));
+    });
+
+    test('7. 直角引号单双混配自愈与现代规范归一化（「潮生珠』 -> “潮生珠”）', () {
+      expect(CjkPunctuation.harmonizeQuotes('「潮生珠』高悬'), '“潮生珠”高悬');
+      expect(CjkPunctuation.harmonizeQuotes('当年还选在「灶君庙』举办交换会！'),
+          '当年还选在“灶君庙”举办交换会！');
+      expect(CjkPunctuation.harmonizeQuotes('刚准备度化「胡全安』，却莫名心血来潮'),
+          '刚准备度化“胡全安”，却莫名心血来潮');
+    });
+
+    test('8. 直角引号整段末尾漏闭自愈（「桑吉只是……紫府试探便至…… -> “桑吉只是……紫府试探便至……”）', () {
+      const input = '「桑吉只是异象稍有挫折，紫府试探便至……';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed, '“桑吉只是异象稍有挫折，紫府试探便至……”');
+      expect(fixed.endsWith('……”'), isTrue);
+    });
+
+    test('9. 冒号引语直角单开双闭自愈（方青蹙眉：「再等等……换个身份。』）', () {
+      const input = '方青蹙眉：「再等等、再看看……大不了一口气继续闭关数十年，然后换个身份。』';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed, '方青蹙眉：“再等等、再看看……大不了一口气继续闭关数十年，然后换个身份。”');
+    });
+
+    test('10. 直角引号与弯引号嵌套自愈为标准外双内单（其已身入这「胃土局』中……」 -> 其已身入这‘胃土局’中……”）', () {
+      const input = '“再等等，我绝不能出面……若方无尘还能顺利找到道基功法，其已身入这「胃土局』中……”';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed, contains('其已身入这‘胃土局’中……”'));
+    });
+
+    test('11. 终止标点紧接开引号的连环台词自愈（神性呢！「再等等 -> 神性呢！”“再等等）', () {
+      const input = '那福地之中，还藏有一缕【胃土】神性呢！「再等等，我绝不能出面……';
+      final fixed = CjkPunctuation.harmonizeQuotes(input);
+      expect(fixed, contains('神性呢！”“再等等'));
+    });
+
+    test('12. 站点牛皮癣广告行兜底剔除（normalizeParagraph中过滤「看最新完整章节，就上速读谷」）', () {
+      expect(CjkPunctuation.normalizeParagraph('看最新完整章节，就上速读谷'), '');
+      expect(CjkPunctuation.normalizeParagraph('阅读最新章节请到某某小说网'), '');
+    });
+  });
 }
+
