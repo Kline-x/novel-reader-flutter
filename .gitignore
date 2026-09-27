@@ -96,5 +96,6 @@ android/key.properties
 *.jks
 *.keystore
 
-# Evidence screenshots
-docs/evidence/*.png
+# Evidence screenshots & test logs (keep only .gitkeep)
+docs/evidence/*
+!docs/evidence/.gitkeep
