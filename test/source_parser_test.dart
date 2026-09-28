@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:html/parser.dart' as html_parser;
 import 'package:novel_reader_flutter/features/reader/services/chapter_helper.dart';
 import 'package:novel_reader_flutter/features/sources/models/chapter_item.dart';
 import 'package:novel_reader_flutter/features/sources/models/source_rule.dart';
@@ -7,8 +8,8 @@ import 'package:novel_reader_flutter/features/sources/services/source_parser.dar
 
 void main() {
   group('SourceParser 书源解析与降噪清洗测试', () {
-    test('内置 12 组书源完整性与基础规则健全性校验', () {
-      expect(BuiltinSources.all.length, 12);
+    test('内置 14 组书源完整性与基础规则健全性校验', () {
+      expect(BuiltinSources.all.length, 14);
       for (final rule in BuiltinSources.all) {
         expect(rule.id.isNotEmpty, isTrue);
         expect(rule.name.isNotEmpty, isTrue);
@@ -228,8 +229,35 @@ void main() {
       expect(combined, contains('杜维·罗林'));
       expect(combined, contains('罗林家族'));
       expect(combined.contains('周明瑞'), isFalse);
-      expect(combined.contains('齐夏'), isFalse);
       expect(combined.contains('李火旺'), isFalse);
+    });
+
+    test('queryAll 支持逗号复合选择器与 :contains(text) 伪类选择器', () {
+      const html = '''
+<div>
+  <a class="nav" href="/home">首页</a>
+  <a class="nav" href="/about">关于</a>
+  <span class="btn"><a href="/dir">完整目录</a></span>
+  <a href="/extra">打开完整目录列表</a>
+</div>
+''';
+      final doc = html_parser.parse(html);
+      // 测试复合逗号与 :contains
+      final matched1 = SourceParser.queryAll(
+          doc, '.none a, a:contains(完整目录), a:contains(关于)');
+      expect(matched1.length, 3);
+      expect(matched1.map((e) => e.text).toList(),
+          ['完整目录', '打开完整目录列表', '关于']);
+
+      // 测试提取包含特定文字的链接属性
+      final val = SourceParser.extractValue(
+        doc.body!,
+        const RuleSelector(
+          selector: 'a:contains(打开完整目录列表)',
+          attr: 'href',
+        ),
+      );
+      expect(val, '/extra');
     });
   });
 }

@@ -44,11 +44,11 @@ class MockHttpClientAdapter implements HttpClientAdapter {
 
 void main() {
   group('MultiSourceService 并发聚合检索与延迟探测测试', () {
-    test('内置 12 组书源成功注入与数量校验', () {
+    test('内置 14 组书源成功注入与数量校验', () {
       final service = MultiSourceService();
-      expect(service.sources.length, 12);
+      expect(service.sources.length, 14);
       expect(service.sources.where((s) => s.enabled).length,
-          greaterThanOrEqualTo(8));
+          greaterThanOrEqualTo(10));
     });
 
     test('并发多书源检索与毫秒级延迟标记 (searchAll)', () async {

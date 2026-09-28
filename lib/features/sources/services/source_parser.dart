@@ -342,7 +342,11 @@ class SourceParser {
         .replaceAll(
             RegExp(r'</?(?:div|p|span|section|article)[^>]*>',
                 caseSensitive: false),
-            '\n');
+            '\n')
+        .replaceAllMapped(
+          RegExp(r'([。！？!?…~][”’])\s*([“‘])'),
+          (m) => '${m.group(1)}\n${m.group(2)}',
+        );
 
     final rawLines = text.split(RegExp(r'\r?\n'));
     final filteredLines = <String>[];
@@ -392,6 +396,9 @@ class SourceParser {
       if (line.startsWith('：') || line.startsWith(':')) {
         line = line.substring(1).trimLeft();
       }
+
+      // 1g) 中文错别字、繁简假简体与 OCR 自愈管道清洗
+      line = CjkPunctuation.healTyposAndOcr(line);
 
       // 2) 强特征：命中即整行丢弃
       if (_hardNoisePatterns.any((p) => p.hasMatch(line))) continue;
@@ -519,19 +526,55 @@ class SourceParser {
     return value.trim();
   }
 
-  /// 支持 CSS 选择器与 Legado 常见语法（class.xxx, tag.xxx, id.xxx, a.0）
+  /// 支持 CSS 选择器与 Legado 常见语法（class.xxx, tag.xxx, id.xxx, a.0，以及 :contains(text)）
   static List<dom.Element> queryAll(dynamic root, String rawSelector) {
     if (rawSelector.isEmpty) return [];
 
-    final normalized = normalizeSelector(rawSelector);
+    final parts =
+        rawSelector.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
+    final results = <dom.Element>[];
+    final seen = <dom.Element>{};
+
+    for (final part in parts) {
+      final elements = _querySingle(root, part);
+      for (final el in elements) {
+        if (seen.add(el)) {
+          results.add(el);
+        }
+      }
+    }
+    return results;
+  }
+
+  static List<dom.Element> _querySingle(dynamic root, String rawSelector) {
+    var sel = normalizeSelector(rawSelector);
+    if (sel.isEmpty) return [];
+
+    // 处理 :contains(keyword) 伪类选择器（Dart package:html 不支持，做应用层兼容）
+    final containsMatch =
+        RegExp(r'^(.*?):contains\((.*?)\)$').firstMatch(sel);
+    if (containsMatch != null) {
+      final baseSel = containsMatch.group(1)!.trim();
+      final keyword = containsMatch
+          .group(2)!
+          .trim()
+          .replaceAll(RegExp(r'''^['"]|['"]$'''), '');
+      final baseElements =
+          baseSel.isEmpty ? _safeQuery(root, '*') : _safeQuery(root, baseSel);
+      return baseElements.where((el) => el.text.contains(keyword)).toList();
+    }
+
+    return _safeQuery(root, sel);
+  }
+
+  static List<dom.Element> _safeQuery(dynamic root, String selector) {
     try {
       if (root is dom.Document) {
-        return root.querySelectorAll(normalized);
+        return root.querySelectorAll(selector);
       } else if (root is dom.Element) {
-        return root.querySelectorAll(normalized);
+        return root.querySelectorAll(selector);
       }
     } catch (_) {}
-
     return [];
   }
 

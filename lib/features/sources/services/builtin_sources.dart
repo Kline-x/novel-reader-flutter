@@ -329,6 +329,80 @@ class BuiltinSources {
         ),
       ),
     ),
+
+    // 13. 就爱文学 (UTF-8，全网经典老牌无错大源，整章一次性返回无切页)
+    SourceRule(
+      id: '92xs:就爱文学',
+      name: '就爱文学',
+      baseUrl: 'http://www.92xs.info',
+      charset: 'utf-8',
+      search: SearchRule(
+        urlTemplate:
+            'http://www.92xs.info/modules/article/search.php?searchkey={key}',
+        item: '#author tr:not(:first-child), table.grid tr:not(:first-child)',
+        title: RuleSelector(selector: 'td:nth-child(1) a', attr: 'text'),
+        author: RuleSelector(selector: 'td:nth-child(3)', attr: 'text'),
+        detailUrl: RuleSelector(selector: 'td:nth-child(1) a', attr: 'href'),
+        coverUrl: RuleSelector(selector: 'img', attr: 'src'),
+      ),
+      detail: DetailRule(
+        title: RuleSelector(selector: 'h1', attr: 'text'),
+        author: RuleSelector(
+            selector: '.p_author', attr: 'text', regex: r'作\s*者[：:]\s*'),
+        tocUrl: RuleSelector(
+            selector: '.li2 a, a:contains(完整目录), a:contains(打开完整目录列表)',
+            attr: 'href'),
+      ),
+      toc: TocRule(
+        item: '.ccss a, #content a, .box a, a[href*="html/"]',
+        title: RuleSelector(selector: '', attr: 'text'),
+        url: RuleSelector(selector: '', attr: 'href'),
+      ),
+      chapter: ChapterRule(
+        content: RuleSelector(
+          selector: '#ccontent, .readcontent',
+          attr: 'html',
+          regex: r'就爱文学[\s\S]*|最新网址：[^\n]*\n|请记住本书首发域名[\s\S]*',
+        ),
+      ),
+    ),
+
+    // 14. 速读谷 (UTF-8，精校正版排版一比一，国内毫秒级高速响应)
+    SourceRule(
+      id: 'sudugu:速读谷',
+      name: '速读谷',
+      baseUrl: 'https://www.sudugu.cc',
+      charset: 'utf-8',
+      search: SearchRule(
+        urlTemplate:
+            'https://www.sudugu.cc/modules/article/search.php?searchkey={key}',
+        item: '.bookbox, div.item, #list ul li',
+        title: RuleSelector(selector: 'a', attr: 'text'),
+        author: RuleSelector(selector: '.author, p', attr: 'text', regex: r'^作者：'),
+        detailUrl: RuleSelector(selector: 'a', attr: 'href'),
+        coverUrl: RuleSelector(selector: 'img', attr: 'src'),
+      ),
+      detail: DetailRule(
+        title: RuleSelector(selector: 'h1', attr: 'text'),
+        author: RuleSelector(
+            selector: '.itemtxt p', attr: 'text', regex: r'作\s*者[：:]\s*'),
+        tocUrl: RuleSelector(
+            selector: 'a:contains(全文目录), a:contains(目录)', attr: 'href'),
+      ),
+      toc: TocRule(
+        item: '#list.dir a, #list a, .dir a',
+        title: RuleSelector(selector: '', attr: 'text'),
+        url: RuleSelector(selector: '', attr: 'href'),
+      ),
+      chapter: ChapterRule(
+        content: RuleSelector(
+          selector: '.con, #content',
+          attr: 'html',
+          regex:
+              r'看最新完整章節，就上速讀谷|看最新完整章节，就上速读谷|请记住本书首发域名[\s\S]*',
+        ),
+      ),
+    ),
   ];
 
   static SourceRule? findByName(String name) {

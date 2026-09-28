@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novel_reader_flutter/features/reader/engine/cjk_punctuation.dart';
+import 'package:novel_reader_flutter/features/reader/engine/page_models.dart';
 import 'package:novel_reader_flutter/features/reader/engine/reader_layout_engine.dart';
 import 'package:novel_reader_flutter/features/sources/services/pinyin_harmonizer.dart';
 import 'package:novel_reader_flutter/features/sources/services/source_parser.dart';
@@ -381,6 +382,261 @@ void main() {
     test('12. 站点牛皮癣广告行兜底剔除（normalizeParagraph中过滤「看最新完整章节，就上速读谷」）', () {
       expect(CjkPunctuation.normalizeParagraph('看最新完整章节，就上速读谷'), '');
       expect(CjkPunctuation.normalizeParagraph('阅读最新章节请到某某小说网'), '');
+    });
+  });
+
+  group('【错别字、繁简假简体与OCR自愈专项测试】CjkPunctuation.healTyposAndOcr', () {
+    test('1. 繁简假简体自愈（後->后、麽->么、於->于）', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('然後是几近失败，日後回归的好藉口，背後的紫府大能'),
+        '然后是几近失败，日后回归的好借口，背后的紫府大能',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('回去之後就闭死关，要麽突破紫府……要麽，便身死道消'),
+        '回去之后就闭死关，要么突破紫府……要么，便身死道消',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('什麽都一清二楚了，怎麽能不让方青怀疑，还修炼得那麽快！'),
+        '什么都一清二楚了，怎么能不让方青怀疑，还修炼得那么快！',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('对於古蜀一些知名紫府，不至於害死我，终於赶回曾家镇'),
+        '对于古蜀一些知名紫府，不至于害死我，终于赶回曾家镇',
+      );
+    });
+
+    test('2. 动词时态助词「著」自愈为「着」，且严格保护专有名词/白名单', () {
+      // 动词/助词场景
+      expect(
+        CjkPunctuation.healTyposAndOcr('穿著粗黄葛衣，提著个竹篮，捧著个青花大碗，嘴角带著一丝笑意'),
+        '穿着粗黄葛衣，提着个竹篮，捧着个青花大碗，嘴角带着一丝笑意',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('寻思著日后出路，盘算著功法，默默注视著远方，伴随著雷鸣'),
+        '寻思着日后出路，盘算着功法，默默注视着远方，伴随着雷鸣',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('一封接著一封，看著前方，走著走著'),
+        '一封接着一封，看着前方，走着走着',
+      );
+
+      // 白名单场景（严禁误伤）
+      const protectedText = '他是著名作家，著有三本文学巨著与名著，对土著文化有显著研究，编著作品广为流传。';
+      expect(CjkPunctuation.healTyposAndOcr(protectedText), protectedText);
+    });
+
+    test('3. 成语与假借词自愈（藉口->借口，保护狼藉）', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('找个好藉口，藉助战乱遮掩，凭藉深厚法力'),
+        '找个好借口，借助战乱遮掩，凭借深厚法力',
+      );
+      // 白名单保护成语
+      expect(
+        CjkPunctuation.healTyposAndOcr('战场上一片杯盘狼藉，声名狼藉之人'),
+        '战场上一片杯盘狼藉，声名狼藉之人',
+      );
+    });
+
+    test('4. 答覆/反覆自愈为答复/反复，且保护颠覆/覆灭', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('微笑着答覆，反覆思量之后'),
+        '微笑着答复，反复思量之后',
+      );
+      // 白名单保护
+      expect(
+        CjkPunctuation.healTyposAndOcr('颠覆了以往认知，整座宗门顷刻覆灭，覆水难收'),
+        '颠覆了以往认知，整座宗门顷刻覆灭，覆水难收',
+      );
+    });
+
+    test('5. 徵兆/特徵自愈为征兆/特征，且保护古乐五音角徵羽', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('看出徵兆，明显特徵，象徵意义'),
+        '看出征兆，明显特征，象征意义',
+      );
+      // 白名单保护
+      expect(
+        CjkPunctuation.healTyposAndOcr('宫商角徵羽五音俱全'),
+        '宫商角徵羽五音俱全',
+      );
+    });
+
+    test('6. 形近同音常见错别字自愈（毕竞/竞然/具都/殒命/发狠/语气词啊）', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('毕竞狼妖与兔妖不同，竞然平分秋色'),
+        '毕竟狼妖与兔妖不同，竟然平分秋色',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('具都看到了对方脸上的无奈，具都露出震惊之色'),
+        '俱都看到了对方脸上的无奈，俱都露出震惊之色',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('魔道高层陨命，当场陨命于此'),
+        '魔道高层殒命，当场殒命于此',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('桑吉死前发恨，咬牙发恨'),
+        '桑吉死前发狠，咬牙发狠',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('有些不对劲阿！是阿，确实如此。'),
+        '有些不对劲啊！是啊，确实如此。',
+      );
+    });
+
+    test('7. 玄幻修仙专属高危 OCR 错字自愈（童粉->齑粉、真燕/真悉->真煞）', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('直接一巴掌下来，阖寺都要化为童粉！'),
+        '直接一巴掌下来，阖寺都要化为齑粉！',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('哪怕一座大山，也要被打得变为童粉，碾为童粉！'),
+        '哪怕一座大山，也要被打得变为齑粉，碾为齑粉！',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('用了四阶真燕入道，否则恐怕耽误终生'),
+        '用了四阶真煞入道，否则恐怕耽误终生',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('一道真悉入腹，从此便定了道途！真悉入道！'),
+        '一道真煞入腹，从此便定了道途！真煞入道！',
+      );
+    });
+
+    test('8. 异形复合标点杂质自愈（粘连中黑点与杂糅引号）', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('天地灵火消息·……显然是受到那些魔道紫府影响'),
+        '天地灵火消息……显然是受到那些魔道紫府影响',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('【胃土。-.…….」'),
+        '【胃土】……',
+      );
+    });
+
+    test('9. normalizeParagraph 完整流程集成验证（真机《苟在两界修仙》原段实证）', () {
+      const dirtyRaw =
+          '直接一巴掌下来，阖寺都要化为童粉！』\n楚昭煌心中下了决意，回去之後就闭死关，要麽突破紫府……要麽，便身死道消……';
+      final lines = dirtyRaw.split('\n');
+      final normalized0 = CjkPunctuation.normalizeParagraph(lines[0]);
+      final normalized1 = CjkPunctuation.normalizeParagraph(lines[1]);
+
+      expect(normalized0, contains('直接一巴掌下来，阖寺都要化为齑粉！'));
+      expect(normalized0, isNot(contains('童粉')));
+      expect(normalized0, isNot(contains('』')));
+
+      expect(normalized1, contains('回去之后就闭死关'));
+      expect(normalized1, contains('要么突破紫府……要么，便身死道消……'));
+      expect(normalized1, isNot(contains('之後')));
+      expect(normalized1, isNot(contains('要麽')));
+    });
+
+    test('10. 通用成语与高频修仙词汇 OCR 混淆矩阵自愈（当浮一大自/走头无路/迫不急待等）', () {
+      expect(
+        CjkPunctuation.healTyposAndOcr('故人相见，当浮一大自……不知李道友何在？'),
+        '故人相见，当浮一大白……不知李道友何在？',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('到了如今，已然走头无路，只能投靠白骨道。'),
+        '到了如今，已然走投无路，只能投靠白骨道。',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('迫不急待想要突破，手足无错地立在原地'),
+        '迫不及待想要突破，手足无措地立在原地',
+      );
+      expect(
+        CjkPunctuation.healTyposAndOcr('身心具疲之时，难以面面具到，最终神魄俱灭'),
+        '身心俱疲之时，难以面面俱到，最终神魂俱灭',
+      );
+    });
+
+    test('11. 角色名实体一致性自愈（《苟在两界修仙》第166章真机实证：青蛤/青龄收敛为青玲）', () {
+      const p10_1 = '正是青鸟部的小公主——青玲！';
+      const p10_2 = '“青龄拜见月光白度母、拜见方水度子！”';
+      const p10_3 = '青蛤见到方青这个熟人，脸上青白交加，最终却是盈盈一拜，再无身为青鸟部小公主的高傲。“公主何必前倨后恭？”';
+      const p10_6 = '但强行忍住，看着妙善与这青龄交谈。';
+      const p11_4 = '果然，就听妙善声音柔和：“法王早有旨意，青蛤你入我白骨道，可册为‘空雀度母’……其余一干部属依旧由你统帅，作为白骨道分支，可另立香火寺庙……”';
+      const p11_6 = '青蛤得到接纳，心中不由长出口气。';
+      const p12_4 = '“青龄道友……”';
+      const p12_5 = '看到青龄跟妙善交流完毕，方青才凑了过来。';
+      const p12_6 = '孰料青蛤见到他，同样心中一空：“不好……他莫非要问那人？唉……罢了罢了，终归是素鸟的孽。”她面前挤出笑容：“见过度子。”';
+      const p12_9 = '“并非如此……”青龄一咬牙：';
+
+      // 验证自然段自愈管道
+      expect(CjkPunctuation.normalizeParagraph(p10_1), contains('青玲'));
+      expect(CjkPunctuation.normalizeParagraph(p10_2), contains('青玲拜见月光白度母'));
+      expect(CjkPunctuation.normalizeParagraph(p10_2), isNot(contains('青龄')));
+
+      expect(CjkPunctuation.normalizeParagraph(p10_3), contains('青玲见到方青这个熟人'));
+      expect(CjkPunctuation.normalizeParagraph(p10_3), isNot(contains('青蛤')));
+
+      expect(CjkPunctuation.normalizeParagraph(p10_6), contains('看着妙善与这青玲交谈'));
+      expect(CjkPunctuation.normalizeParagraph(p10_6), isNot(contains('青龄')));
+
+      expect(CjkPunctuation.normalizeParagraph(p11_4), contains('青玲你入我白骨道'));
+      expect(CjkPunctuation.normalizeParagraph(p11_4), isNot(contains('青蛤')));
+
+      expect(CjkPunctuation.normalizeParagraph(p11_6), contains('青玲得到接纳'));
+      expect(CjkPunctuation.normalizeParagraph(p11_6), isNot(contains('青蛤')));
+
+      expect(CjkPunctuation.normalizeParagraph(p12_4), contains('“青玲道友……”'));
+      expect(CjkPunctuation.normalizeParagraph(p12_4), isNot(contains('青龄')));
+
+      expect(CjkPunctuation.normalizeParagraph(p12_5), contains('看到青玲跟妙善交流完毕'));
+      expect(CjkPunctuation.normalizeParagraph(p12_5), isNot(contains('青龄')));
+
+      expect(CjkPunctuation.normalizeParagraph(p12_6), contains('孰料青玲见到他'));
+      expect(CjkPunctuation.normalizeParagraph(p12_6), isNot(contains('青蛤')));
+
+      expect(CjkPunctuation.normalizeParagraph(p12_9), contains('青玲一咬牙'));
+      expect(CjkPunctuation.normalizeParagraph(p12_9), isNot(contains('青龄')));
+    });
+
+    test('12. 外层双引号内嵌套单引号短语保护与开单闭双错配自愈（《苟在两界修仙》第166章真机实证）', () {
+      // 场景 A：源文本为标准嵌套，但在旧状态机中由于在 inDialogue 内遇到闭单引号被误改为双引号
+      const inputA =
+          '“并非如此……”青玲一咬牙：“实不相瞒，那李如龙被素乌妖王以‘龙虎金丹法’摄取命格气数，已然身故……不仅是此人，就连那人族紫府一一蒲山君都是如此，此二人命格特异，素乌谋划已……小女子实在无能为力。”';
+      final healedA = CjkPunctuation.normalizeParagraph(inputA);
+      expect(healedA, contains('‘龙虎金丹法’'));
+      expect(healedA, isNot(contains('‘龙虎金丹法”')));
+      expect(healedA, startsWith('${CjkPunctuation.indent}“'));
+      expect(healedA, endsWith('”'));
+
+      // 场景 B：源文本确实存在开单闭双错配（‘龙虎金丹法”）
+      const inputB =
+          '“实不相瞒，那李如龙被素乌妖王以‘龙虎金丹法”摄取命格气数，已然身故……小女子实在无能为力。”';
+      final healedB = CjkPunctuation.normalizeParagraph(inputB);
+      expect(healedB, contains('‘龙虎金丹法’'));
+      expect(healedB, isNot(contains('‘龙虎金丹法”')));
+
+      // 场景 C：无外层对话时的开单闭双错配，规范为标准外层双引号
+      const inputC = '李如龙被素乌妖王以‘龙虎金丹法”摄取命格气数';
+      final healedC = CjkPunctuation.normalizeParagraph(inputC);
+      expect(healedC, contains('“龙虎金丹法”'));
+    });
+
+    test('13. 闭引号紧接开引号粘连对话拆分（《苟在两界修仙》第166章真机实证：做得不错。”“倒是那蒲山君？）', () {
+      const glued =
+          '“这妖族青鸟部余孽可是个宝藏，不知道有多少宝物与秘术……桑吉这次倒是做得不错。”“倒是那蒲山君？”';
+      
+      // 测试 ReaderLayoutEngine 分页拆分
+      final pages = ReaderLayoutEngine.paginate(
+        paragraphs: [glued],
+        title: '第166章 空雀度母',
+        config: const PagingConfig(
+          viewportWidth: 400,
+          viewportHeight: 800,
+          fontSize: 20,
+        ),
+      );
+
+      // 必须产生至少两个独立段落（第一段桑吉做得不错，第二段倒是那蒲山君？）
+      final lineTexts = pages.expand((p) => p.lines).map((l) => l.text).toList();
+      expect(lineTexts.any((t) => t.contains('倒是做得不错。”')), isTrue);
+      // 第二句对话必须作为独立段落，拥有独立的段首缩进
+      final secondDialogueFirstLine =
+          lineTexts.firstWhere((t) => t.contains('“倒是那蒲山君？'));
+      expect(secondDialogueFirstLine.startsWith('${CjkPunctuation.indent}“'), isTrue);
     });
   });
 }

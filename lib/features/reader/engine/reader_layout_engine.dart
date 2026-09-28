@@ -221,22 +221,34 @@ class ReaderLayoutEngine {
       ];
     }
 
-    // 1. 全文分行
+    // 1. 全文分行（预处理段内粘连的独立对话，如：做得很不错。”“倒是那蒲山君？ 拆分为独立段落）
     final allLines = <PageLineItem>[];
     int globalOffset = 0;
+    int paragraphIndexCounter = 0;
 
     for (int pIdx = 0; pIdx < paragraphs.length; pIdx++) {
-      final pLines = splitParagraphToLines(
-        rawParagraph: paragraphs[pIdx],
-        paragraphIndex: pIdx,
-        availWidth: config.availWidth,
-        fontSize: config.fontSize,
-        letterSpacing: config.letterSpacing,
-        globalCharOffsetStart: globalOffset,
-      );
-      if (pLines.isNotEmpty) {
-        allLines.addAll(pLines);
-        globalOffset = pLines.last.charEnd;
+      final rawPara = paragraphs[pIdx];
+      final subParas = rawPara
+          .replaceAllMapped(
+            RegExp(r'([。！？!?…~][”’])\s*([“‘])'),
+            (m) => '${m.group(1)}\n${m.group(2)}',
+          )
+          .split(RegExp(r'\r?\n'));
+
+      for (final subPara in subParas) {
+        if (subPara.trim().isEmpty) continue;
+        final pLines = splitParagraphToLines(
+          rawParagraph: subPara,
+          paragraphIndex: paragraphIndexCounter++,
+          availWidth: config.availWidth,
+          fontSize: config.fontSize,
+          letterSpacing: config.letterSpacing,
+          globalCharOffsetStart: globalOffset,
+        );
+        if (pLines.isNotEmpty) {
+          allLines.addAll(pLines);
+          globalOffset = pLines.last.charEnd;
+        }
       }
     }
 

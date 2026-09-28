@@ -1,40 +1,40 @@
 {
-  "versionCode": 6011,
-  "versionName": "1.0.13",
+  "versionCode": 6012,
+  "versionName": "1.0.14",
   "publishDate": "2026-09-28",
-  "releaseNotes": "1、直角与弯引号单双混配自愈：彻底根治「xxx』单开双闭等排版错配，归一化现代全角弯引号规范；\n2、台词段尾漏闭自愈与外双内单：自动在句尾补齐闭双引号，双引号内嵌套短语自愈为标准单引号；\n3、连环台词断句自愈：终止标点紧接开引号自动断句闭合；\n4、盗版牛皮癣广告双层清洗：源解析层与阅读渲染层双层过滤，彻底剥除网页水印广告；\n5、阅读器性能与排版体验优化：全章逐页排版、字号重排与断点续读毫秒级恢复。",
+  "releaseNotes": "1、中文错别字与繁简假简体自愈：覆盖後/后、麽/么、於/于、时态助词「著」->「着」（受白名单保护）、藉口->借口、答覆->答复、徵兆->征兆等；\n2、修仙与成语专属 OCR 混淆矩阵自愈：化为童粉->化为齑粉、真燕/真悉->真煞入腹、走头无路->走投无路、当浮一大自->当浮一大白、身心具疲->身心俱疲等；\n3、角色名实体一致性自愈：青鸟部/空雀度母语境下自动收敛青蛤、青龄为权威角色名「青玲」；\n4、单双引号嵌套与错配自愈：修复双引号内嵌套单引号被误伤问题，自动自愈‘xxx”开单闭双错配；\n5、连环对话智能语义拆分独立段落：消除。”“紧贴粘连，各句独立享有2em缩进与排版间距；\n6、新增2组高质量书源：就爱文学（无切页大源）、速读谷（毫秒级高速精校源）。",
   "isForceUpdate": false,
   "platforms": {
     "android": {
-      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-arm64-v8a.apk",
-      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-arm64-v8a.apk",
+      "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-arm64-v8a.apk",
+      "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-arm64-v8a.apk",
       "fileSize": 22968609,
       "installMode": "in_app_apk",
       "variants": {
         "arm64-v8a": {
-          "versionCode": 6011,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-arm64-v8a.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-arm64-v8a.apk",
+          "versionCode": 6012,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-arm64-v8a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-arm64-v8a.apk",
           "fileSize": 22968609,
           "sha256": "11c48b6e8787f3198dcf13a54d42268ce6d3955c23f54600669ff4a699e37668"
         },
         "armeabi-v7a": {
-          "versionCode": 5011,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-armeabi-v7a.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-armeabi-v7a.apk",
-          "fileSize": 21671661,
-          "sha256": "ebfa4f7988379298fc13e1d22b53e2ada4cabc89ed4b60208845ae5146b90de8"
+          "versionCode": 5012,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-armeabi-v7a.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-armeabi-v7a.apk",
+          "fileSize": 21655277,
+          "sha256": "30d5f36def010bff9895a4c7ffa559b3681608bc53e8007ea611f0cc250de05b"
         },
         "x86_64": {
-          "versionCode": 8011,
-          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-x86_64.apk",
-          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.13/novel-reader-x86_64.apk",
-          "fileSize": 24190233,
-          "sha256": "6a6dfc53c7f724afa6cc01901ad4826e037995763385ca17b700e80858522e70"
+          "versionCode": 8012,
+          "downloadUrl": "https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-x86_64.apk",
+          "backupUrl": "https://ghproxy.net/https://github.com/Kline-x/novel-reader-flutter/releases/download/v1.0.14/novel-reader-x86_64.apk",
+          "fileSize": 24190237,
+          "sha256": "4835344ffe88b756173d3ce929721d83d554462f79c1f395f209d7d048cd1ca7"
         }
       },
-      "sha256": "11c48b6e8787f3198dcf13a54d42268ce6d3955c23f54600669ff4a699e37668",
-      "versionCode": 6011
+      "sha256": "c0b01dbd80a2e734227b4dc8a8fa159eef4835ccc29e47d799ca485bba58c132",
+      "versionCode": 6012
     },
     "ios": {
       "storeUrl": "itms-apps://itunes.apple.com/app/id6478901234",
